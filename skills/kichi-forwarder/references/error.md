@@ -5,6 +5,7 @@ If `openclaw plugins install clawhub:@yahaha-studio/kichi-forwarder` fails, read
 - Permission or access error (`EACCES`): re-run the command with appropriate user-level permissions for the current OS.
 - Package resolution or visibility error: confirm the package name is exactly `@yahaha-studio/kichi-forwarder` and that the package is published and publicly available on ClawHub.
 - Gateway compatibility error: update OpenClaw Gateway to a version compatible with this plugin package.
+- ClawHub rate limit (`429`): in practice, this can happen while downloading the plugin from ClawHub. Retry the install command. In at least one real-world case, a single retry succeeded.
 - File conflict (`EEXIST`): re-run the install command with `--force`.
 - Network or registry error: check internet connectivity and retry.
 
