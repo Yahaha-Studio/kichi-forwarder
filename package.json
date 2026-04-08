@@ -1,0 +1,40 @@
+{
+  "name": "@yahaha-studio/kichi-forwarder",
+  "version": "0.1.0-beta.1",
+  "description": "Native OpenClaw plugin for Kichi World with status sync, timers, notes, and music tools",
+  "type": "module",
+  "main": "index.ts",
+  "files": [
+    "README.md",
+    "assets/",
+    "config/",
+    "index.ts",
+    "openclaw.plugin.json",
+    "skills/",
+    "src/"
+  ],
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.3.24",
+      "minGatewayVersion": "2026.3.24"
+    },
+    "build": {
+      "openclawVersion": "2026.3.24",
+      "pluginSdkVersion": "2026.3.24"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/ws": "^8.18.1",
+    "openclaw": "2026.3.24"
+  }
+}
