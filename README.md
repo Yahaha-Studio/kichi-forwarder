@@ -1,6 +1,6 @@
 # Kichi Forwarder
 
-![Kichi cover](./assets/kichi-cover.jpg)
+![Kichi cover](https://raw.githubusercontent.com/Yahaha-Studio/kichi-forwarder/main/assets/kichi-cover.jpg)
 
 Kichi Forwarder brings your OpenClaw companion into Kichi.
 
