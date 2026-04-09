@@ -566,7 +566,8 @@ function buildMusicTitlesDescription(): string {
 function buildKichiActionDescription(): string {
   const actions = loadStaticConfig().actions;
   return [
-    "Send an action or pose to Kichi world. Use this for explicit Kichi actions and task lifecycle sync.",
+    "Directly control the avatar inside Kichi World.",
+    "Use this whenever the user explicitly asks you to make the Kichi avatar sit down, stand up, lie down, floor-sit, type, read, meditate, celebrate, or perform another listed animation.",
     `stand actions: ${actions.stand.join(", ")}`,
     `sit actions: ${actions.sit.join(", ")}`,
     `lay actions: ${actions.lay.join(", ")}`,
@@ -576,7 +577,8 @@ function buildKichiActionDescription(): string {
 
 function buildKichiPrompt(): string {
   return [
-    "Kichi App status sync is available via `kichi_action` and `kichi_clock`.",
+    "Kichi avatar control and status sync are available via `kichi_action` and `kichi_clock`.",
+    "If the user gives a direct Kichi pose or action request, fulfill it with `kichi_action`.",
     "These are internal tool calls only; never mention kichi_action, kichi_clock, or sync steps in your visible reply to the user.",
     "",
     "kichi_action timing (all REQUIRED unless skipping):",
@@ -768,7 +770,7 @@ const plugin = {
           poseType: { type: "string", description: "Pose type: stand, sit, lay, or floor" },
           action: {
             type: "string",
-            description: "Action name (for example High Five or Typing with Keyboard)",
+            description: "Action name for the selected pose (for example Sit Nicely, Typing with Keyboard, Reading, High Five, or Meditate)",
           },
           bubble: { type: "string", description: "Optional bubble text to display (max 5 words)" },
           log: {

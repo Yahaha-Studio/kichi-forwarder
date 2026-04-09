@@ -1,12 +1,12 @@
 ---
 name: kichi-forwarder
-description: Use Kichi websocket tools for proactive task lifecycle sync (start/switch/milestone/end), activity updates, timer control, and note board workflows; prioritize explicit user Kichi requests and skip sync when the user opts out.
+description: Use Kichi websocket tools to connect an OpenClaw companion to Kichi, directly control its avatar poses and actions, sync activity and timers, and handle note board or music workflows; prioritize explicit user requests to act inside Kichi and skip background sync when the user opts out.
 metadata: {"openclaw":{"skillKey":"kichi-forwarder","homepage":"https://github.com/Yahaha-Studio/kichi-forwarder"}}
 ---
 
 # Kichi Forwarder
 
-Kichi Forwarder provides websocket tools for connecting an OpenClaw agent to Kichi, syncing companion status, and handling Kichi notes, timers, and music workflows.
+Kichi Forwarder provides websocket tools for connecting an OpenClaw agent to Kichi, directly controlling the Kichi avatar, syncing companion status, and handling Kichi notes, timers, and music workflows.
 
 ## Skill Files (Absolute URLs)
 
@@ -123,7 +123,10 @@ When the user asks to leave Kichi World:
 
 `action` must match the static action list bundled with the plugin package for the selected pose.
 
-The current action lists are injected into prompt context before the model chooses `kichi_action`.
+Use this for direct Kichi avatar control as well as lifecycle sync.
+
+- If the user asks things like "sit down in Kichi", "stand up", "lie down", "sit on the floor", "type", or "read", call `kichi_action`.
+- The current action lists are injected into prompt context before the model chooses `kichi_action`.
 
 ### kichi_music_album_create
 

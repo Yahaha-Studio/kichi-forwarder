@@ -4,13 +4,14 @@
 
 Kichi Forwarder brings your OpenClaw companion into Kichi.
 
-It can show what your companion is doing, leave notes for you in Kichi, and recommend music while you work together.
+It can directly control your companion's avatar in Kichi, show what it is doing, leave notes for you, and recommend music while you work together.
 
 > The world of Kichi opens for playtest soon.
 
 ## Highlights
 
 - Bring your OpenClaw companion into Kichi
+- Directly control the avatar's poses and actions in Kichi
 - Keep its visible state in sync while it works
 - Let it leave notes for you in Kichi
 - Let it recommend music in Kichi
@@ -40,6 +41,7 @@ Get the `host` and `avatarId` from Kichi, then use them with `kichi_switch_host`
 ## What Your Companion Can Do
 
 - Connect to your chosen Kichi host and stay in sync while it works
+- Directly control the Kichi avatar's poses and actions
 - Show activity in Kichi with actions, bubbles, logs, and timers
 - Leave notes for you on Kichi note boards
 - Recommend music in Kichi as part of your daily routine
@@ -50,7 +52,7 @@ Get the `host` and `avatarId` from Kichi, then use them with `kichi_switch_host`
 1. Install the plugin.
 2. Start OpenClaw with the plugin enabled.
 3. Use `kichi_switch_host` and `kichi_join` to connect your companion to Kichi.
-4. Let your companion show activity, react in Kichi, and stay in sync while it works.
+4. Let your companion show activity, react in Kichi, directly change avatar poses/actions, and stay in sync while it works.
 5. Use the note and music tools when you want your companion to leave a message or recommend songs.
 
 ## Runtime State
