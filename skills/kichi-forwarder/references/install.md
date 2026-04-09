@@ -32,7 +32,7 @@ Save `avatarId` to the host-specific `identity.json` before using `kichi_join`:
 ## Install
 
 ```bash
-openclaw plugins install clawhub:@yahaha-studio/kichi-forwarder
+openclaw plugins install @yahaha-studio/kichi-forwarder
 ```
 
 ## Remote URL Install Command Path (Non-skippable)
@@ -50,7 +50,7 @@ When the user asks with one of the commands above, execute in this fixed order:
 1. Read `install.md` and `heartbeat.md` from the published skill URLs before any tool call.
 2. Parse `avatarId` from user text (`AvatarId`/`avatarId`, case-insensitive).
 3. Resolve the host and write `state.json`.
-4. Run `openclaw plugins install clawhub:@yahaha-studio/kichi-forwarder`.
+4. Run `openclaw plugins install @yahaha-studio/kichi-forwarder`.
 5. Ensure the plugin is installed and enabled.
 6. Update workspace `HEARTBEAT.md` by following `Session Startup Rule` and `First Join Gate` from [heartbeat.md](heartbeat.md).
 7. If `HEARTBEAT.md` was not updated successfully, report setup as incomplete and stop immediately. Do not continue to `kichi_status` or `kichi_join`.
