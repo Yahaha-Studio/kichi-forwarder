@@ -13,6 +13,8 @@ import type {
   CreateNotesBoardNotePayload,
   HookNotifyPayload,
   HookNotifyType,
+  IdlePlanContent,
+  IdlePlanPayload,
   JoinAckPayload,
   JoinPayload,
   KichiConnectionStatus,
@@ -156,6 +158,18 @@ export class KichiForwarderService {
       bubble,
     };
     this.ws.send(JSON.stringify(payload));
+  }
+
+  sendIdlePlan(payload: IdlePlanContent): boolean {
+    if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) return false;
+    const outboundPayload: IdlePlanPayload = {
+      type: "kichi_idle_plan",
+      avatarId: this.identity.avatarId,
+      authKey: this.identity.authKey,
+      ...payload,
+    };
+    this.ws.send(JSON.stringify(outboundPayload));
+    return true;
   }
 
   sendClock(action: ClockAction, clock?: ClockConfig, requestId?: string): boolean {

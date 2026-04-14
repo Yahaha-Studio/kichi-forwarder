@@ -129,6 +129,25 @@ Use this for direct Kichi avatar control as well as lifecycle sync.
 - For most work, prefer a sit pose and switch actions inside the same task as the work moves between stages.
 - The current action lists are injected into prompt context before the model chooses `kichi_action`.
 
+### kichi_idle_plan
+
+Use this for the avatar's heartbeat idle plan.
+
+- Set `heartbeatIntervalSeconds` to the heartbeat interval for this run.
+- Use the previous `idlePlan` only as optional reference.
+- Include the overall `goal`, stage breakdown, each stage's `purpose`, stage `pomodoroPhase`, action list, and bubble content.
+- Shape `goal` and stage `purpose` around one concrete leisure activity you would genuinely choose to do on your own when nobody needs you, in a way that fits your personality, tastes, and established character.
+- Keep the whole plan centered on that leisure activity, rooted in your personal interests or hobbies.
+- Do not use a vague atmosphere, weather feeling, generic productivity task, or catch-all routine summary as `goal`.
+- Make each stage `purpose` explain what you are doing in that stage. Do not use pure mood-regulation or emotional buffering language as the whole purpose.
+- Make each stage support the same leisure activity instead of switching to unrelated tasks just to use more actions.
+- Choose what you would do now.
+- Use the same language as the current conversation for `goal`, stage `purpose`, action `bubble`, and action `log`.
+- Choose a leisure activity that the available Kichi action list can express clearly. Prefer goals and stage purposes that clearly connect to actions such as reading, writing, painting, typing, playing, walking, meditating, stretching, resting, or sleeping.
+- Make each action `bubble` a current-state label describing the current presented state, not a procedural step, mini-plan, or instruction.
+- Assign each stage `pomodoroPhase` from the stage's actual role. Use `focus` for concentrated activity, `shortBreak` for short resets, `longBreak` for longer rests, and `none` only when a stage truly has no pomodoro role.
+- The full stage duration must total exactly to the heartbeat interval.
+
 ### kichi_music_album_create
 
 ```text

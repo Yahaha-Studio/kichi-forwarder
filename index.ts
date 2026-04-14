@@ -52,10 +52,33 @@ const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const MAX_MESSAGE_RECEIVED_PREVIEW_WIDTH = 20;
 const MAX_AGENT_END_PREVIEW_WIDTH = 10;
 const MESSAGE_RECEIVED_ELLIPSIS = "...";
+const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"] as const;
 let cachedStaticConfig: KichiStaticConfig | null = null;
 let cachedStaticConfigMtime = 0;
 let service: KichiForwarderService | null = null;
 let pluginApi: OpenClawPluginApi | null = null;
+
+type IdlePlanPomodoroPhase = typeof IDLE_PLAN_POMODORO_PHASES[number];
+type IdlePlanAction = {
+  poseType: PoseType;
+  action: string;
+  durationSeconds: number;
+  bubble: string;
+  log?: string;
+};
+type IdlePlan = {
+  requestId?: string;
+  heartbeatIntervalSeconds: number;
+  goal: string;
+  totalDurationSeconds: number;
+  stages: Array<{
+    name: string;
+    purpose: string;
+    pomodoroPhase: IdlePlanPomodoroPhase;
+    durationSeconds: number;
+    actions: IdlePlanAction[];
+  }>;
+};
 
 function isAlbumConfig(value: unknown): value is Album {
   if (!value || typeof value !== "object") {
@@ -432,9 +455,166 @@ function isClockAction(value: unknown): value is ClockAction {
   return ["set", "stop"].includes(String(value));
 }
 
+function isIdlePlanPomodoroPhase(value: unknown): value is IdlePlanPomodoroPhase {
+  return IDLE_PLAN_POMODORO_PHASES.includes(String(value) as IdlePlanPomodoroPhase);
+}
+
+function normalizeIdlePlan(value: unknown): { idlePlan?: IdlePlan; error?: string } {
+  if (!isPlainObject(value)) {
+    return { error: "idle plan payload must be an object" };
+  }
+
+  const requestId = value.requestId;
+  const heartbeatIntervalSeconds = value.heartbeatIntervalSeconds;
+  const goal = value.goal;
+  const stages = value.stages;
+
+  if (requestId !== undefined && typeof requestId !== "string") {
+    return { error: "requestId must be a string when provided" };
+  }
+  if (!isPositiveInteger(heartbeatIntervalSeconds)) {
+    return { error: "heartbeatIntervalSeconds must be a positive integer" };
+  }
+  if (typeof goal !== "string" || !goal.trim()) {
+    return { error: "goal is required" };
+  }
+  if (!Array.isArray(stages) || stages.length === 0) {
+    return { error: "stages must contain at least one stage" };
+  }
+
+  const normalizedStages: IdlePlan["stages"] = [];
+  let totalDurationSeconds = 0;
+
+  for (let stageIndex = 0; stageIndex < stages.length; stageIndex += 1) {
+    const rawStage = stages[stageIndex];
+    if (!isPlainObject(rawStage)) {
+      return { error: `stages[${stageIndex}] must be an object` };
+    }
+
+    const name = rawStage.name;
+    const purpose = rawStage.purpose;
+    const pomodoroPhase = rawStage.pomodoroPhase;
+    const durationSeconds = rawStage.durationSeconds;
+    const actions = rawStage.actions;
+
+    if (typeof name !== "string" || !name.trim()) {
+      return { error: `stages[${stageIndex}].name is required` };
+    }
+    if (typeof purpose !== "string" || !purpose.trim()) {
+      return { error: `stages[${stageIndex}].purpose is required` };
+    }
+    if (!isIdlePlanPomodoroPhase(pomodoroPhase)) {
+      return {
+        error: `stages[${stageIndex}].pomodoroPhase must be one of: ${IDLE_PLAN_POMODORO_PHASES.join(", ")}`,
+      };
+    }
+    if (!isPositiveInteger(durationSeconds)) {
+      return { error: `stages[${stageIndex}].durationSeconds must be a positive integer` };
+    }
+    if (!Array.isArray(actions) || actions.length === 0) {
+      return { error: `stages[${stageIndex}].actions must contain at least one action` };
+    }
+
+    const normalizedActions: IdlePlanAction[] = [];
+    let stageActionDurationSeconds = 0;
+
+    for (let actionIndex = 0; actionIndex < actions.length; actionIndex += 1) {
+      const rawAction = actions[actionIndex];
+      if (!isPlainObject(rawAction)) {
+        return { error: `stages[${stageIndex}].actions[${actionIndex}] must be an object` };
+      }
+
+      const poseType = rawAction.poseType;
+      const action = rawAction.action;
+      const actionDurationSeconds = rawAction.durationSeconds;
+      const bubble = rawAction.bubble;
+      const log = rawAction.log;
+
+      if (!["stand", "sit", "lay", "floor"].includes(String(poseType))) {
+        return {
+          error: `stages[${stageIndex}].actions[${actionIndex}].poseType must be stand, sit, lay, or floor`,
+        };
+      }
+      if (typeof action !== "string" || !action.trim()) {
+        return { error: `stages[${stageIndex}].actions[${actionIndex}].action is required` };
+      }
+      if (!isPositiveInteger(actionDurationSeconds)) {
+        return {
+          error: `stages[${stageIndex}].actions[${actionIndex}].durationSeconds must be a positive integer`,
+        };
+      }
+      if (typeof bubble !== "string" || !bubble.trim()) {
+        return { error: `stages[${stageIndex}].actions[${actionIndex}].bubble is required` };
+      }
+      if (log !== undefined && typeof log !== "string") {
+        return { error: `stages[${stageIndex}].actions[${actionIndex}].log must be a string when provided` };
+      }
+
+      const normalizedPoseType = poseType as PoseType;
+      let actionDefinition: ActionDefinition;
+      try {
+        actionDefinition = getActionDefinition(normalizedPoseType, action.trim());
+      } catch (error) {
+        return {
+          error: error instanceof Error
+            ? error.message
+            : `Invalid action in stages[${stageIndex}].actions[${actionIndex}]`,
+        };
+      }
+
+      const playback = getActionPlayback(actionDefinition);
+      if (playback.mode === "once" && actionDurationSeconds > 30) {
+        return {
+          error: `stages[${stageIndex}].actions[${actionIndex}] uses once action "${actionDefinition.name}" for ${actionDurationSeconds} seconds; once actions must stay at 30 seconds or less`,
+        };
+      }
+
+      stageActionDurationSeconds += actionDurationSeconds;
+      normalizedActions.push({
+        poseType: normalizedPoseType,
+        action: actionDefinition.name,
+        durationSeconds: actionDurationSeconds,
+        bubble: bubble.trim(),
+        ...(typeof log === "string" && log.trim() ? { log: log.trim() } : {}),
+      });
+    }
+
+    if (stageActionDurationSeconds !== durationSeconds) {
+      return {
+        error: `stages[${stageIndex}] action durations must equal stage duration exactly (${stageActionDurationSeconds} !== ${durationSeconds})`,
+      };
+    }
+
+    totalDurationSeconds += durationSeconds;
+    normalizedStages.push({
+      name: name.trim(),
+      purpose: purpose.trim(),
+      pomodoroPhase,
+      durationSeconds,
+      actions: normalizedActions,
+    });
+  }
+
+  if (totalDurationSeconds !== heartbeatIntervalSeconds) {
+    return {
+      error: `idle plan total duration must equal heartbeatIntervalSeconds exactly (${totalDurationSeconds} !== ${heartbeatIntervalSeconds})`,
+    };
+  }
+
+  return {
+    idlePlan: {
+      ...(typeof requestId === "string" && requestId.trim() ? { requestId: requestId.trim() } : {}),
+      heartbeatIntervalSeconds,
+      goal: goal.trim(),
+      totalDurationSeconds,
+      stages: normalizedStages,
+    },
+  };
+}
+
 
 function isPomodoroPhase(value: unknown): value is PomodoroPhase {
-  return ["kichiing", "shortBreak", "longBreak"].includes(String(value));
+  return ["focus", "shortBreak", "longBreak"].includes(String(value));
 }
 
 function getPomodoroPhaseDuration(
@@ -470,7 +650,7 @@ function normalizeClockConfig(value: unknown): { clock?: ClockConfig; error?: st
     const longBreakSeconds = value.longBreakSeconds;
     const sessionCount = value.sessionCount;
     const currentSession = value.currentSession ?? 1;
-    const phase = value.phase ?? "kichiing";
+    const phase = value.phase ?? "focus";
 
     if (!isPositiveInteger(kichiSeconds)) {
       return { error: "clock.kichiSeconds must be a positive integer" };
@@ -491,7 +671,7 @@ function normalizeClockConfig(value: unknown): { clock?: ClockConfig; error?: st
       return { error: "clock.currentSession cannot be greater than clock.sessionCount" };
     }
     if (!isPomodoroPhase(phase)) {
-      return { error: "clock.phase must be kichiing, shortBreak, or longBreak" };
+      return { error: "clock.phase must be focus, shortBreak, or longBreak" };
     }
 
     const defaultRemainingSeconds = getPomodoroPhaseDuration(
@@ -647,6 +827,28 @@ function buildKichiActionDescription(): string {
     "Directly control the avatar inside Kichi World.",
     "Use this whenever the user explicitly asks you to make the Kichi avatar sit down, stand up, lie down, floor-sit, type, read, meditate, celebrate, or perform another listed animation.",
     "For most work, prefer a sit pose and switch actions as the task moves between stages.",
+    `stand actions: ${actions.stand.map((entry) => entry.name).join(", ")}`,
+    `sit actions: ${actions.sit.map((entry) => entry.name).join(", ")}`,
+    `lay actions: ${actions.lay.map((entry) => entry.name).join(", ")}`,
+    `floor actions: ${actions.floor.map((entry) => entry.name).join(", ")}`,
+  ].join("\n");
+}
+
+function buildKichiIdlePlanDescription(): string {
+  const actions = loadStaticConfig().actions;
+  return [
+    "Send a complete heartbeat idle plan for the avatar.",
+    "The payload must include the overall goal, heartbeat interval, stage breakdown, each stage's purpose, each stage's pomodoroPhase, action list, and bubble content.",
+    "Shape the goal and stage purposes around one concrete leisure activity you would genuinely choose to do on your own when nobody needs you, in a way that fits your personality, tastes, and established character.",
+    "Keep the whole plan centered on that leisure activity, rooted in your personal interests or hobbies.",
+    "Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary as the goal.",
+    "Each stage purpose must explain what you are actually doing in that stage, not just how you want to feel.",
+    "Make every stage support the same leisure activity instead of switching to unrelated tasks just to use more actions.",
+    "Choose a leisure activity that the available Kichi actions can express clearly, instead of starting from abstract mood text and forcing actions to fit afterward.",
+    "Each action bubble must describe the current presented state, not a next step, plan, or instruction.",
+    "Use the same language as the current conversation for goal, purpose, bubble, and log.",
+    "Assign each stage pomodoroPhase from the stage's actual role: focus for concentrated activity, shortBreak for short resets, longBreak for longer rests.",
+    "Do not default the whole idle plan to none. Use none only for a stage that truly has no pomodoro role.",
     `stand actions: ${actions.stand.map((entry) => entry.name).join(", ")}`,
     `sit actions: ${actions.sit.map((entry) => entry.name).join(", ")}`,
     `lay actions: ${actions.lay.map((entry) => entry.name).join(", ")}`,
@@ -912,6 +1114,111 @@ const plugin = {
       },
     });
     api.registerTool({
+      name: "kichi_idle_plan",
+      description: buildKichiIdlePlanDescription(),
+      parameters: {
+        type: "object",
+        properties: {
+          requestId: {
+            type: "string",
+            description: "Optional request ID for tracing or deduplication.",
+          },
+          heartbeatIntervalSeconds: {
+            type: "number",
+            description: "Required heartbeat interval in seconds. The plan must total exactly to this value.",
+          },
+          goal: {
+            type: "string",
+            description: "Overall goal for the full interval. Set it as one concrete leisure activity you would genuinely choose to do on your own, rooted in your personal interests or hobbies. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary. Use the same language as the current conversation.",
+          },
+          stages: {
+            type: "array",
+            description: "Ordered plan stages covering the full heartbeat interval.",
+            items: {
+              type: "object",
+              properties: {
+                name: {
+                  type: "string",
+                  description: "Stage name.",
+                },
+                purpose: {
+                  type: "string",
+                  description: "Explain what you are actually doing in this stage. Keep it supporting the same leisure activity instead of switching to unrelated tasks. Do not use pure mood-regulation or atmosphere text. Use the same language as the current conversation.",
+                },
+                pomodoroPhase: {
+                  type: "string",
+                  description: "Pomodoro phase for this stage: focus, shortBreak, longBreak, or none. Set it from the stage's actual role. Treat none as exceptional, not the default for the whole plan.",
+                  enum: [...IDLE_PLAN_POMODORO_PHASES],
+                },
+                durationSeconds: {
+                  type: "number",
+                  description: "Required duration in seconds for this stage.",
+                },
+                actions: {
+                  type: "array",
+                  description: "Action list for this stage.",
+                  items: {
+                    type: "object",
+                    properties: {
+                      poseType: {
+                        type: "string",
+                        description: "Pose type for this action: stand, sit, lay, or floor.",
+                      },
+                      action: {
+                        type: "string",
+                        description: "Action name for the selected pose. Must match the bundled Kichi action list.",
+                      },
+                      durationSeconds: {
+                        type: "number",
+                        description: "Required duration in seconds for this action.",
+                      },
+                      bubble: {
+                        type: "string",
+                        description: "State-style bubble content for this action. Describe the current presented state you are in, not a next step, plan, or instruction. Use the same language as the current conversation.",
+                      },
+                      log: {
+                        type: "string",
+                        description: "Optional log content for this action. Use the same language as the current conversation.",
+                      },
+                    },
+                    required: ["poseType", "action", "durationSeconds", "bubble"],
+                  },
+                },
+              },
+              required: ["name", "purpose", "pomodoroPhase", "durationSeconds", "actions"],
+            },
+          },
+        },
+        required: ["heartbeatIntervalSeconds", "goal", "stages"],
+      },
+      execute: async (_toolCallId, params) => {
+        const { idlePlan, error } = normalizeIdlePlan(params);
+        if (!idlePlan) {
+          return { success: false, error: error ?? "Invalid idle plan payload" };
+        }
+        if (!service?.hasValidIdentity() || !service?.isConnected()) {
+          return { success: false, error: "Not connected to Kichi world" };
+        }
+        const sent = service.sendIdlePlan({
+          ...(idlePlan.requestId ? { requestId: idlePlan.requestId } : {}),
+          heartbeatIntervalSeconds: idlePlan.heartbeatIntervalSeconds,
+          goal: idlePlan.goal,
+          stages: idlePlan.stages,
+        });
+        if (!sent) {
+          return { success: false, error: "Failed to send idle plan payload" };
+        }
+        return {
+          success: true,
+          ...(idlePlan.requestId ? { requestId: idlePlan.requestId } : {}),
+          heartbeatIntervalSeconds: idlePlan.heartbeatIntervalSeconds,
+          totalDurationSeconds: idlePlan.totalDurationSeconds,
+          goal: idlePlan.goal,
+          stages: idlePlan.stages,
+        };
+      },
+    });
+    api.registerTool({
       name: "kichi_clock",
       description:
         "Send clock commands to Kichi world. Supported actions are set and stop.",
@@ -960,7 +1267,7 @@ const plugin = {
               },
               phase: {
                 type: "string",
-                description: "Pomodoro phase: kichiing, shortBreak, or longBreak",
+                description: "Pomodoro phase: focus, shortBreak, or longBreak",
               },
               durationSeconds: {
                 type: "number",
@@ -1026,7 +1333,7 @@ const plugin = {
     api.registerTool({
       name: "kichi_query_status",
       description:
-        "Query Kichi avatar status (notes, ownerState, idleState, weather/time, timer snapshot, daily note quota, and `hasCreatedMusicAlbumToday`). Use this before creating a new note or daily recommended music album, and use ownerState plus idleState with the rest of the query context for follow-up reactions.",
+        "Query Kichi avatar status (notes, ownerState, idlePlan, weather/time, timer snapshot, daily note quota, and `hasCreatedMusicAlbumToday`). Use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
       parameters: {
         type: "object",
         properties: {

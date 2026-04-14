@@ -4,7 +4,7 @@
 			{
 				"name": "High Five",
 				"playback": "once",
-				"resumeAction": "Arms Crossed"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Listen Music",
@@ -13,17 +13,17 @@
 			{
 				"name": "Arm Stretch",
 				"playback": "once",
-				"resumeAction": "Arms Crossed"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Backbend Stretch",
 				"playback": "once",
-				"resumeAction": "Arms Crossed"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Making Selfie",
 				"playback": "once",
-				"resumeAction": "Arms Crossed"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Arms Crossed",
@@ -32,7 +32,7 @@
 			{
 				"name": "Epiphany",
 				"playback": "once",
-				"resumeAction": "Arms Crossed"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Angry",
@@ -41,7 +41,7 @@
 			{
 				"name": "Yay",
 				"playback": "once",
-				"resumeAction": "Wait"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Dance",
@@ -70,7 +70,7 @@
 			{
 				"name": "Curtsy",
 				"playback": "once",
-				"resumeAction": "Wait"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Stand Writing",
@@ -115,7 +115,7 @@
 			{
 				"name": "No",
 				"playback": "once",
-				"resumeAction": "Arms Crossed"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Panic",
@@ -124,7 +124,7 @@
 			{
 				"name": "Playful Point Up",
 				"playback": "once",
-				"resumeAction": "Arms Crossed"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Rub Hands",
@@ -133,12 +133,12 @@
 			{
 				"name": "Run Jump",
 				"playback": "once",
-				"resumeAction": "Arms Crossed"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Star Showing",
 				"playback": "once",
-				"resumeAction": "Arms Crossed"
+				"resumeAction": "Idle Backup Hands"
 			},
 			{
 				"name": "Walk",
