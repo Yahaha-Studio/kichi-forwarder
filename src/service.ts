@@ -5,6 +5,7 @@ import * as path from "path";
 import { randomUUID } from "node:crypto";
 import type { Logger } from "openclaw/plugin-sdk";
 import type {
+  ActionPlayback,
   ClockAction,
   ClockConfig,
   ClockPayload,
@@ -131,7 +132,7 @@ export class KichiForwarderService {
     });
   }
 
-  sendStatus(poseType: PoseType | "", action: string, bubble: string, log: string): void {
+  sendStatus(poseType: PoseType | "", action: string, bubble: string, log: string, playback: ActionPlayback): void {
     if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) return;
     const payload: StatusPayload = {
       type: "status",
@@ -141,6 +142,7 @@ export class KichiForwarderService {
       action,
       bubble,
       log,
+      playback,
     };
     this.ws.send(JSON.stringify(payload));
   }

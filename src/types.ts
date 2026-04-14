@@ -1,6 +1,16 @@
 export type KichiForwarderConfig = Record<string, never>;
 
 export type PoseType = "stand" | "sit" | "lay" | "floor";
+export type ActionPlaybackMode = "loop" | "once";
+export type ActionPlayback = {
+  mode: ActionPlaybackMode;
+  resumeAction?: string;
+};
+export type ActionDefinition = {
+  name: string;
+  playback: ActionPlaybackMode;
+  resumeAction?: string;
+};
 
 export type ActionResult = {
   poseType: PoseType;
@@ -10,7 +20,7 @@ export type ActionResult = {
 };
 
 export type KichiStaticConfig = {
-  actions: Record<PoseType, string[]>;
+  actions: Record<PoseType, ActionDefinition[]>;
   album: Album;
 };
 
@@ -97,6 +107,7 @@ export type StatusPayload = {
   action: string;
   bubble: string;
   log: string;
+  playback: ActionPlayback;
 };
 
 export type HookNotifyType = "message_received" | "before_send_message";

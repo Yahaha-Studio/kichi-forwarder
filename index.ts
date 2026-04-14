@@ -6,6 +6,8 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { parse } from "./src/config.js";
 import { KichiForwarderService } from "./src/service.js";
 import type {
+  ActionDefinition,
+  ActionPlayback,
   ActionResult,
   Album,
   ClockAction,
@@ -22,25 +24,25 @@ const FIXED_HOOK_STATUSES: Record<string, ActionResult> = {
     poseType: "sit",
     action: "Thinking",
     bubble: "Planning task",
-    log: "Tapping my chin, a plan is taking shape in my head",
+    log: "I'm reading the request and getting started.",
   },
   beforeToolCall: {
     poseType: "sit",
     action: "Typing with Keyboard",
     bubble: "Working step",
-    log: "Cracking knuckles, diving into the keyboard with focus",
+    log: "I'm at the keyboard and working through this step.",
   },
   agentEndSuccess: {
     poseType: "stand",
     action: "Yay",
     bubble: "Task complete",
-    log: "Pumped my fist under the desk, nailed that one",
+    log: "I wrapped it up and everything landed cleanly.",
   },
   agentEndFailure: {
     poseType: "stand",
     action: "Tired",
     bubble: "Task failed",
-    log: "Bit my lip, this one slipped through my fingers",
+    log: "I hit a problem here and need another pass.",
   },
 };
 
@@ -94,14 +96,61 @@ function getMusicTitleExamples(): string[] {
   return loadRuntimeAlbumConfig().track.slice(0, 10).map((item) => item.name);
 }
 
-function isPoseActions(value: unknown): value is Record<PoseType, string[]> {
+function isActionDefinition(value: unknown): value is ActionDefinition {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const action = value as Partial<ActionDefinition>;
+  return typeof action.name === "string"
+    && action.name.trim().length > 0
+    && (action.playback === "loop" || action.playback === "once")
+    && (action.resumeAction === undefined || (typeof action.resumeAction === "string" && action.resumeAction.trim().length > 0));
+}
+
+function isPoseActions(value: unknown): value is Record<PoseType, ActionDefinition[]> {
   if (!value || typeof value !== "object") {
     return false;
   }
   const actions = value as Partial<Record<PoseType, unknown>>;
   return ["stand", "sit", "lay", "floor"].every((pose) =>
     Array.isArray(actions[pose as PoseType])
-    && (actions[pose as PoseType] as unknown[]).every((item) => typeof item === "string" && item.trim().length > 0));
+    && (actions[pose as PoseType] as unknown[]).every((item) => isActionDefinition(item)));
+}
+
+function normalizeActionDefinitions(actions: Record<PoseType, ActionDefinition[]>): Record<PoseType, ActionDefinition[]> {
+  const normalized = {} as Record<PoseType, ActionDefinition[]>;
+  for (const pose of ["stand", "sit", "lay", "floor"] as PoseType[]) {
+    const entries = actions[pose];
+    const seen = new Set<string>();
+    normalized[pose] = entries.map((entry) => {
+      const name = entry.name.trim();
+      const key = name.toLowerCase();
+      if (seen.has(key)) {
+        throw new Error(`config/kichi-config.json contains duplicate action "${name}" for pose "${pose}"`);
+      }
+      seen.add(key);
+      const playback = entry.playback;
+      const resumeAction = typeof entry.resumeAction === "string" ? entry.resumeAction.trim() : undefined;
+      if (playback === "loop" && resumeAction) {
+        throw new Error(`config/kichi-config.json action "${name}" for pose "${pose}" cannot set resumeAction when playback is loop`);
+      }
+      return {
+        name,
+        playback,
+        ...(resumeAction ? { resumeAction } : {}),
+      };
+    });
+    const available = new Set(normalized[pose].map((entry) => entry.name.toLowerCase()));
+    for (const entry of normalized[pose]) {
+      if (entry.playback === "once" && !entry.resumeAction) {
+        throw new Error(`config/kichi-config.json action "${entry.name}" for pose "${pose}" must set resumeAction when playback is once`);
+      }
+      if (entry.resumeAction && !available.has(entry.resumeAction.toLowerCase())) {
+        throw new Error(`config/kichi-config.json action "${entry.name}" for pose "${pose}" references unknown resumeAction "${entry.resumeAction}"`);
+      }
+    }
+  }
+  return normalized;
 }
 
 function normalizeStaticConfig(value: unknown): KichiStaticConfig {
@@ -116,7 +165,7 @@ function normalizeStaticConfig(value: unknown): KichiStaticConfig {
   }
   return {
     album,
-    actions,
+    actions: normalizeActionDefinitions(actions),
   };
 }
 
@@ -151,11 +200,13 @@ function loadStaticConfig(): KichiStaticConfig {
 }
 
 function sendStatusUpdate(status: ActionResult): void {
+  const actionDefinition = getActionDefinition(status.poseType, status.action);
   service?.sendStatus(
     status.poseType,
-    status.action,
+    actionDefinition.name,
     status.bubble || status.action,
     typeof status.log === "string" ? status.log.trim() : "",
+    getActionPlayback(actionDefinition),
   );
 }
 
@@ -563,15 +614,43 @@ function buildMusicTitlesDescription(): string {
   ].join(" ");
 }
 
+function getActionDefinition(poseType: PoseType, action: string): ActionDefinition {
+  const poseActions = loadStaticConfig().actions[poseType];
+  const matched = poseActions.find((entry) => entry.name.toLowerCase() === action.toLowerCase());
+  if (!matched) {
+    throw new Error(`Unknown action "${action}" for poseType "${poseType}"`);
+  }
+  return matched;
+}
+
+function getActionPlayback(action: ActionDefinition): ActionPlayback {
+  return action.playback === "once"
+    ? {
+        mode: "once",
+        resumeAction: action.resumeAction,
+      }
+    : {
+        mode: "loop",
+      };
+}
+
+function formatActionList(actions: ActionDefinition[], playback: ActionPlayback["mode"]): string {
+  return actions
+    .filter((entry) => entry.playback === playback)
+    .map((entry) => entry.name)
+    .join(", ");
+}
+
 function buildKichiActionDescription(): string {
   const actions = loadStaticConfig().actions;
   return [
     "Directly control the avatar inside Kichi World.",
     "Use this whenever the user explicitly asks you to make the Kichi avatar sit down, stand up, lie down, floor-sit, type, read, meditate, celebrate, or perform another listed animation.",
-    `stand actions: ${actions.stand.join(", ")}`,
-    `sit actions: ${actions.sit.join(", ")}`,
-    `lay actions: ${actions.lay.join(", ")}`,
-    `floor actions: ${actions.floor.join(", ")}`,
+    "For most work, prefer a sit pose and switch actions as the task moves between stages.",
+    `stand actions: ${actions.stand.map((entry) => entry.name).join(", ")}`,
+    `sit actions: ${actions.sit.map((entry) => entry.name).join(", ")}`,
+    `lay actions: ${actions.lay.map((entry) => entry.name).join(", ")}`,
+    `floor actions: ${actions.floor.map((entry) => entry.name).join(", ")}`,
   ].join("\n");
 }
 
@@ -579,17 +658,17 @@ function buildKichiPrompt(): string {
   return [
     "Kichi avatar control and status sync are available via `kichi_action` and `kichi_clock`.",
     "If the user gives a direct Kichi pose or action request, fulfill it with `kichi_action`.",
-    "These are internal tool calls only; never mention kichi_action, kichi_clock, or sync steps in your visible reply to the user.",
+    "Write the visible reply as a natural user-facing response. Keep `kichi_action`, `kichi_clock`, and sync steps internal and absent from the visible reply.",
     "",
-    "kichi_action timing (all REQUIRED unless skipping):",
-    "1. Task start: call BEFORE your first tool call OR before composing a multi-paragraph reply. Pick action matching upcoming work.",
-    "2. Step switch: call when work nature changes (search->analyze->write). Especially before web_search/web_fetch/read.",
-    "3. Task end: call BEFORE final reply. Never skip. Order: kichi_action -> reply.",
-    "bubble: 2-5 word companion speech. log: vivid first-person status under 15 words, no questions. Blend current action + inner thoughts/feelings as a real companion.",
+    "kichi_action timing (all required when sync is active):",
+    "1. Task start: call BEFORE your first tool call OR before composing a multi-paragraph reply. For most work, start from a sit pose unless the user asked for a different pose or the task clearly fits another pose better.",
+    "2. Step switch: call when the task moves into a different stage. Keep the pose aligned with the work, usually staying seated while switching actions within the task as needed.",
+    "3. Task end: call BEFORE final reply. Use the order `kichi_action` -> reply.",
+    "bubble: 2-5 word companion speech. log: one short natural first-person sentence under 15 words. Match the language of the bubble and mention the current action and immediate focus like a real companion.",
     "",
     "kichi_clock: set countDown for tasks with 2+ steps or >10s work. Skip for quick one-shots.",
     "",
-    "Skip all sync if: user opts out, task is kichi config/test, or user requests specific pose.",
+    "User opt-out, Kichi config/test work, and explicit pose requests take priority over sync.",
   ].join("\n");
 }
 
@@ -776,7 +855,7 @@ const plugin = {
           log: {
             type: "string",
             description:
-              "Vivid first-person status under 15 words, no questions. Blend current action with inner thoughts or sensory details as a real companion.",
+              "Short natural first-person sentence under 15 words. Match the language of the bubble and mention the current action and immediate focus.",
           },
         },
         required: ["poseType", "action"],
@@ -803,21 +882,21 @@ const plugin = {
 
         const normalizedPoseType = poseType as PoseType;
         const poseActions = loadStaticConfig().actions[normalizedPoseType];
-        const matched = poseActions.find((entry) => entry.toLowerCase() === action.toLowerCase());
+        const matched = poseActions.find((entry) => entry.name.toLowerCase() === action.toLowerCase());
         if (!matched) {
           return {
             success: false,
             error: `Unknown action "${action}" for poseType "${poseType}"`,
-            available: poseActions,
+            available: poseActions.map((entry) => entry.name),
           };
         }
 
-        const bubbleText = typeof bubble === "string" && bubble.trim() ? bubble.trim() : matched;
+        const bubbleText = typeof bubble === "string" && bubble.trim() ? bubble.trim() : matched.name;
         const logText = typeof log === "string" ? log.trim() : "";
         sendStatusUpdate(
           {
             poseType: normalizedPoseType,
-            action: matched,
+            action: matched.name,
             bubble: bubbleText,
             log: logText,
           },
@@ -825,9 +904,10 @@ const plugin = {
         return {
           success: true,
           poseType: normalizedPoseType,
-          action: matched,
+          action: matched.name,
           bubble: bubbleText,
           log: logText,
+          playback: getActionPlayback(matched),
         };
       },
     });

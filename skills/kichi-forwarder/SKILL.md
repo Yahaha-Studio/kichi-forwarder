@@ -126,6 +126,7 @@ When the user asks to leave Kichi World:
 Use this for direct Kichi avatar control as well as lifecycle sync.
 
 - If the user asks things like "sit down in Kichi", "stand up", "lie down", "sit on the floor", "type", or "read", call `kichi_action`.
+- For most work, prefer a sit pose and switch actions inside the same task as the work moves between stages.
 - The current action lists are injected into prompt context before the model chooses `kichi_action`.
 
 ### kichi_music_album_create

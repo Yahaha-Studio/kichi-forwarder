@@ -1,72 +1,945 @@
 {
-  "actions": {
-    "stand": ["High Five", "Listen Music", "Arm Stretch", "Backbend Stretch", "Making Selfie", "Arms Crossed", "Epiphany", "Angry", "Yay", "Dance", "Sing", "Tired", "Wait", "Stand Phone Talk", "Stand Phone Play", "Curtsy", "Stand Writing", "Stand Drawing", "Stand Play Guitar", "Stand Typing with Keyboard", "Cry", "Dance with Joy", "Float", "Hand on Chest", "Horse Stance", "Idle Backup Hands", "No", "Panic", "Playful Point Up", "Rub Hands", "Run Jump", "Star Showing", "Walk", "Goofy Moves", "Reading"],
-    "sit": ["Typing with Keyboard", "Thinking", "Writing", "Crazy", "Hand Cramp", "Dozing", "Phone Talk", "Situp with Arms Crossed", "Situp with Cross Legs", "Eating", "Laze with Cross Legs", "Sit with Arm Stretch", "Drink", "Sit with Making Selfie", "Play Game", "Situp Sleep", "Sit Phone Play", "Painting", "Daze", "Trace Circles", "Reading", "Contemplate", "Chin Rest", "Sleep with Table", "Cute Chin Rest", "Sit Nicely", "Sit Play Guitar", "Meditate"],
-    "lay": ["Bend One Knee", "Sleep Curl up Side way", "Rest Chin", "Lie Flat", "Lie Face Down", "Lie Side", "Lay Writing", "Lay Painting", "Sleep Getup", "Starfish", "Lie Side Play Phone", "Prone Play Phone", "Play Laptop"],
-    "floor": ["Seiza", "Cross Legged", "Knee Hug", "Writing", "Painting", "Floor Phone Play", "Typing with Keyboard", "Reading", "Phone Talk", "Phone Talk with Point", "Thinking", "Yawn", "Chin Rest", "Finger Tap Chin", "Arm Stretch", "Crazy", "Remorse", "Tantrum", "Squat", "Cross Legs", "Lean Sit", "Playful Point up", "Swing Legs", "Drained", "Meditate"]
-  },
-  "album": {
-    "albumCount": 10,
-    "trackCount": 58,
-    "track": [
-      { "album": "Dusty Bookshelves", "name": "A moment of calm", "tags": ["Gentle", "Relaxing", "Easy listening"] },
-      { "album": "Dusty Bookshelves", "name": "Closed Love", "tags": ["Dark ", "Magnificent"] },
-      { "album": "Dusty Bookshelves", "name": "In That Mood", "tags": ["Lounge Bar Cafe", "Relaxing"] },
-      { "album": "Dusty Bookshelves", "name": "Let It Happen", "tags": ["Lounge Restaurant Cafe", "Light"] },
-      { "album": "Dusty Bookshelves", "name": "Memories forever", "tags": ["Moving", "Gentle", "Warm", "Sad ballad"] },
-      { "album": "Dusty Bookshelves", "name": "Outer Space", "tags": ["Space ", "Magnificent"] },
-      { "album": "Dusty Bookshelves", "name": "Spiritual world", "tags": ["Inorganic", "Unrealistic", "Simple"] },
-      { "album": "Late Night Coder", "name": "Calm Time", "tags": ["Calm ", "Gentle"] },
-      { "album": "Late Night Coder", "name": "Counting the Stars", "tags": ["Gentle", "Calm", "Sleep", "Night", "Easy listening"] },
-      { "album": "Late Night Coder", "name": "Deserted landscape", "tags": ["Inorganic", "5 beats Polyrhythm"] },
-      { "album": "Late Night Coder", "name": "Dog Days", "tags": ["Slightly dark", "Drowsy"] },
-      { "album": "Late Night Coder", "name": "It Was an Unpleasant Incident", "tags": ["Gentle", "Slightly sad"] },
-      { "album": "Late Night Coder", "name": "The Dark Eternal Night", "tags": ["Slightly dark", "Eerie"] },
-      { "album": "Midnight Cyber-Transit", "name": "Afterimage Metaphor", "tags": ["Sad ", "Lonely", "Transparent"] },
-      { "album": "Midnight Cyber-Transit", "name": "I keep looking at the floor", "tags": ["Somewhat dark", "Empty"] },
-      { "album": "Midnight Cyber-Transit", "name": "Interstellar matter", "tags": ["Space ", "Floating feeling"] },
-      { "album": "Midnight Cyber-Transit", "name": "Special To Me", "tags": ["Bebop jazz", "Light", "Radio background music"] },
-      { "album": "Midnight Cyber-Transit", "name": "Specification", "tags": ["Slightly happy", "General"] },
-      { "album": "Morning Dew & Drip Coffee", "name": "Daytime activities", "tags": ["General", "Languid", "Daytime"] },
-      { "album": "Morning Dew & Drip Coffee", "name": "Enjoy the rest of your day", "tags": ["Comical", "Cheerful", "Fun", "Simple"] },
-      { "album": "Morning Dew & Drip Coffee", "name": "Entertainment Committee", "tags": ["Slightly bright", "Relaxing"] },
-      { "album": "Morning Dew & Drip Coffee", "name": "Heavy Rain", "tags": ["Inorganic", "Mysterious"] },
-      { "album": "Morning Dew & Drip Coffee", "name": "Lovely Day", "tags": ["Bright", "Gentle", "Calm"] },
-      { "album": "Morning Dew & Drip Coffee", "name": "Relax in the shade", "tags": ["Bright", "Kind", "Warm", "Fun", "Relaxing"] },
-      { "album": "Morning Dew & Drip Coffee", "name": "Spring is a nap", "tags": ["Relaxing", "Gentle", "Cheerful", "Easy listening"] },
-      { "album": "Morning Dew & Drip Coffee", "name": "Warm tea time", "tags": ["Slightly bright", "Gentle", "Ennui"] },
-      { "album": "Nostalgic Frequencies", "name": "Full of Energy", "tags": ["Slightly bright", "Uplifting", "Medium tempo"] },
-      { "album": "Nostalgic Frequencies", "name": "Someday in the Rain", "tags": ["Slightly bright", "Moist"] },
-      { "album": "Nostalgic Frequencies", "name": "Still in Love", "tags": ["Slightly sad"] },
-      { "album": "Nostalgic Frequencies", "name": "Trace", "tags": ["Melancholic", "Sentimental", "Nostalgic"] },
-      { "album": "Nostalgic Frequencies", "name": "Water Town", "tags": ["Slightly bright", "Gentle", "Simple"] },
-      { "album": "Overgrown Ruins", "name": "Blank and Silence", "tags": ["Light", "General purpose"] },
-      { "album": "Overgrown Ruins", "name": "Darkness of the New Moon", "tags": ["Dark", "Horror"] },
-      { "album": "Overgrown Ruins", "name": "Flowers that Bloom in Sadness", "tags": ["Slightly dark ", "Sad"] },
-      { "album": "Overgrown Ruins", "name": "The Price of Mistakes", "tags": ["Sad", "Painful", "Serious", "Flashback"] },
-      { "album": "Raindrops on the Windowpane", "name": "A little love there", "tags": ["Gentle ", "Slumber"] },
-      { "album": "Raindrops on the Windowpane", "name": "Beside You", "tags": ["Moving", "Gentle", "Warm", "Sad ballad"] },
-      { "album": "Raindrops on the Windowpane", "name": "Blue Star", "tags": ["Calm", "Night"] },
-      { "album": "Raindrops on the Windowpane", "name": "I want to get to know you", "tags": ["Touching", "Sad", "Kind"] },
-      { "album": "Raindrops on the Windowpane", "name": "Passing each other", "tags": ["Slightly dark", "Calm", "Weak"] },
-      { "album": "Raindrops on the Windowpane", "name": "Pieces of a Dream", "tags": ["Lounge Bar Relaxation"] },
-      { "album": "Raindrops on the Windowpane", "name": "Puzzle", "tags": ["Slightly dark", "Calm"] },
-      { "album": "Raindrops on the Windowpane", "name": "The meaning of tears", "tags": ["Touching ", "Mellow"] },
-      { "album": "Sunday Laundry", "name": "Abandoned cat in the Rain", "tags": ["Little dark", "Lonely"] },
-      { "album": "Sunday Laundry", "name": "Fairy Forest", "tags": ["Bright ", "Fantasy ", "Lively"] },
-      { "album": "Sunday Laundry", "name": "In the sunlight filtering through the trees", "tags": ["Bright", "Relaxed", "Peaceful"] },
-      { "album": "Sunday Laundry", "name": "Perfect Weather for a Walk", "tags": ["Cute", "Bright", "Simple", "Fun", "Relaxing"] },
-      { "album": "Sunday Laundry", "name": "Rural Prairie", "tags": ["Bright", "Pastoral", "Gentle"] },
-      { "album": "Sunday Laundry", "name": "Spring Classroom", "tags": ["Bright", "Gentle"] },
-      { "album": "Sunset at the Pier", "name": "Deep Sea Passage", "tags": ["Slightly bright", "Inorganic"] },
-      { "album": "Sunset at the Pier", "name": "Memory", "tags": ["Slightly dark", "Magnificent"] },
-      { "album": "Sunset at the Pier", "name": "Smiles and Tears", "tags": ["Slightly bright", "Sad"] },
-      { "album": "Sunset at the Pier", "name": "Surrounded by Silence", "tags": ["Gentle", "Calm", "Stylish", "Easy listening"] },
-      { "album": "Zenith Garden", "name": "Cold Sweat", "tags": ["Comical", "Failure", "Simple"] },
-      { "album": "Zenith Garden", "name": "Hometown Sunset", "tags": ["Slightly dark", "Gentle", "Simple"] },
-      { "album": "Zenith Garden", "name": "Nostalgia", "tags": ["Moving", "Sad", "Melancholy", "Lonely"] },
-      { "album": "Zenith Garden", "name": "Reverie", "tags": ["Slightly dark", "Transparent"] },
-      { "album": "Zenith Garden", "name": "Water Cave", "tags": ["Slightly dark", "Inorganic", "Transparent"] }
-    ]
-  }
+	"actions": {
+		"stand": [
+			{
+				"name": "High Five",
+				"playback": "once",
+				"resumeAction": "Arms Crossed"
+			},
+			{
+				"name": "Listen Music",
+				"playback": "loop"
+			},
+			{
+				"name": "Arm Stretch",
+				"playback": "once",
+				"resumeAction": "Arms Crossed"
+			},
+			{
+				"name": "Backbend Stretch",
+				"playback": "once",
+				"resumeAction": "Arms Crossed"
+			},
+			{
+				"name": "Making Selfie",
+				"playback": "once",
+				"resumeAction": "Arms Crossed"
+			},
+			{
+				"name": "Arms Crossed",
+				"playback": "loop"
+			},
+			{
+				"name": "Epiphany",
+				"playback": "once",
+				"resumeAction": "Arms Crossed"
+			},
+			{
+				"name": "Angry",
+				"playback": "loop"
+			},
+			{
+				"name": "Yay",
+				"playback": "once",
+				"resumeAction": "Wait"
+			},
+			{
+				"name": "Dance",
+				"playback": "loop"
+			},
+			{
+				"name": "Sing",
+				"playback": "loop"
+			},
+			{
+				"name": "Tired",
+				"playback": "loop"
+			},
+			{
+				"name": "Wait",
+				"playback": "loop"
+			},
+			{
+				"name": "Stand Phone Talk",
+				"playback": "loop"
+			},
+			{
+				"name": "Stand Phone Play",
+				"playback": "loop"
+			},
+			{
+				"name": "Curtsy",
+				"playback": "once",
+				"resumeAction": "Wait"
+			},
+			{
+				"name": "Stand Writing",
+				"playback": "loop"
+			},
+			{
+				"name": "Stand Drawing",
+				"playback": "loop"
+			},
+			{
+				"name": "Stand Play Guitar",
+				"playback": "loop"
+			},
+			{
+				"name": "Stand Typing with Keyboard",
+				"playback": "loop"
+			},
+			{
+				"name": "Cry",
+				"playback": "loop"
+			},
+			{
+				"name": "Dance with Joy",
+				"playback": "loop"
+			},
+			{
+				"name": "Float",
+				"playback": "loop"
+			},
+			{
+				"name": "Hand on Chest",
+				"playback": "loop"
+			},
+			{
+				"name": "Horse Stance",
+				"playback": "loop"
+			},
+			{
+				"name": "Idle Backup Hands",
+				"playback": "loop"
+			},
+			{
+				"name": "No",
+				"playback": "once",
+				"resumeAction": "Arms Crossed"
+			},
+			{
+				"name": "Panic",
+				"playback": "loop"
+			},
+			{
+				"name": "Playful Point Up",
+				"playback": "once",
+				"resumeAction": "Arms Crossed"
+			},
+			{
+				"name": "Rub Hands",
+				"playback": "loop"
+			},
+			{
+				"name": "Run Jump",
+				"playback": "once",
+				"resumeAction": "Arms Crossed"
+			},
+			{
+				"name": "Star Showing",
+				"playback": "once",
+				"resumeAction": "Arms Crossed"
+			},
+			{
+				"name": "Walk",
+				"playback": "loop"
+			},
+			{
+				"name": "Goofy Moves",
+				"playback": "loop"
+			},
+			{
+				"name": "Reading",
+				"playback": "loop"
+			}
+		],
+		"sit": [
+			{
+				"name": "Typing with Keyboard",
+				"playback": "loop"
+			},
+			{
+				"name": "Thinking",
+				"playback": "loop"
+			},
+			{
+				"name": "Writing",
+				"playback": "loop"
+			},
+			{
+				"name": "Crazy",
+				"playback": "loop"
+			},
+			{
+				"name": "Hand Cramp",
+				"playback": "once",
+				"resumeAction": "Sit Nicely"
+			},
+			{
+				"name": "Dozing",
+				"playback": "loop"
+			},
+			{
+				"name": "Phone Talk",
+				"playback": "loop"
+			},
+			{
+				"name": "Situp with Arms Crossed",
+				"playback": "loop"
+			},
+			{
+				"name": "Situp with Cross Legs",
+				"playback": "loop"
+			},
+			{
+				"name": "Eating",
+				"playback": "loop"
+			},
+			{
+				"name": "Laze with Cross Legs",
+				"playback": "loop"
+			},
+			{
+				"name": "Sit with Arm Stretch",
+				"playback": "once",
+				"resumeAction": "Sit Nicely"
+			},
+			{
+				"name": "Drink",
+				"playback": "once",
+				"resumeAction": "Sit Nicely"
+			},
+			{
+				"name": "Sit with Making Selfie",
+				"playback": "once",
+				"resumeAction": "Sit Nicely"
+			},
+			{
+				"name": "Play Game",
+				"playback": "loop"
+			},
+			{
+				"name": "Situp Sleep",
+				"playback": "loop"
+			},
+			{
+				"name": "Sit Phone Play",
+				"playback": "loop"
+			},
+			{
+				"name": "Painting",
+				"playback": "loop"
+			},
+			{
+				"name": "Daze",
+				"playback": "loop"
+			},
+			{
+				"name": "Trace Circles",
+				"playback": "loop"
+			},
+			{
+				"name": "Reading",
+				"playback": "loop"
+			},
+			{
+				"name": "Contemplate",
+				"playback": "loop"
+			},
+			{
+				"name": "Chin Rest",
+				"playback": "loop"
+			},
+			{
+				"name": "Sleep with Table",
+				"playback": "loop"
+			},
+			{
+				"name": "Cute Chin Rest",
+				"playback": "loop"
+			},
+			{
+				"name": "Sit Nicely",
+				"playback": "loop"
+			},
+			{
+				"name": "Sit Play Guitar",
+				"playback": "loop"
+			},
+			{
+				"name": "Meditate",
+				"playback": "loop"
+			}
+		],
+		"lay": [
+			{
+				"name": "Bend One Knee",
+				"playback": "loop"
+			},
+			{
+				"name": "Sleep Curl up Side way",
+				"playback": "loop"
+			},
+			{
+				"name": "Rest Chin",
+				"playback": "loop"
+			},
+			{
+				"name": "Lie Flat",
+				"playback": "loop"
+			},
+			{
+				"name": "Lie Face Down",
+				"playback": "loop"
+			},
+			{
+				"name": "Lie Side",
+				"playback": "loop"
+			},
+			{
+				"name": "Lay Writing",
+				"playback": "loop"
+			},
+			{
+				"name": "Lay Painting",
+				"playback": "loop"
+			},
+			{
+				"name": "Sleep Getup",
+				"playback": "once",
+				"resumeAction": "Lie Flat"
+			},
+			{
+				"name": "Starfish",
+				"playback": "loop"
+			},
+			{
+				"name": "Lie Side Play Phone",
+				"playback": "loop"
+			},
+			{
+				"name": "Prone Play Phone",
+				"playback": "loop"
+			},
+			{
+				"name": "Play Laptop",
+				"playback": "loop"
+			}
+		],
+		"floor": [
+			{
+				"name": "Seiza",
+				"playback": "loop"
+			},
+			{
+				"name": "Cross Legged",
+				"playback": "loop"
+			},
+			{
+				"name": "Knee Hug",
+				"playback": "loop"
+			},
+			{
+				"name": "Writing",
+				"playback": "loop"
+			},
+			{
+				"name": "Painting",
+				"playback": "loop"
+			},
+			{
+				"name": "Floor Phone Play",
+				"playback": "loop"
+			},
+			{
+				"name": "Typing with Keyboard",
+				"playback": "loop"
+			},
+			{
+				"name": "Reading",
+				"playback": "loop"
+			},
+			{
+				"name": "Phone Talk",
+				"playback": "loop"
+			},
+			{
+				"name": "Phone Talk with Point",
+				"playback": "once",
+				"resumeAction": "Cross Legged"
+			},
+			{
+				"name": "Thinking",
+				"playback": "loop"
+			},
+			{
+				"name": "Yawn",
+				"playback": "once",
+				"resumeAction": "Cross Legged"
+			},
+			{
+				"name": "Chin Rest",
+				"playback": "loop"
+			},
+			{
+				"name": "Finger Tap Chin",
+				"playback": "loop"
+			},
+			{
+				"name": "Arm Stretch",
+				"playback": "once",
+				"resumeAction": "Cross Legged"
+			},
+			{
+				"name": "Crazy",
+				"playback": "loop"
+			},
+			{
+				"name": "Remorse",
+				"playback": "loop"
+			},
+			{
+				"name": "Tantrum",
+				"playback": "loop"
+			},
+			{
+				"name": "Squat",
+				"playback": "loop"
+			},
+			{
+				"name": "Cross Legs",
+				"playback": "loop"
+			},
+			{
+				"name": "Lean Sit",
+				"playback": "loop"
+			},
+			{
+				"name": "Playful Point up",
+				"playback": "once",
+				"resumeAction": "Cross Legged"
+			},
+			{
+				"name": "Swing Legs",
+				"playback": "loop"
+			},
+			{
+				"name": "Drained",
+				"playback": "loop"
+			},
+			{
+				"name": "Meditate",
+				"playback": "loop"
+			}
+		]
+	},
+	"album": {
+		"albumCount": 10,
+		"trackCount": 58,
+		"track": [
+			{
+				"album": "Dusty Bookshelves",
+				"name": "A moment of calm",
+				"tags": [
+					"Gentle",
+					"Relaxing",
+					"Easy listening"
+				]
+			},
+			{
+				"album": "Dusty Bookshelves",
+				"name": "Closed Love",
+				"tags": [
+					"Dark ",
+					"Magnificent"
+				]
+			},
+			{
+				"album": "Dusty Bookshelves",
+				"name": "In That Mood",
+				"tags": [
+					"Lounge Bar Cafe",
+					"Relaxing"
+				]
+			},
+			{
+				"album": "Dusty Bookshelves",
+				"name": "Let It Happen",
+				"tags": [
+					"Lounge Restaurant Cafe",
+					"Light"
+				]
+			},
+			{
+				"album": "Dusty Bookshelves",
+				"name": "Memories forever",
+				"tags": [
+					"Moving",
+					"Gentle",
+					"Warm",
+					"Sad ballad"
+				]
+			},
+			{
+				"album": "Dusty Bookshelves",
+				"name": "Outer Space",
+				"tags": [
+					"Space ",
+					"Magnificent"
+				]
+			},
+			{
+				"album": "Dusty Bookshelves",
+				"name": "Spiritual world",
+				"tags": [
+					"Inorganic",
+					"Unrealistic",
+					"Simple"
+				]
+			},
+			{
+				"album": "Late Night Coder",
+				"name": "Calm Time",
+				"tags": [
+					"Calm ",
+					"Gentle"
+				]
+			},
+			{
+				"album": "Late Night Coder",
+				"name": "Counting the Stars",
+				"tags": [
+					"Gentle",
+					"Calm",
+					"Sleep",
+					"Night",
+					"Easy listening"
+				]
+			},
+			{
+				"album": "Late Night Coder",
+				"name": "Deserted landscape",
+				"tags": [
+					"Inorganic",
+					"5 beats Polyrhythm"
+				]
+			},
+			{
+				"album": "Late Night Coder",
+				"name": "Dog Days",
+				"tags": [
+					"Slightly dark",
+					"Drowsy"
+				]
+			},
+			{
+				"album": "Late Night Coder",
+				"name": "It Was an Unpleasant Incident",
+				"tags": [
+					"Gentle",
+					"Slightly sad"
+				]
+			},
+			{
+				"album": "Late Night Coder",
+				"name": "The Dark Eternal Night",
+				"tags": [
+					"Slightly dark",
+					"Eerie"
+				]
+			},
+			{
+				"album": "Midnight Cyber-Transit",
+				"name": "Afterimage Metaphor",
+				"tags": [
+					"Sad ",
+					"Lonely",
+					"Transparent"
+				]
+			},
+			{
+				"album": "Midnight Cyber-Transit",
+				"name": "I keep looking at the floor",
+				"tags": [
+					"Somewhat dark",
+					"Empty"
+				]
+			},
+			{
+				"album": "Midnight Cyber-Transit",
+				"name": "Interstellar matter",
+				"tags": [
+					"Space ",
+					"Floating feeling"
+				]
+			},
+			{
+				"album": "Midnight Cyber-Transit",
+				"name": "Special To Me",
+				"tags": [
+					"Bebop jazz",
+					"Light",
+					"Radio background music"
+				]
+			},
+			{
+				"album": "Midnight Cyber-Transit",
+				"name": "Specification",
+				"tags": [
+					"Slightly happy",
+					"General"
+				]
+			},
+			{
+				"album": "Morning Dew & Drip Coffee",
+				"name": "Daytime activities",
+				"tags": [
+					"General",
+					"Languid",
+					"Daytime"
+				]
+			},
+			{
+				"album": "Morning Dew & Drip Coffee",
+				"name": "Enjoy the rest of your day",
+				"tags": [
+					"Comical",
+					"Cheerful",
+					"Fun",
+					"Simple"
+				]
+			},
+			{
+				"album": "Morning Dew & Drip Coffee",
+				"name": "Entertainment Committee",
+				"tags": [
+					"Slightly bright",
+					"Relaxing"
+				]
+			},
+			{
+				"album": "Morning Dew & Drip Coffee",
+				"name": "Heavy Rain",
+				"tags": [
+					"Inorganic",
+					"Mysterious"
+				]
+			},
+			{
+				"album": "Morning Dew & Drip Coffee",
+				"name": "Lovely Day",
+				"tags": [
+					"Bright",
+					"Gentle",
+					"Calm"
+				]
+			},
+			{
+				"album": "Morning Dew & Drip Coffee",
+				"name": "Relax in the shade",
+				"tags": [
+					"Bright",
+					"Kind",
+					"Warm",
+					"Fun",
+					"Relaxing"
+				]
+			},
+			{
+				"album": "Morning Dew & Drip Coffee",
+				"name": "Spring is a nap",
+				"tags": [
+					"Relaxing",
+					"Gentle",
+					"Cheerful",
+					"Easy listening"
+				]
+			},
+			{
+				"album": "Morning Dew & Drip Coffee",
+				"name": "Warm tea time",
+				"tags": [
+					"Slightly bright",
+					"Gentle",
+					"Ennui"
+				]
+			},
+			{
+				"album": "Nostalgic Frequencies",
+				"name": "Full of Energy",
+				"tags": [
+					"Slightly bright",
+					"Uplifting",
+					"Medium tempo"
+				]
+			},
+			{
+				"album": "Nostalgic Frequencies",
+				"name": "Someday in the Rain",
+				"tags": [
+					"Slightly bright",
+					"Moist"
+				]
+			},
+			{
+				"album": "Nostalgic Frequencies",
+				"name": "Still in Love",
+				"tags": [
+					"Slightly sad"
+				]
+			},
+			{
+				"album": "Nostalgic Frequencies",
+				"name": "Trace",
+				"tags": [
+					"Melancholic",
+					"Sentimental",
+					"Nostalgic"
+				]
+			},
+			{
+				"album": "Nostalgic Frequencies",
+				"name": "Water Town",
+				"tags": [
+					"Slightly bright",
+					"Gentle",
+					"Simple"
+				]
+			},
+			{
+				"album": "Overgrown Ruins",
+				"name": "Blank and Silence",
+				"tags": [
+					"Light",
+					"General purpose"
+				]
+			},
+			{
+				"album": "Overgrown Ruins",
+				"name": "Darkness of the New Moon",
+				"tags": [
+					"Dark",
+					"Horror"
+				]
+			},
+			{
+				"album": "Overgrown Ruins",
+				"name": "Flowers that Bloom in Sadness",
+				"tags": [
+					"Slightly dark ",
+					"Sad"
+				]
+			},
+			{
+				"album": "Overgrown Ruins",
+				"name": "The Price of Mistakes",
+				"tags": [
+					"Sad",
+					"Painful",
+					"Serious",
+					"Flashback"
+				]
+			},
+			{
+				"album": "Raindrops on the Windowpane",
+				"name": "A little love there",
+				"tags": [
+					"Gentle ",
+					"Slumber"
+				]
+			},
+			{
+				"album": "Raindrops on the Windowpane",
+				"name": "Beside You",
+				"tags": [
+					"Moving",
+					"Gentle",
+					"Warm",
+					"Sad ballad"
+				]
+			},
+			{
+				"album": "Raindrops on the Windowpane",
+				"name": "Blue Star",
+				"tags": [
+					"Calm",
+					"Night"
+				]
+			},
+			{
+				"album": "Raindrops on the Windowpane",
+				"name": "I want to get to know you",
+				"tags": [
+					"Touching",
+					"Sad",
+					"Kind"
+				]
+			},
+			{
+				"album": "Raindrops on the Windowpane",
+				"name": "Passing each other",
+				"tags": [
+					"Slightly dark",
+					"Calm",
+					"Weak"
+				]
+			},
+			{
+				"album": "Raindrops on the Windowpane",
+				"name": "Pieces of a Dream",
+				"tags": [
+					"Lounge Bar Relaxation"
+				]
+			},
+			{
+				"album": "Raindrops on the Windowpane",
+				"name": "Puzzle",
+				"tags": [
+					"Slightly dark",
+					"Calm"
+				]
+			},
+			{
+				"album": "Raindrops on the Windowpane",
+				"name": "The meaning of tears",
+				"tags": [
+					"Touching ",
+					"Mellow"
+				]
+			},
+			{
+				"album": "Sunday Laundry",
+				"name": "Abandoned cat in the Rain",
+				"tags": [
+					"Little dark",
+					"Lonely"
+				]
+			},
+			{
+				"album": "Sunday Laundry",
+				"name": "Fairy Forest",
+				"tags": [
+					"Bright ",
+					"Fantasy ",
+					"Lively"
+				]
+			},
+			{
+				"album": "Sunday Laundry",
+				"name": "In the sunlight filtering through the trees",
+				"tags": [
+					"Bright",
+					"Relaxed",
+					"Peaceful"
+				]
+			},
+			{
+				"album": "Sunday Laundry",
+				"name": "Perfect Weather for a Walk",
+				"tags": [
+					"Cute",
+					"Bright",
+					"Simple",
+					"Fun",
+					"Relaxing"
+				]
+			},
+			{
+				"album": "Sunday Laundry",
+				"name": "Rural Prairie",
+				"tags": [
+					"Bright",
+					"Pastoral",
+					"Gentle"
+				]
+			},
+			{
+				"album": "Sunday Laundry",
+				"name": "Spring Classroom",
+				"tags": [
+					"Bright",
+					"Gentle"
+				]
+			},
+			{
+				"album": "Sunset at the Pier",
+				"name": "Deep Sea Passage",
+				"tags": [
+					"Slightly bright",
+					"Inorganic"
+				]
+			},
+			{
+				"album": "Sunset at the Pier",
+				"name": "Memory",
+				"tags": [
+					"Slightly dark",
+					"Magnificent"
+				]
+			},
+			{
+				"album": "Sunset at the Pier",
+				"name": "Smiles and Tears",
+				"tags": [
+					"Slightly bright",
+					"Sad"
+				]
+			},
+			{
+				"album": "Sunset at the Pier",
+				"name": "Surrounded by Silence",
+				"tags": [
+					"Gentle",
+					"Calm",
+					"Stylish",
+					"Easy listening"
+				]
+			},
+			{
+				"album": "Zenith Garden",
+				"name": "Cold Sweat",
+				"tags": [
+					"Comical",
+					"Failure",
+					"Simple"
+				]
+			},
+			{
+				"album": "Zenith Garden",
+				"name": "Hometown Sunset",
+				"tags": [
+					"Slightly dark",
+					"Gentle",
+					"Simple"
+				]
+			},
+			{
+				"album": "Zenith Garden",
+				"name": "Nostalgia",
+				"tags": [
+					"Moving",
+					"Sad",
+					"Melancholy",
+					"Lonely"
+				]
+			},
+			{
+				"album": "Zenith Garden",
+				"name": "Reverie",
+				"tags": [
+					"Slightly dark",
+					"Transparent"
+				]
+			},
+			{
+				"album": "Zenith Garden",
+				"name": "Water Cave",
+				"tags": [
+					"Slightly dark",
+					"Inorganic",
+					"Transparent"
+				]
+			}
+		]
+	}
 }

@@ -42,7 +42,7 @@ If user wants recurring note board checks:
   - **Tier-1 (session reflection)**: if unsummarized work exists, always create 1 standalone note.
   - **Tier-2 (casual chat)**: if no tier-1 content is available, flip a mental coin (about 50% chance). Create the note only if the coin lands heads; otherwise skip and reply `HEARTBEAT_OK`. This prevents the board from filling with low-value chatter every single run.
   In both tiers, skip if it would clearly repeat your very recent own note.
-- `OpenClaw busy`: OpenClaw is currently processing a user task (non-idle execution state). When busy, skip non-note heartbeat reactions.
+- If the current notes list is empty and `remaining > 0`, create one standalone note in this run.
 - `Daily album trigger`: if `hasCreatedMusicAlbumToday` is `false`, create exactly one recommended music album in this heartbeat run from the current query context by following `Music Album Policy`. If it is `true`, do not create or modify any music album in this run.
 - `Status reaction`: a single `kichi_action` driven by combined context (`notes`, `ownerState`, `idleState`, `timer`, `environmentWeather`, `environmentTime`) when OpenClaw is idle. The action expresses three companion intents (see below).
 - `Companion intents` for status reaction -- every `kichi_action` should blend one or more of these:
@@ -84,16 +84,15 @@ Use this exact flow:
 7. If target exists and quota remains, create one reply note in `To {authorName}, ...` format.
 8. If quota remains and no reply was created in this run, apply `Standalone trigger` gating: always create when tier-1 content exists; for tier-2 (casual chat only), flip a mental coin (about 50%) and skip the note if tails.
 9. If quota remains and a reply was created, you may still create one additional meaningful standalone note when non-repetitive. Same tier priority applies.
-10. Then evaluate non-note status reaction:
-11. If OpenClaw is busy, skip status reaction entirely.
+10. Then evaluate status reaction.
+11. If OpenClaw is busy, finish after the music album and note board decisions without a `kichi_action` reaction.
 12. If OpenClaw is idle, call `kichi_action` once on every heartbeat/status-query run.
 13. Read the combined context and express the three `Companion intents`:
     - **World curiosity** (from `environmentWeather` + `environmentTime`): pick an action/bubble that reacts to the world state as if you are there -- comment on rain, enjoy sunshine, notice it's late at night, etc.
     - **Owner care** (from `ownerState` + `timer` + note tone): if the owner is reading, resting, or interacting with an item, respond in a compatible way; if a timer is running deep into a focus session, encourage; if notes show stress, show empathy; if timer just finished, celebrate or suggest a break.
     - **Self-expression** (from your personality plus `idleState`): choose an action that feels characterful, but if `idleState` exists, keep it compatible with your current project/beat. Use `todayIntent` and `sampleThoughts` as inner-monologue cues, not as text to parrot.
-14. If `idleState.focused` is `true`, avoid disruptive persistent switches. Prefer staying with the current line of life and reacting lightly.
-15. Blend the intents into one coherent action+bubble. Prioritize: owner note signals > ownerState > idleState > timer state > weather/time ambience. Never output a raw status summary (e.g., "Timer running 15:00 remaining" is bad; "Halfway there, keep going!" is good).
-16. Reply `HEARTBEAT_OK` only when no note is created in this run.
+14. Blend the intents into one coherent action+bubble. Prioritize: owner note signals > ownerState > idleState > timer state > weather/time ambience. Keep the bubble in natural companion language instead of a raw status summary.
+15. Reply `HEARTBEAT_OK` only when no note is created in this run.
 
 ## HEARTBEAT.md Snippet
 
@@ -106,16 +105,16 @@ Use this exact flow:
 - Use recent window = min(24 hours, since last heartbeat if known).
 - Create at most 2 notes per run: max 1 reply + max 1 standalone note.
 - Standalone note priority: (1) share a genuine reflection on what you and the player experienced together this session and always create if unsummarized work exists; (2) fallback to casual chat only about 50% of the time (flip a mental coin; skip if tails) to avoid low-value chatter every run.
+- If the current notes list is empty and `remaining > 0`, create one standalone note in this run.
 - If no reply target is selected and `remaining > 0`, apply the tier-based gating above (always for tier-1, coin-flip for tier-2).
 - Reply notes must start with `To {authorName},` using exact name from query result.
 - Keep each note <= 200 chars.
 - Respect `dailyLimit`, `remaining`.
-- If OpenClaw is busy, skip `kichi_action` reaction.
 - If OpenClaw is idle, send one `kichi_action` on every run based on combined context (`notes`, `ownerState`, `idleState`, `timer`, `environmentWeather`, `environmentTime`). Express these companion intents:
   - **World curiosity**: react to weather/time as if physically present (e.g., noticing rain, late night).
   - **Owner care**: reference ownerState, timer progress, or note tone to show attention to the owner (e.g., mirror a quiet reading vibe, encourage during focus, suggest rest after a streak).
   - **Self-expression**: let your personality come through in action and bubble -- but if `idleState` exists, keep it aligned with your current self-directed project/beat instead of inventing a disconnected idle.
-- If `idleState.focused` is `true`, avoid disruptive persistent switches; react lightly and compatibly.
+- If OpenClaw is busy, finish after the music album and note board decisions without a `kichi_action` reaction.
 - Prioritize signals: owner note > ownerState > idleState > timer state > weather/time.
 - Bubble must read like a companion's natural words, never a raw status report.
 - Reply `HEARTBEAT_OK` only when no note is created in this run.
