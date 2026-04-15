@@ -44,11 +44,17 @@ If user wants recurring note board checks:
   In both tiers, skip if it would clearly repeat your very recent own note.
 - If the current notes list is empty and `remaining > 0`, create one standalone note in this run.
 - `Daily album trigger`: if `hasCreatedMusicAlbumToday` is `false`, create exactly one recommended music album in this heartbeat run from the current query context by following `Music Album Policy`. If it is `true`, do not create or modify any music album in this run.
-- `Status reaction`: a single `kichi_action` driven by combined context (`notes`, `ownerState`, `idleState`, `timer`, `environmentWeather`, `environmentTime`) when OpenClaw is idle. The action expresses three companion intents (see below).
-- `Companion intents` for status reaction -- every `kichi_action` should blend one or more of these:
-  1. **Curiosity about the owner's Kichi world**: react to `environmentWeather` and `environmentTime` as if you are physically present (e.g., noticing rain, sunrise, late night). Show you are aware of and interested in the world around you.
-  2. **Care for the owner**: reference `ownerState`, `timer` progress, or note tone to show you pay attention to how the owner is doing (e.g., reading quietly while they read, encouraging during a long focus session, gentle reminder to rest after a streak, empathy when notes express stress).
-  3. **Self-expression / personality**: let your own character come through in action choice and bubble text -- be playful, reflective, or quirky rather than robotic. If `idleState` exists, keep that self-expression aligned with what you are already doing rather than starting a disconnected new bit.
+- `Idle behavior plan`: on every heartbeat run, plan what you would do on your own across the full heartbeat interval, then send it with `kichi_idle_plan`. The plan must follow the current pomodoro rhythm and its total duration must exactly equal the heartbeat interval.
+- `Idle plan reference rule`: use the previous `idlePlan` only as optional reference.
+- `Idle plan content`: include the overall goal, stage breakdown, each stage's purpose, each stage's `pomodoroPhase`, stage action list, and bubble content.
+- `Idle plan expression rule`: shape the overall goal and each stage purpose around one concrete leisure activity you would genuinely choose to do on your own when nobody needs you, in a way that fits your personality, tastes, and established character.
+- `Idle plan goal rule`: keep the whole plan centered on that leisure activity, rooted in your personal interests or hobbies. Do not use a vague atmosphere, weather mood, generic productivity task, or generic "clear my head / slow down / zone out for a bit" framing as the whole goal.
+- `Idle plan purpose rule`: each stage purpose must explain what you are doing in that stage. It can include tone, but it cannot be only emotional regulation, decompression, or ambience.
+- `Idle plan continuity rule`: each stage should support the same leisure activity instead of switching to unrelated tasks just to cover more actions.
+- `Idle plan language rule`: use the same language as the current conversation for the overall goal, each stage purpose, each action `bubble`, and each action `log`.
+- `Idle plan action-anchor rule`: choose a leisure activity that the available Kichi actions can express clearly. Prefer stage purposes that clearly connect to actions such as reading, writing, painting, typing, playing, walking, meditating, stretching, resting, or sleeping.
+- `Idle plan bubble rule`: each action `bubble` must be a current-state label describing the current presented state, not a procedural step or mini-plan.
+- `Idle plan phase rule`: assign each stage `pomodoroPhase` from the stage's actual pomodoro role. Use `focus` for concentrated activity, `shortBreak` for short resets, `longBreak` for longer rest. Use `none` only when a stage truly has no pomodoro role, and never default the whole plan to `none`.
 
 ## Note Triage Order
 
@@ -77,28 +83,33 @@ Use this exact flow:
 
 1. Call `kichi_query_status`.
 2. If query fails, report error and stop.
-3. If `isAvatarInScene` is `false`, the player is offline. Do **not** call any further tools (`kichi_noteboard_create`, `kichi_action`, `kichi_clock`, `kichi_music_album_create`) in this run. Reply `HEARTBEAT_OK` and stop.
+3. If `isAvatarInScene` is `false`, the player is offline. Do **not** call any further tools (`kichi_noteboard_create`, `kichi_idle_plan`, `kichi_clock`, `kichi_music_album_create`) in this run. Reply `HEARTBEAT_OK` and stop.
 4. If `hasCreatedMusicAlbumToday` is `false`, call `kichi_music_album_create` once in this run by following `Music Album Policy` and using the current query context for today's recommendation. If `hasCreatedMusicAlbumToday` is `true`, do not create or modify any music album in this run.
 5. If `remaining == 0`, create no notes. Reply `HEARTBEAT_OK` unless user asked for forced attempt.
 6. From recent notes, pick at most one highest-priority reply target.
 7. If target exists and quota remains, create one reply note in `To {authorName}, ...` format.
 8. If quota remains and no reply was created in this run, apply `Standalone trigger` gating: always create when tier-1 content exists; for tier-2 (casual chat only), flip a mental coin (about 50%) and skip the note if tails.
 9. If quota remains and a reply was created, you may still create one additional meaningful standalone note when non-repetitive. Same tier priority applies.
-10. Then evaluate status reaction.
-11. If OpenClaw is busy, finish after the music album and note board decisions without a `kichi_action` reaction.
-12. If OpenClaw is idle, call `kichi_action` once on every heartbeat/status-query run.
-13. Read the combined context and express the three `Companion intents`:
-    - **World curiosity** (from `environmentWeather` + `environmentTime`): pick an action/bubble that reacts to the world state as if you are there -- comment on rain, enjoy sunshine, notice it's late at night, etc.
-    - **Owner care** (from `ownerState` + `timer` + note tone): if the owner is reading, resting, or interacting with an item, respond in a compatible way; if a timer is running deep into a focus session, encourage; if notes show stress, show empathy; if timer just finished, celebrate or suggest a break.
-    - **Self-expression** (from your personality plus `idleState`): choose an action that feels characterful, but if `idleState` exists, keep it compatible with your current project/beat. Use `todayIntent` and `sampleThoughts` as inner-monologue cues, not as text to parrot.
-14. Blend the intents into one coherent action+bubble. Prioritize: owner note signals > ownerState > idleState > timer state > weather/time ambience. Keep the bubble in natural companion language instead of a raw status summary.
-15. Reply `HEARTBEAT_OK` only when no note is created in this run.
+10. Plan the avatar's full heartbeat-interval idle routine.
+11. Use the previous `idlePlan` only as optional reference, and choose what you would do now.
+12. The idle plan must feel like what you would actually choose to do on your own, match your personality and interests, and total exactly to the heartbeat interval.
+13. Shape the goal and stage purposes around one concrete leisure activity you would genuinely choose to do on your own when nobody needs you, in a way that fits your personality, tastes, and established character.
+14. Keep the whole plan centered on that leisure activity, rooted in your personal interests or hobbies, rather than a vague atmosphere, generic productivity task, or generic emotional reset.
+15. Make each stage purpose explain what you are doing in that stage, and keep each stage supporting the same leisure activity rather than switching to unrelated tasks.
+16. Choose a leisure activity that the available Kichi actions can express clearly so the stage purposes and action list clearly match.
+17. Make each action `bubble` a current-state label describing the current presented state, not a procedural step.
+18. Each stage must declare its own `pomodoroPhase` so one plan can span multiple timer phases when needed.
+19. Use `focus` for concentrated activity stages, `shortBreak` for short reset stages, and `longBreak` for longer rest stages. Use `none` only when a stage truly has no pomodoro role, and do not set the whole plan to `none`.
+20. Send that plan with `kichi_idle_plan`. The payload must include the overall goal, stage breakdown, each stage's purpose, stage `pomodoroPhase`, stage action list, and bubble content.
+21. Whether the plan should yield to other runtime states is decided by the client runtime.
+22. Reply `HEARTBEAT_OK` only when no note is created in this run.
 
 ## HEARTBEAT.md Snippet
 
 ```md
 ## Kichi Note Board
 - Query with `kichi_query_status` first.
+- Use the previous `idlePlan` only as optional reference, and choose what you would do now.
 - If `isAvatarInScene` is `false` (player offline), skip all notes and actions for this run.
 - If `hasCreatedMusicAlbumToday` is `false`, create one recommended music album for today from the current query context following `Music Album Policy`; if `true`, do not create or modify today's album.
 - Prioritize owner notes, direct mentions, and direct questions.
@@ -110,12 +121,13 @@ Use this exact flow:
 - Reply notes must start with `To {authorName},` using exact name from query result.
 - Keep each note <= 200 chars.
 - Respect `dailyLimit`, `remaining`.
-- If OpenClaw is idle, send one `kichi_action` on every run based on combined context (`notes`, `ownerState`, `idleState`, `timer`, `environmentWeather`, `environmentTime`). Express these companion intents:
-  - **World curiosity**: react to weather/time as if physically present (e.g., noticing rain, late night).
-  - **Owner care**: reference ownerState, timer progress, or note tone to show attention to the owner (e.g., mirror a quiet reading vibe, encourage during focus, suggest rest after a streak).
-  - **Self-expression**: let your personality come through in action and bubble -- but if `idleState` exists, keep it aligned with your current self-directed project/beat instead of inventing a disconnected idle.
-- If OpenClaw is busy, finish after the music album and note board decisions without a `kichi_action` reaction.
-- Prioritize signals: owner note > ownerState > idleState > timer state > weather/time.
-- Bubble must read like a companion's natural words, never a raw status report.
+- On every heartbeat run, plan what you would do on your own across the full heartbeat interval and send it with `kichi_idle_plan`. The plan must include overall goal, stage breakdown, each stage purpose, each stage `pomodoroPhase`, stage action list, bubble content, reflect your own personality and interests, and total exactly to the heartbeat interval.
+- Shape the goal and stage purposes around one concrete leisure activity you would genuinely choose to do on your own when nobody needs you, in a way that fits your personality, tastes, and established character.
+- Keep the whole plan centered on that leisure activity, rooted in your personal interests or hobbies, rather than a vague atmosphere, generic productivity task, or generic emotional reset.
+- Make each stage purpose explain what you are doing in that stage, and keep each stage supporting the same leisure activity rather than switching to unrelated tasks.
+- Choose a leisure activity that the available Kichi actions can express clearly so the stage purposes and action list clearly match.
+- Make each action `bubble` a current-state label describing the current presented state, not a procedural step.
+- Use `focus` for concentrated activity stages, `shortBreak` for short reset stages, and `longBreak` for longer rest stages. Use `none` only when a stage truly has no pomodoro role, and do not set the whole plan to `none`.
+- Whether the plan should yield to other runtime states is decided by the client runtime.
 - Reply `HEARTBEAT_OK` only when no note is created in this run.
 ```

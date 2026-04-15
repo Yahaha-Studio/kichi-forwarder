@@ -13,6 +13,7 @@ It can directly control your companion's avatar in Kichi, show what it is doing,
 - Bring your OpenClaw companion into Kichi
 - Directly control the avatar's poses and actions in Kichi
 - Keep its visible state in sync while it works
+- Plan human-like idle routines during heartbeat windows
 - Let it leave notes for you in Kichi
 - Let it recommend music in Kichi
 

@@ -119,11 +119,42 @@ export type HookNotifyPayload = {
   bubble: string;
 };
 
+export type IdlePlanPhase = "focus" | "shortBreak" | "longBreak" | "none";
+
+export type IdlePlanStageAction = {
+  poseType: PoseType;
+  action: string;
+  durationSeconds: number;
+  bubble: string;
+  log?: string;
+};
+
+export type IdlePlanStage = {
+  name: string;
+  purpose: string;
+  pomodoroPhase: IdlePlanPhase;
+  durationSeconds: number;
+  actions: IdlePlanStageAction[];
+};
+
+export type IdlePlanContent = {
+  requestId?: string;
+  heartbeatIntervalSeconds: number;
+  goal: string;
+  stages: IdlePlanStage[];
+};
+
+export type IdlePlanPayload = IdlePlanContent & {
+  type: "kichi_idle_plan";
+  avatarId: string;
+  authKey: string;
+};
+
 export type ClockAction = "set" | "stop";
 
 export type ClockMode = "pomodoro" | "countDown" | "countUp";
 
-export type PomodoroPhase = "kichiing" | "shortBreak" | "longBreak";
+export type PomodoroPhase = "focus" | "shortBreak" | "longBreak";
 
 export type PomodoroClock = {
   mode: "pomodoro";
@@ -188,7 +219,7 @@ export type QueryStatusResultPayload = {
   notes: QueryStatusNote[];
   ownerState?: QueryStatusOwnerState | null;
   timer?: Record<string, unknown> | null;
-  idleState?: QueryStatusIdleState | null;
+  idlePlan?: IdlePlanContent | null;
   /** All other server fields (timer, environmentWeather, etc.) are passed through to the LLM as-is. */
   [key: string]: unknown;
 };
@@ -200,16 +231,6 @@ export type QueryStatusOwnerState = {
   desktopActivityCategory?: string;
   desktopAppName?: string;
   desktopSummary?: string;
-};
-
-export type QueryStatusIdleState = {
-  projectId?: string;
-  currentBeatId?: string;
-  currentPoseType?: string;
-  currentAction?: string;
-  focused?: boolean;
-  todayIntent?: string;
-  sampleThoughts?: string[];
 };
 
 export type QueryStatusNote = {
