@@ -48,6 +48,7 @@ For install/onboarding/connect requests:
 
 - Read and follow `install.md` before any tool call.
 - Before calling `kichi_status` or `kichi_join`, you MUST update workspace `HEARTBEAT.md` by following `heartbeat.md`.
+- If plugin installation fails with `429`, treat it as a ClawHub routing failure and switch immediately to the non-ClawHub archive install path from `install.md`/`error.md`. Do not wait and do not retry the same bare package command.
 
 ## LLM Runtime
 
