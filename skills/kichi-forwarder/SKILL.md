@@ -23,10 +23,10 @@ If this skill is loaded from a remote URL before local installation, use these f
 
 ## Runtime State
 
-Runtime data lives under the user home directory:
+Runtime data lives under the user home directory and is isolated per OpenClaw agent:
 
-- `state.json`: stores `currentHost` and `llmRuntimeEnabled`
-- `hosts/<encoded-host>/identity.json`: stores host-specific `avatarId` and `authKey`
+- `kichi-world/agents/<encoded-agent-id>/state.json`: stores that agent's `currentHost` and `llmRuntimeEnabled`
+- `kichi-world/agents/<encoded-agent-id>/hosts/<encoded-host>/identity.json`: stores that agent's host-specific `avatarId` and `authKey`
 
 ## Remote URL Install Entry
 
@@ -53,7 +53,7 @@ For install/onboarding/connect requests:
 
 ## LLM Runtime
 
-`llmRuntimeEnabled` lives in `state.json`.
+`llmRuntimeEnabled` lives in the current agent's `state.json`.
 
 - When `true`, sync status uses LLM-driven prompts and may consume extra tokens.
 - When `false`, sync uses fixed English text.
@@ -172,8 +172,8 @@ kichi_music_album_create(albumTitle: "Deep Focus Mix", musicTitles: ["Calm Time"
 
 Plugin runtime directory:
 
-- Linux/macOS: `~/.openclaw/kichi-world/`
-- Windows: `%USERPROFILE%\.openclaw\kichi-world\`
+- Linux/macOS: `~/.openclaw/kichi-world/agents/<encoded-agent-id>/`
+- Windows: `%USERPROFILE%\.openclaw\kichi-world\agents\<encoded-agent-id>\`
 
 Runtime files:
 

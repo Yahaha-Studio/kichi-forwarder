@@ -47,6 +47,9 @@ export type KichiIdentity = {
 };
 
 export type KichiConnectionStatus = {
+  agentId?: string;
+  runtimeDir?: string;
+  statePath?: string;
   host?: string;
   wsUrl?: string;
   identityPath?: string;
