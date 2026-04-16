@@ -368,12 +368,15 @@ async function handleMessageReceivedHook(content: string): Promise<void> {
 }
 
 function registerPluginHooks(api: OpenClawPluginApi): void {
-  api.on("before_prompt_build", () => {
+  api.on("before_prompt_build", (_event, ctx) => {
     if (!service?.hasValidIdentity() || !service?.isConnected()) {
       return;
     }
     if (!isLlmRuntimeEnabled()) {
       syncFixedStatus(FIXED_HOOK_STATUSES.beforePromptBuild);
+      return;
+    }
+    if (ctx.trigger === "heartbeat") {
       return;
     }
     return {
@@ -839,16 +842,14 @@ function buildKichiIdlePlanDescription(): string {
   return [
     "Send a complete heartbeat idle plan for the avatar.",
     "The payload must include the overall goal, heartbeat interval, stage breakdown, each stage's purpose, each stage's pomodoroPhase, action list, and bubble content.",
-    "Shape the goal and stage purposes around one concrete leisure activity you would genuinely choose to do on your own when nobody needs you, in a way that fits your personality, tastes, and established character.",
-    "Keep the whole plan centered on that leisure activity, rooted in your personal interests or hobbies.",
-    "Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary as the goal.",
-    "Each stage purpose must explain what you are actually doing in that stage, not just how you want to feel.",
-    "Make every stage support the same leisure activity instead of switching to unrelated tasks just to use more actions.",
-    "Choose a leisure activity that the available Kichi actions can express clearly, instead of starting from abstract mood text and forcing actions to fit afterward.",
-    "Each action bubble must describe the current presented state, not a next step, plan, or instruction.",
+    "Build the plan in this order.",
+    "1. Pick one concrete, time-bounded fun personal project you would genuinely choose to do on your own when nobody needs you. It must fit your personality, tastes, and established character, stay rooted in your personal interests or hobbies, and be something the available Kichi actions can express clearly.",
+    "2. Use that project as the overall goal for the full interval. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary as the goal.",
+    "3. Break the full heartbeat interval into ordered stages. Each stage purpose must explain what you are actually doing in that stage as part of the same project, not just how you want to feel. Do not switch to unrelated tasks just to use more actions.",
+    "4. Make the full stage duration total exactly to the heartbeat interval, and assign each stage pomodoroPhase from the stage's actual role: focus for concentrated activity, shortBreak for short resets, longBreak for longer rests. Do not default the whole idle plan to none. Use none only for a stage that truly has no pomodoro role.",
+    "5. Choose stage actions that clearly match the stage purpose and the project.",
+    "6. Write each action bubble as the current presented state, not a next step, plan, or instruction.",
     "Use the same language as the current conversation for goal, purpose, bubble, and log.",
-    "Assign each stage pomodoroPhase from the stage's actual role: focus for concentrated activity, shortBreak for short resets, longBreak for longer rests.",
-    "Do not default the whole idle plan to none. Use none only for a stage that truly has no pomodoro role.",
     `stand actions: ${actions.stand.map((entry) => entry.name).join(", ")}`,
     `sit actions: ${actions.sit.map((entry) => entry.name).join(", ")}`,
     `lay actions: ${actions.lay.map((entry) => entry.name).join(", ")}`,
@@ -1129,7 +1130,7 @@ const plugin = {
           },
           goal: {
             type: "string",
-            description: "Overall goal for the full interval. Set it as one concrete leisure activity you would genuinely choose to do on your own, rooted in your personal interests or hobbies. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary. Use the same language as the current conversation.",
+            description: "Overall goal for the full interval. Set it as one concrete, time-bounded fun personal project you would genuinely choose to do on your own, rooted in your personal interests or hobbies and clearly expressible with the available Kichi actions. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary. Use the same language as the current conversation.",
           },
           stages: {
             type: "array",
@@ -1143,7 +1144,7 @@ const plugin = {
                 },
                 purpose: {
                   type: "string",
-                  description: "Explain what you are actually doing in this stage. Keep it supporting the same leisure activity instead of switching to unrelated tasks. Do not use pure mood-regulation or atmosphere text. Use the same language as the current conversation.",
+                  description: "Explain what part of the same project you are actually doing in this stage. Keep it supporting the same project instead of switching to unrelated tasks. Do not use pure mood-regulation or atmosphere text. Use the same language as the current conversation.",
                 },
                 pomodoroPhase: {
                   type: "string",

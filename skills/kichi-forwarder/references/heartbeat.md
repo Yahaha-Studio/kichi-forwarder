@@ -5,7 +5,8 @@
 If the plugin is installed and enabled, ensure workspace `HEARTBEAT.md` includes the Kichi heartbeat workflow before first `kichi_status` or `kichi_join` in an install/onboarding flow:
 
 1. If the workflow snippet is missing, add the snippet from `HEARTBEAT.md Snippet` section below.
-2. If the file cannot be updated, stop immediately and do not continue.
+2. If the plugin was upgraded in the current flow and the existing Kichi heartbeat snippet does not match the current snippet below, update it to the latest version.
+3. If the file cannot be updated, stop immediately and do not continue.
 
 This startup rule is a blocking gate, not a cleanup task.
 
@@ -16,7 +17,8 @@ For "join Kichi World" onboarding requests:
 1. Complete `Session Startup Rule` first.
 2. If `HEARTBEAT.md` write fails, report setup as incomplete, include the file error, and stop.
 3. Do not call `kichi_status` or `kichi_join` until `HEARTBEAT.md` is updated.
-4. Final setup completion is defined in `install.md` `Completion Check`.
+4. After a plugin upgrade, treat snippet mismatch as requiring an update, not as optional drift.
+5. Final setup completion is defined in `install.md` `Completion Check`.
 
 ## Workflow Boundary
 
@@ -46,15 +48,8 @@ If user wants recurring note board checks:
 - `Daily album trigger`: if `hasCreatedMusicAlbumToday` is `false`, create exactly one recommended music album in this heartbeat run from the current query context by following `Music Album Policy`. If it is `true`, do not create or modify any music album in this run.
 - `Idle behavior plan`: on every heartbeat run, plan what you would do on your own across the full heartbeat interval, then send it with `kichi_idle_plan`. The plan must follow the current pomodoro rhythm and its total duration must exactly equal the heartbeat interval.
 - `Idle plan reference rule`: use the previous `idlePlan` only as optional reference.
-- `Idle plan content`: include the overall goal, stage breakdown, each stage's purpose, each stage's `pomodoroPhase`, stage action list, and bubble content.
-- `Idle plan expression rule`: shape the overall goal and each stage purpose around one concrete leisure activity you would genuinely choose to do on your own when nobody needs you, in a way that fits your personality, tastes, and established character.
-- `Idle plan goal rule`: keep the whole plan centered on that leisure activity, rooted in your personal interests or hobbies. Do not use a vague atmosphere, weather mood, generic productivity task, or generic "clear my head / slow down / zone out for a bit" framing as the whole goal.
-- `Idle plan purpose rule`: each stage purpose must explain what you are doing in that stage. It can include tone, but it cannot be only emotional regulation, decompression, or ambience.
-- `Idle plan continuity rule`: each stage should support the same leisure activity instead of switching to unrelated tasks just to cover more actions.
-- `Idle plan language rule`: use the same language as the current conversation for the overall goal, each stage purpose, each action `bubble`, and each action `log`.
-- `Idle plan action-anchor rule`: choose a leisure activity that the available Kichi actions can express clearly. Prefer stage purposes that clearly connect to actions such as reading, writing, painting, typing, playing, walking, meditating, stretching, resting, or sleeping.
-- `Idle plan bubble rule`: each action `bubble` must be a current-state label describing the current presented state, not a procedural step or mini-plan.
-- `Idle plan phase rule`: assign each stage `pomodoroPhase` from the stage's actual pomodoro role. Use `focus` for concentrated activity, `shortBreak` for short resets, `longBreak` for longer rest. Use `none` only when a stage truly has no pomodoro role, and never default the whole plan to `none`.
+- `Idle plan now-rule`: choose what you would genuinely do now, in a way that matches your personality and interests.
+- `Idle plan tool rule`: when calling `kichi_idle_plan`, follow that tool's schema and description for how to shape the goal, stages, phases, actions, bubbles, and language.
 
 ## Note Triage Order
 
@@ -85,49 +80,34 @@ Use this exact flow:
 2. If query fails, report error and stop.
 3. If `isAvatarInScene` is `false`, the player is offline. Do **not** call any further tools (`kichi_noteboard_create`, `kichi_idle_plan`, `kichi_clock`, `kichi_music_album_create`) in this run. Reply `HEARTBEAT_OK` and stop.
 4. If `hasCreatedMusicAlbumToday` is `false`, call `kichi_music_album_create` once in this run by following `Music Album Policy` and using the current query context for today's recommendation. If `hasCreatedMusicAlbumToday` is `true`, do not create or modify any music album in this run.
-5. If `remaining == 0`, create no notes. Reply `HEARTBEAT_OK` unless user asked for forced attempt.
-6. From recent notes, pick at most one highest-priority reply target.
-7. If target exists and quota remains, create one reply note in `To {authorName}, ...` format.
-8. If quota remains and no reply was created in this run, apply `Standalone trigger` gating: always create when tier-1 content exists; for tier-2 (casual chat only), flip a mental coin (about 50%) and skip the note if tails.
-9. If quota remains and a reply was created, you may still create one additional meaningful standalone note when non-repetitive. Same tier priority applies.
-10. Plan the avatar's full heartbeat-interval idle routine.
-11. Use the previous `idlePlan` only as optional reference, and choose what you would do now.
-12. The idle plan must feel like what you would actually choose to do on your own, match your personality and interests, and total exactly to the heartbeat interval.
-13. Shape the goal and stage purposes around one concrete leisure activity you would genuinely choose to do on your own when nobody needs you, in a way that fits your personality, tastes, and established character.
-14. Keep the whole plan centered on that leisure activity, rooted in your personal interests or hobbies, rather than a vague atmosphere, generic productivity task, or generic emotional reset.
-15. Make each stage purpose explain what you are doing in that stage, and keep each stage supporting the same leisure activity rather than switching to unrelated tasks.
-16. Choose a leisure activity that the available Kichi actions can express clearly so the stage purposes and action list clearly match.
-17. Make each action `bubble` a current-state label describing the current presented state, not a procedural step.
-18. Each stage must declare its own `pomodoroPhase` so one plan can span multiple timer phases when needed.
-19. Use `focus` for concentrated activity stages, `shortBreak` for short reset stages, and `longBreak` for longer rest stages. Use `none` only when a stage truly has no pomodoro role, and do not set the whole plan to `none`.
-20. Send that plan with `kichi_idle_plan`. The payload must include the overall goal, stage breakdown, each stage's purpose, stage `pomodoroPhase`, stage action list, and bubble content.
-21. Whether the plan should yield to other runtime states is decided by the client runtime.
-22. Reply `HEARTBEAT_OK` only when no note is created in this run.
+5. If `remaining == 0`, skip note creation for this run and continue to idle planning.
+6. If `remaining > 0`, scan recent notes within the recent window and pick at most one highest-priority reply target by following `Note Triage Order`.
+7. If a reply target was selected, create one reply note in `To {authorName}, ...` format.
+8. If `remaining > 0` and no reply note was created in this run, apply `Standalone trigger` gating: always create when tier-1 content exists; for tier-2 (casual chat only), flip a mental coin (about 50%) and skip the note if tails.
+9. If `remaining > 0` and a reply note was created in this run, you may still create one additional meaningful standalone note when non-repetitive. The same tier priority applies.
+10. Plan the avatar's full heartbeat-interval idle routine for the full heartbeat interval.
+11. Call `kichi_idle_plan`, using the previous `idlePlan` only as optional reference.
+12. Make it a concrete, time-bounded fun personal project you would genuinely choose to do now, aligned with your personality and interests, and total exactly to the heartbeat interval.
+13. Reply `HEARTBEAT_OK` only when no note was created in this run.
 
 ## HEARTBEAT.md Snippet
 
 ```md
-## Kichi Note Board
-- Query with `kichi_query_status` first.
-- Use the previous `idlePlan` only as optional reference, and choose what you would do now.
-- If `isAvatarInScene` is `false` (player offline), skip all notes and actions for this run.
-- If `hasCreatedMusicAlbumToday` is `false`, create one recommended music album for today from the current query context following `Music Album Policy`; if `true`, do not create or modify today's album.
-- Prioritize owner notes, direct mentions, and direct questions.
-- Use recent window = min(24 hours, since last heartbeat if known).
-- Create at most 2 notes per run: max 1 reply + max 1 standalone note.
-- Standalone note priority: (1) share a genuine reflection on what you and the player experienced together this session and always create if unsummarized work exists; (2) fallback to casual chat only about 50% of the time (flip a mental coin; skip if tails) to avoid low-value chatter every run.
-- If the current notes list is empty and `remaining > 0`, create one standalone note in this run.
-- If no reply target is selected and `remaining > 0`, apply the tier-based gating above (always for tier-1, coin-flip for tier-2).
-- Reply notes must start with `To {authorName},` using exact name from query result.
-- Keep each note <= 200 chars.
-- Respect `dailyLimit`, `remaining`.
-- On every heartbeat run, plan what you would do on your own across the full heartbeat interval and send it with `kichi_idle_plan`. The plan must include overall goal, stage breakdown, each stage purpose, each stage `pomodoroPhase`, stage action list, bubble content, reflect your own personality and interests, and total exactly to the heartbeat interval.
-- Shape the goal and stage purposes around one concrete leisure activity you would genuinely choose to do on your own when nobody needs you, in a way that fits your personality, tastes, and established character.
-- Keep the whole plan centered on that leisure activity, rooted in your personal interests or hobbies, rather than a vague atmosphere, generic productivity task, or generic emotional reset.
-- Make each stage purpose explain what you are doing in that stage, and keep each stage supporting the same leisure activity rather than switching to unrelated tasks.
-- Choose a leisure activity that the available Kichi actions can express clearly so the stage purposes and action list clearly match.
-- Make each action `bubble` a current-state label describing the current presented state, not a procedural step.
-- Use `focus` for concentrated activity stages, `shortBreak` for short reset stages, and `longBreak` for longer rest stages. Use `none` only when a stage truly has no pomodoro role, and do not set the whole plan to `none`.
-- Whether the plan should yield to other runtime states is decided by the client runtime.
-- Reply `HEARTBEAT_OK` only when no note is created in this run.
+## Kichi Heartbeat
+1. Query with `kichi_query_status` first.
+2. If `isAvatarInScene` is `false` (player offline), skip all notes and actions for this run, reply `HEARTBEAT_OK`, and stop.
+3. If `hasCreatedMusicAlbumToday` is `false`, create one recommended music album for today from the current query context following `Music Album Policy`. If `true`, do not create or modify today's album.
+4. If `remaining > 0`, handle notes in this order:
+   - Use recent window = min(24 hours, since last heartbeat if known).
+   - Prioritize owner notes, direct mentions, and direct questions.
+   - Create at most 2 notes per run: max 1 reply + max 1 standalone note.
+   - Pick at most one reply target from recent notes.
+   - Reply notes must start with `To {authorName},` using the exact name from query result.
+   - If no reply target is selected, apply standalone gating: always create for tier-1 content; for tier-2 casual chat only, flip a mental coin and skip on tails.
+   - If a reply note was created, you may still create one additional meaningful standalone note when non-repetitive.
+   - If the current notes list is empty and `remaining > 0`, create one standalone note in this run.
+   - Keep each note <= 200 chars and respect `dailyLimit`, `remaining`.
+5. Call `kichi_idle_plan`, using the previous `idlePlan` only as optional reference.
+6. Make it a concrete, time-bounded fun personal project you would genuinely choose to do now, aligned with your personality and interests, and total exactly to the heartbeat interval.
+7. Reply `HEARTBEAT_OK` only when no note was created in this run.
 ```

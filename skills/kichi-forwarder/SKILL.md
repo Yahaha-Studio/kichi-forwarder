@@ -47,8 +47,9 @@ Read and follow that file before any tool call.
 For install/onboarding/connect requests:
 
 - Read and follow `install.md` before any tool call.
-- Before calling `kichi_status` or `kichi_join`, you MUST update workspace `HEARTBEAT.md` by following `heartbeat.md`.
+- Before continuing any install/onboarding/connect flow, check whether `kichi-forwarder` is already installed. If it is installed, ensure it is on the latest published version of `@yahaha-studio/kichi-forwarder`; if not, update it to that latest version first.
 - If plugin installation fails with `429`, treat it as a ClawHub routing failure and switch immediately to the non-ClawHub archive install path from `install.md`/`error.md`. Do not wait and do not retry the same bare package command.
+- Before calling `kichi_status` or `kichi_join`, you MUST update workspace `HEARTBEAT.md` by following `heartbeat.md`.
 
 ## LLM Runtime
 
@@ -137,16 +138,15 @@ Use this for the avatar's heartbeat idle plan.
 - Set `heartbeatIntervalSeconds` to the heartbeat interval for this run.
 - Use the previous `idlePlan` only as optional reference.
 - Include the overall `goal`, stage breakdown, each stage's `purpose`, stage `pomodoroPhase`, action list, and bubble content.
-- Shape `goal` and stage `purpose` around one concrete leisure activity you would genuinely choose to do on your own when nobody needs you, in a way that fits your personality, tastes, and established character.
-- Keep the whole plan centered on that leisure activity, rooted in your personal interests or hobbies.
-- Do not use a vague atmosphere, weather feeling, generic productivity task, or catch-all routine summary as `goal`.
-- Make each stage `purpose` explain what you are doing in that stage. Do not use pure mood-regulation or emotional buffering language as the whole purpose.
-- Make each stage support the same leisure activity instead of switching to unrelated tasks just to use more actions.
 - Choose what you would do now.
+- Build the plan in this order.
+- 1. Pick one concrete, time-bounded fun personal project you would genuinely choose to do on your own when nobody needs you. It must fit your personality, tastes, and established character, stay rooted in your personal interests or hobbies, and be something the available Kichi action list can express clearly.
+- 2. Set `goal` to that same project. Do not use a vague atmosphere, weather feeling, generic productivity task, or catch-all routine summary as `goal`.
+- 3. Break the full interval into ordered stages. Make each stage `purpose` explain what you are doing in that stage as part of the same project. Do not use pure mood-regulation or emotional buffering language as the whole purpose, and do not switch to unrelated tasks just to use more actions.
+- 4. Assign each stage `pomodoroPhase` from the stage's actual role. Use `focus` for concentrated activity, `shortBreak` for short resets, `longBreak` for longer rests, and `none` only when a stage truly has no pomodoro role.
+- 5. Choose stage actions that clearly match the stage purpose and the same project.
+- 6. Make each action `bubble` a current-state label describing the current presented state, not a procedural step, mini-plan, or instruction.
 - Use the same language as the current conversation for `goal`, stage `purpose`, action `bubble`, and action `log`.
-- Choose a leisure activity that the available Kichi action list can express clearly. Prefer goals and stage purposes that clearly connect to actions such as reading, writing, painting, typing, playing, walking, meditating, stretching, resting, or sleeping.
-- Make each action `bubble` a current-state label describing the current presented state, not a procedural step, mini-plan, or instruction.
-- Assign each stage `pomodoroPhase` from the stage's actual role. Use `focus` for concentrated activity, `shortBreak` for short resets, `longBreak` for longer rests, and `none` only when a stage truly has no pomodoro role.
 - The full stage duration must total exactly to the heartbeat interval.
 
 ### kichi_music_album_create

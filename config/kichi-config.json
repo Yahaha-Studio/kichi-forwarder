@@ -141,10 +141,6 @@
 				"resumeAction": "Idle Backup Hands"
 			},
 			{
-				"name": "Walk",
-				"playback": "loop"
-			},
-			{
 				"name": "Goofy Moves",
 				"playback": "loop"
 			},

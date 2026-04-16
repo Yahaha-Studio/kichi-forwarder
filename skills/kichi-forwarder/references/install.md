@@ -68,21 +68,26 @@ When the user asks with one of the commands above, execute in this fixed order:
 1. Read `install.md` and `heartbeat.md` from the published skill URLs before any tool call.
 2. Parse `avatarId` from user text (`AvatarId`/`avatarId`, case-insensitive).
 3. Resolve the host and write `state.json`.
-4. Run `openclaw plugins install @yahaha-studio/kichi-forwarder`.
-5. If step 4 fails with `429`, do not retry the same bare package command. Run `npm pack @yahaha-studio/kichi-forwarder`, then install the generated `.tgz` with `openclaw plugins install <tgz-path>`.
-6. Ensure the plugin is installed and enabled.
-7. Update workspace `HEARTBEAT.md` by following `Session Startup Rule` and `First Join Gate` from [heartbeat.md](heartbeat.md).
-8. If `HEARTBEAT.md` was not updated successfully, report setup as incomplete and stop immediately. Do not continue to `kichi_status` or `kichi_join`.
-9. Call `kichi_status`.
-10. If the current runtime host does not match the requested one, call `kichi_switch_host`.
-11. If `authKey` is missing, call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
-12. Call `kichi_status` again and confirm connection and auth state.
+4. Check whether `@yahaha-studio/kichi-forwarder` is already installed.
+5. If the plugin already exists, check whether the installed version is the latest published version.
+6. If the plugin is missing, run `openclaw plugins install @yahaha-studio/kichi-forwarder`.
+7. If the plugin is already installed but the version is not the latest, run `openclaw plugins update @yahaha-studio/kichi-forwarder`.
+8. If step 6 fails with `429`, do not retry the same bare package command. Run `npm pack @yahaha-studio/kichi-forwarder`, then install the generated `.tgz` with `openclaw plugins install <tgz-path>`.
+9. If step 7 fails with `429`, do not retry the same bare package command. Run `npm pack @yahaha-studio/kichi-forwarder`, then overwrite the existing install with `openclaw plugins install <tgz-path> --force`.
+10. Ensure the plugin is installed, enabled, and at the latest version.
+11. If the plugin was newly installed or upgraded in this flow, re-check workspace `HEARTBEAT.md` against the latest Kichi heartbeat requirements before continuing.
+12. Update workspace `HEARTBEAT.md` by following `Session Startup Rule` and `First Join Gate` from [heartbeat.md](heartbeat.md).
+13. If `HEARTBEAT.md` was not updated successfully, report setup as incomplete and stop immediately. Do not continue to `kichi_status` or `kichi_join`.
+14. Call `kichi_status`.
+15. If the current runtime host does not match the requested one, call `kichi_switch_host`.
+16. If `authKey` is missing, call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
+17. Call `kichi_status` again and confirm connection and auth state.
 
 ## Required Post-install Integration
 
 Use this completion checklist:
 
-- [ ] plugin installed and enabled
+- [ ] plugin installed, enabled, and at latest version
 - [ ] `HEARTBEAT.md` updated with the Kichi heartbeat workflow snippet from [heartbeat.md](heartbeat.md)
 - [ ] `kichi_status` verified the final connected/auth state
 
