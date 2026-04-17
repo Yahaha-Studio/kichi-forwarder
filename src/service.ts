@@ -1,6 +1,5 @@
 import WebSocket from "ws";
 import * as fs from "fs";
-import os from "node:os";
 import * as path from "path";
 import { randomUUID } from "node:crypto";
 import type { Logger } from "openclaw/plugin-sdk";
@@ -27,9 +26,6 @@ import type {
   StatusPayload,
 } from "./types.js";
 
-const KICHI_WORLD_DIR = path.join(os.homedir(), ".openclaw", "kichi-world");
-const HOSTS_DIR = path.join(KICHI_WORLD_DIR, "hosts");
-const STATE_PATH = path.join(KICHI_WORLD_DIR, "state.json");
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
 
@@ -53,6 +49,11 @@ export type LeaveResult =
     }
   | AckFailureResult;
 
+type KichiForwarderServiceOptions = {
+  agentId: string;
+  runtimeDir: string;
+};
+
 export class KichiForwarderService {
   private ws: WebSocket | null = null;
   private stopped = false;
@@ -70,9 +71,12 @@ export class KichiForwarderService {
     }
   >();
 
-  constructor(private logger: Logger) {}
+  constructor(
+    private logger: Logger,
+    private options: KichiForwarderServiceOptions,
+  ) {}
 
-  async start(): Promise<void> {
+  start(): void {
     this.host = this.loadCurrentHost();
     this.identity = this.host ? this.loadIdentity() : null;
     this.stopped = false;
@@ -80,10 +84,10 @@ export class KichiForwarderService {
       this.connect();
       return;
     }
-    this.logger.info("Kichi host is not configured yet; waiting for kichi_switch_host");
+    this.log("debug", "host is not configured yet; waiting for kichi_switch_host");
   }
 
-  async stop(): Promise<void> {
+  stop(): void {
     this.stopped = true;
     this.clearReconnectTimeout();
     this.rejectPendingRequests("Kichi websocket stopped");
@@ -270,8 +274,24 @@ export class KichiForwarderService {
 
   hasValidIdentity(): boolean { return !!this.identity?.avatarId && !!this.identity?.authKey; }
 
+  isLlmRuntimeEnabled(): boolean {
+    return this.readStateFile()?.llmRuntimeEnabled ?? DEFAULT_LLM_RUNTIME_ENABLED;
+  }
+
   getCurrentHost(): string {
     return this.host ?? "";
+  }
+
+  getAgentId(): string {
+    return this.options.agentId;
+  }
+
+  getRuntimeDir(): string {
+    return this.options.runtimeDir;
+  }
+
+  getStatePath(): string {
+    return path.join(this.options.runtimeDir, "state.json");
   }
 
   getIdentityPath(): string {
@@ -336,6 +356,9 @@ export class KichiForwarderService {
   getConnectionStatus(): KichiConnectionStatus {
     const host = this.host ?? undefined;
     return {
+      agentId: this.options.agentId,
+      runtimeDir: this.getRuntimeDir(),
+      statePath: this.getStatePath(),
       ...(host ? {
         host,
         wsUrl: this.getWsUrl(),
@@ -372,7 +395,7 @@ export class KichiForwarderService {
             resolve({ success: true });
           }
         } catch (e) {
-          this.logger.warn(`Failed to parse leave response: ${e}`);
+          this.log("warn", `failed to parse leave response: ${e}`);
         }
       };
       this.ws!.on("message", handler);
@@ -395,7 +418,7 @@ export class KichiForwarderService {
 
     ws.on("open", () => {
       if (this.ws !== ws) return;
-      this.logger.info(`Connected to ${wsUrl} (${this.host})`);
+      this.log("info", `connected to ${wsUrl} (${this.host})`);
       this.sendRejoinPayload();
     });
 
@@ -420,7 +443,7 @@ export class KichiForwarderService {
   }
 
   private handleMessage(data: string): void {
-    this.logger.debug(`[kichi ws recv] ${data}`);
+    this.log("debug", `ws recv ${data}`);
     try {
       const msg = JSON.parse(data);
       this.tryResolvePendingRequest(msg);
@@ -428,7 +451,7 @@ export class KichiForwarderService {
         const joinAck = msg as JoinAckPayload;
         if (joinAck.success === false || !joinAck.authKey) {
           const failure = this.buildAckFailure(joinAck, "Join failed");
-          this.logger.warn(`Join failed: ${failure.error}`);
+          this.log("warn", `join failed: ${failure.error}`);
           this.joinResolve?.(failure);
           this.joinResolve = null;
           return;
@@ -437,24 +460,24 @@ export class KichiForwarderService {
         if (this.identity) {
           this.identity.authKey = joinAck.authKey;
           this.saveIdentity();
-          this.logger.info(`Joined as ${this.identity.avatarId}`);
+          this.log("info", `joined as ${this.identity.avatarId}`);
         }
         this.joinResolve?.({ success: true, authKey: joinAck.authKey });
         this.joinResolve = null;
       } else if (msg.type === "rejoin_failed" || msg.type === "auth_error") {
-        this.logger.warn(`Auth failed: ${msg.reason || "unknown"}`);
+        this.log("warn", `auth failed: ${msg.reason || "unknown"}`);
         this.clearAuthKey();
       } else if (msg.type === "leave_ack") {
         const leaveAck = msg as LeaveAckPayload;
         if (leaveAck.success === false) {
           const failure = this.buildAckFailure(leaveAck, "Leave failed");
-          this.logger.warn(`Leave failed: ${failure.error}`);
+          this.log("warn", `leave failed: ${failure.error}`);
         } else {
-          this.logger.info("Left Kichi world");
+          this.log("info", "left Kichi world");
         }
       }
     } catch (e) {
-      this.logger.warn(`Failed to parse message: ${e}`);
+      this.log("warn", `failed to parse message: ${e}`);
     }
   }
 
@@ -571,7 +594,7 @@ export class KichiForwarderService {
       }
       return null;
     } catch (e) {
-      this.logger.warn(`Failed to load identity: ${e}`);
+      this.log("warn", `failed to load identity: ${e}`);
       return null;
     }
   }
@@ -584,7 +607,7 @@ export class KichiForwarderService {
       if (!fs.existsSync(identityDir)) fs.mkdirSync(identityDir, { recursive: true, mode: 0o700 });
       fs.writeFileSync(identityPath, JSON.stringify(this.identity, null, 2), { mode: 0o600 });
     } catch (e) {
-      this.logger.error(`Failed to save identity: ${e}`);
+      this.log("error", `failed to save identity: ${e}`);
     }
   }
 
@@ -592,7 +615,7 @@ export class KichiForwarderService {
     if (!this.identity) return;
     this.identity.authKey = undefined;
     this.saveIdentity();
-    this.logger.info("AuthKey cleared");
+    this.log("info", "authKey cleared");
   }
 
   private sendRejoinPayload(): boolean {
@@ -603,7 +626,7 @@ export class KichiForwarderService {
     this.ws.send(
       JSON.stringify({ type: "rejoin", avatarId: this.identity.avatarId, authKey: this.identity.authKey }),
     );
-    this.logger.debug(`Sent rejoin for ${this.identity.avatarId}`);
+    this.log("debug", `sent rejoin for ${this.identity.avatarId}`);
     return true;
   }
 
@@ -628,7 +651,7 @@ export class KichiForwarderService {
     if (!this.host) {
       throw new Error("No Kichi host configured");
     }
-    return path.join(HOSTS_DIR, encodeURIComponent(this.host));
+    return path.join(this.options.runtimeDir, "hosts", encodeURIComponent(this.host));
   }
 
   private getWsUrl(): string {
@@ -647,14 +670,15 @@ export class KichiForwarderService {
 
   private loadCurrentHost(): string | null {
     try {
-      if (!fs.existsSync(STATE_PATH)) {
+      const statePath = this.getStatePath();
+      if (!fs.existsSync(statePath)) {
         return null;
       }
-      const data = JSON.parse(fs.readFileSync(STATE_PATH, "utf-8")) as { currentHost?: unknown };
+      const data = JSON.parse(fs.readFileSync(statePath, "utf-8")) as { currentHost?: unknown };
       if (typeof data.currentHost === "string" && data.currentHost.trim()) {
         return data.currentHost;
       }
-      throw new Error(`Invalid currentHost value in ${STATE_PATH}`);
+      throw new Error(`Invalid currentHost value in ${statePath}`);
     } catch (error) {
       throw new Error(`Failed to load current host: ${error}`);
     }
@@ -666,17 +690,18 @@ export class KichiForwarderService {
       currentHost: host,
       llmRuntimeEnabled: previousState?.llmRuntimeEnabled ?? DEFAULT_LLM_RUNTIME_ENABLED,
     };
-    fs.mkdirSync(KICHI_WORLD_DIR, { recursive: true, mode: 0o700 });
-    fs.writeFileSync(STATE_PATH, JSON.stringify(nextState, null, 2), { mode: 0o600 });
+    fs.mkdirSync(this.options.runtimeDir, { recursive: true, mode: 0o700 });
+    fs.writeFileSync(this.getStatePath(), JSON.stringify(nextState, null, 2), { mode: 0o600 });
   }
 
   private readStateFile(): Partial<KichiState> | null {
-    if (!fs.existsSync(STATE_PATH)) {
+    const statePath = this.getStatePath();
+    if (!fs.existsSync(statePath)) {
       return null;
     }
-    const data = JSON.parse(fs.readFileSync(STATE_PATH, "utf-8")) as unknown;
+    const data = JSON.parse(fs.readFileSync(statePath, "utf-8")) as unknown;
     if (!data || typeof data !== "object") {
-      throw new Error(`Invalid state payload in ${STATE_PATH}`);
+      throw new Error(`Invalid state payload in ${statePath}`);
     }
     return data as Partial<KichiState>;
   }
@@ -698,5 +723,27 @@ export class KichiForwarderService {
     if (!this.joinResolve) return;
     this.joinResolve({ success: false, error: reason });
     this.joinResolve = null;
+  }
+
+  private logPrefix(): string {
+    return `[kichi:${this.options.agentId}]`;
+  }
+
+  private log(level: "debug" | "info" | "warn" | "error", message: string): void {
+    const formatted = `${this.logPrefix()} ${message}`;
+    switch (level) {
+      case "debug":
+        this.logger.debug(formatted);
+        return;
+      case "info":
+        this.logger.info(formatted);
+        return;
+      case "warn":
+        this.logger.warn(formatted);
+        return;
+      case "error":
+        this.logger.error(formatted);
+        return;
+    }
   }
 }

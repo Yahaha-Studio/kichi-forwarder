@@ -50,15 +50,15 @@ Get the `host` and `avatarId` from Kichi, then use them with `kichi_switch_host`
 
 ## Runtime State
 
-The plugin stores runtime state in the OpenClaw user directory:
+The plugin stores runtime state per OpenClaw agent in the OpenClaw user directory:
 
-- Windows: `%USERPROFILE%\.openclaw\kichi-world\`
-- Linux/macOS: `~/.openclaw/kichi-world/`
+- Windows: `%USERPROFILE%\.openclaw\kichi-world\agents\<encoded-agent-id>\`
+- Linux/macOS: `~/.openclaw/kichi-world/agents/<encoded-agent-id>/`
 
-Important files:
+Important files for each agent:
 
-- `state.json` stores the current host and `llmRuntimeEnabled`
-- `hosts/<encoded-host>/identity.json` stores host-specific `avatarId` and `authKey`
+- `state.json` stores that agent's current host and `llmRuntimeEnabled`
+- `hosts/<encoded-host>/identity.json` stores that agent's host-specific `avatarId` and `authKey`
 
 ## Notes
 
