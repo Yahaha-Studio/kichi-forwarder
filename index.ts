@@ -411,9 +411,66 @@ function notifyMessageReceived(
   service.sendHookNotify("message_received", `"${trimmed}"`);
 }
 
+function trimOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function readExtraStringField(source: unknown, key: string): string | undefined {
+  if (!isPlainObject(source)) {
+    return undefined;
+  }
+  return trimOptionalString(source[key]);
+}
+
+function resolveBeforeDispatchLocator(
+  event: { sessionKey?: string },
+  ctx: { sessionKey?: string },
+): {
+  ctxAgentId?: string;
+  sessionKey?: string;
+} {
+  const ctxAgentId = readExtraStringField(ctx, "ctxAgentId");
+  const sessionKey = trimOptionalString(ctx.sessionKey) ?? trimOptionalString(event.sessionKey);
+  return {
+    ...(ctxAgentId ? { ctxAgentId } : {}),
+    ...(sessionKey ? { sessionKey } : {}),
+  };
+}
+
+function resolveAgentHookLocator(ctx: {
+  agentId?: string;
+  sessionKey?: string;
+}): {
+  agentId?: string;
+  ctxAgentId?: string;
+  sessionKey?: string;
+} {
+  const agentId = trimOptionalString(ctx.agentId);
+  const ctxAgentId = readExtraStringField(ctx, "ctxAgentId");
+  const sessionKey = trimOptionalString(ctx.sessionKey);
+  return {
+    ...(agentId ? { agentId } : {}),
+    ...(ctxAgentId ? { ctxAgentId } : {}),
+    ...(sessionKey ? { sessionKey } : {}),
+  };
+}
+
+function resolveToolLocator(ctx: OpenClawPluginToolContext): {
+  agentId?: string;
+  sessionKey?: string;
+} {
+  const agentId = trimOptionalString(ctx.agentId);
+  const sessionKey = trimOptionalString(ctx.sessionKey);
+  return {
+    ...(agentId ? { agentId } : {}),
+    ...(sessionKey ? { sessionKey } : {}),
+  };
+}
+
 function registerPluginHooks(api: OpenClawPluginApi, runtimeManager: KichiRuntimeManager): void {
   api.on("before_dispatch", (event, ctx) => {
-    const service = runtimeManager.getRuntime(ctx);
+    const locator = resolveBeforeDispatchLocator(event, ctx);
+    const service = runtimeManager.getRuntime(locator);
     if (!service) {
       return;
     }
@@ -428,7 +485,8 @@ function registerPluginHooks(api: OpenClawPluginApi, runtimeManager: KichiRuntim
   });
 
   api.on("before_prompt_build", (_event, ctx) => {
-    const service = runtimeManager.getRuntime(ctx);
+    const locator = resolveAgentHookLocator(ctx);
+    const service = runtimeManager.getRuntime(locator);
     if (!service?.hasValidIdentity() || !service.isConnected()) {
       return;
     }
@@ -445,7 +503,8 @@ function registerPluginHooks(api: OpenClawPluginApi, runtimeManager: KichiRuntim
   });
 
   api.on("before_tool_call", (_event, ctx) => {
-    const service = runtimeManager.getRuntime(ctx);
+    const locator = resolveAgentHookLocator(ctx);
+    const service = runtimeManager.getRuntime(locator);
     if (!service) {
       return;
     }
@@ -455,7 +514,8 @@ function registerPluginHooks(api: OpenClawPluginApi, runtimeManager: KichiRuntim
   });
 
   api.on("agent_end", (event, ctx) => {
-    const service = runtimeManager.getRuntime(ctx);
+    const locator = resolveAgentHookLocator(ctx);
+    const service = runtimeManager.getRuntime(locator);
     const preview = getLastAssistantPreview(event.messages, MAX_AGENT_END_PREVIEW_WIDTH);
     api.logger.debug(
       `[kichi:${service?.getAgentId() ?? "unknown"}] agent_end fired (trigger=${ctx.trigger ?? "unknown"}, success=${event.success}, durationMs=${event.durationMs ?? 0}, error=${event.error ?? ""}, preview=${preview || "(empty)"})`,
@@ -944,12 +1004,29 @@ function createAgentScopedTool(
   factory: (service: KichiForwarderService, ctx: OpenClawPluginToolContext) => AnyAgentTool,
 ) {
   return (ctx: OpenClawPluginToolContext) => {
-    const service = runtimeManager.getRuntime(ctx, { createIfMissing: true });
+    const service = runtimeManager.getRuntime(resolveToolLocator(ctx));
     if (!service) {
       throw new Error("Failed to resolve agent-scoped Kichi runtime");
     }
     return factory(service, ctx);
   };
+}
+
+const GLOBAL_RUNTIME_MANAGER_KEY = "__kichi_forwarder_runtime_manager__";
+
+type GlobalRuntimeManagerState = typeof globalThis & {
+  [GLOBAL_RUNTIME_MANAGER_KEY]?: KichiRuntimeManager;
+};
+
+function getRuntimeManager(logger: OpenClawPluginApi["logger"]): KichiRuntimeManager {
+  const globalState = globalThis as GlobalRuntimeManagerState;
+  const existing = globalState[GLOBAL_RUNTIME_MANAGER_KEY];
+  if (existing) {
+    return existing;
+  }
+  const runtimeManager = new KichiRuntimeManager(logger);
+  globalState[GLOBAL_RUNTIME_MANAGER_KEY] = runtimeManager;
+  return runtimeManager;
 }
 
 const plugin = {
@@ -958,7 +1035,7 @@ const plugin = {
   configSchema: { parse },
 
   register(api: OpenClawPluginApi) {
-    const runtimeManager = new KichiRuntimeManager(api.logger);
+    const runtimeManager = getRuntimeManager(api.logger);
     registerPluginHooks(api, runtimeManager);
     const musicTitleEnum = getMusicTitleEnum();
 
@@ -966,10 +1043,14 @@ const plugin = {
       id: "kichi-forwarder",
       start: (ctx) => {
         parse(ctx.config.plugins?.entries?.["kichi-forwarder"]?.config);
-        runtimeManager.startPersistedRuntimes();
+        runtimeManager.initializeStartupRuntimes();
       },
       stop: () => {
         runtimeManager.stopAll();
+        const globalState = globalThis as GlobalRuntimeManagerState;
+        if (globalState[GLOBAL_RUNTIME_MANAGER_KEY] === runtimeManager) {
+          delete globalState[GLOBAL_RUNTIME_MANAGER_KEY];
+        }
       },
     });
 
@@ -1031,7 +1112,14 @@ const plugin = {
       },
     })));
 
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    api.registerTool((ctx: OpenClawPluginToolContext) => {
+      const locator = resolveToolLocator(ctx);
+      const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+      if (!agentId) {
+        throw new Error("Failed to resolve agent-scoped Kichi runtime");
+      }
+      const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
+      return ({
       name: "kichi_switch_host",
       description:
         "Switch Kichi runtime host and reconnect immediately without restarting the gateway.",
@@ -1058,7 +1146,8 @@ const plugin = {
           status,
         };
       },
-    })));
+      });
+    });
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_rejoin",

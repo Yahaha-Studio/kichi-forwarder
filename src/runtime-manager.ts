@@ -2,7 +2,6 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { Logger } from "openclaw/plugin-sdk";
-import { resolveAgentIdFromSessionKey } from "openclaw/plugin-sdk/routing";
 import { KichiForwarderService } from "./service.js";
 
 const OPENCLAW_HOME_DIR = path.join(os.homedir(), ".openclaw");
@@ -15,11 +14,8 @@ const LEGACY_MIGRATION_AGENT_ID = "main";
 
 type AgentLocator = {
   agentId?: string;
+  ctxAgentId?: string;
   sessionKey?: string;
-};
-
-type GetRuntimeOptions = {
-  createIfMissing?: boolean;
 };
 
 export class KichiRuntimeManager {
@@ -27,25 +23,34 @@ export class KichiRuntimeManager {
 
   constructor(private logger: Logger) {}
 
-  getRuntime(locator: AgentLocator, options: GetRuntimeOptions = {}): KichiForwarderService | null {
+  getRuntime(locator: AgentLocator): KichiForwarderService | null {
     const agentId = this.resolveAgentId(locator);
     if (!agentId) {
       return null;
     }
 
-    const existing = this.services.get(agentId);
+    return this.services.get(agentId) ?? null;
+  }
+
+  resolveRuntimeAgentId(locator: AgentLocator): string | null {
+    return this.resolveAgentId(locator);
+  }
+
+  createRuntimeForAgent(agentId: string): KichiForwarderService {
+    const normalizedAgentId = this.normalizeAgentId(agentId);
+    if (!normalizedAgentId) {
+      throw new Error("Cannot create Kichi runtime without a valid agentId");
+    }
+
+    const existing = this.services.get(normalizedAgentId);
     if (existing) {
       return existing;
     }
 
-    if (!options.createIfMissing && !this.hasPersistedRuntime(agentId)) {
-      return null;
-    }
-
-    return this.createRuntime(agentId);
+    return this.createRuntime(normalizedAgentId);
   }
 
-  startPersistedRuntimes(): void {
+  initializeStartupRuntimes(): void {
     this.migrateRuntimeStorage();
 
     const rootDir = CANONICAL_AGENT_ROOT_DIR;
@@ -80,24 +85,36 @@ export class KichiRuntimeManager {
   }
 
   private resolveAgentId(locator: AgentLocator): string | null {
-    if (typeof locator.agentId === "string" && locator.agentId.trim()) {
-      return locator.agentId.trim();
+    const directAgentId = this.normalizeAgentId(locator.ctxAgentId) ?? this.normalizeAgentId(locator.agentId);
+    const sessionAgentId =
+      typeof locator.sessionKey === "string" && locator.sessionKey.trim()
+        ? this.parseAgentIdFromSessionKey(locator.sessionKey)
+        : null;
+
+    if (sessionAgentId) {
+      if (directAgentId && directAgentId !== sessionAgentId) {
+        this.logger.error(
+          `[kichi] runtime scope mismatch: directAgentId=${directAgentId} sessionAgentId=${sessionAgentId} sessionKey=${locator.sessionKey}`,
+        );
+      }
+      this.logger.debug(`[kichi] resolved agent runtime from sessionKey: ${sessionAgentId}`);
+      return sessionAgentId;
     }
 
-    if (typeof locator.sessionKey !== "string" || !locator.sessionKey.trim()) {
-      return null;
-    }
-
-    try {
-      const agentId = resolveAgentIdFromSessionKey(locator.sessionKey);
-      return typeof agentId === "string" && agentId.trim() ? agentId.trim() : null;
-    } catch {
-      return null;
-    }
+    return directAgentId;
   }
 
-  private hasPersistedRuntime(agentId: string): boolean {
-    return fs.existsSync(path.join(this.getRuntimeDir(agentId), "state.json"));
+  private normalizeAgentId(value: unknown): string | null {
+    return typeof value === "string" && value.trim() ? value.trim() : null;
+  }
+
+  private parseAgentIdFromSessionKey(sessionKey: string): string | null {
+    const trimmed = sessionKey.trim();
+    const match = /^agent:([^:]+):/i.exec(trimmed);
+    if (!match) {
+      return null;
+    }
+    return this.normalizeAgentId(match[1]);
   }
 
   private migrateRuntimeStorage(): void {

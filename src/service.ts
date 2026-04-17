@@ -54,10 +54,13 @@ type KichiForwarderServiceOptions = {
   runtimeDir: string;
 };
 
+type ConnectReason = "startup" | "switch_host" | "reconnect";
+
 export class KichiForwarderService {
   private ws: WebSocket | null = null;
   private stopped = false;
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private joinTimeout: NodeJS.Timeout | null = null;
   private identity: KichiIdentity | null = null;
   private host: string | null = null;
   private joinResolve: ((result: JoinResult) => void) | null = null;
@@ -81,7 +84,7 @@ export class KichiForwarderService {
     this.identity = this.host ? this.loadIdentity() : null;
     this.stopped = false;
     if (this.host) {
-      this.connect();
+      this.connect("startup");
       return;
     }
     this.log("debug", "host is not configured yet; waiting for kichi_switch_host");
@@ -104,7 +107,7 @@ export class KichiForwarderService {
     this.failPendingJoin(`Kichi websocket switched to ${host}`);
     this.closeSocket();
     if (!this.stopped) {
-      this.connect();
+      this.connect("switch_host");
     }
     return this.getConnectionStatus();
   }
@@ -118,7 +121,14 @@ export class KichiForwarderService {
     if (!this.host) {
       return { success: false, error: "No Kichi host configured. Run kichi_switch_host first." };
     }
+    if (this.ws?.readyState !== WebSocket.OPEN && this.ws?.readyState !== WebSocket.CONNECTING) {
+      return {
+        success: false,
+        error: "Kichi websocket is not connected. Restart the gateway to reconnect before joining.",
+      };
+    }
     return new Promise((resolve) => {
+      this.failPendingJoin("Kichi join superseded by a new join request");
       this.identity = { avatarId };
       this.saveIdentity();
       this.joinResolve = resolve;
@@ -129,9 +139,10 @@ export class KichiForwarderService {
       } else {
         this.ws?.once("open", sendJoin);
       }
-      setTimeout(() => {
+      this.joinTimeout = setTimeout(() => {
         if (this.joinResolve) {
           this.joinResolve = null;
+          this.clearJoinTimeout();
           resolve({ success: false, error: "Timed out waiting for join_ack" });
         }
       }, 10000);
@@ -344,12 +355,18 @@ export class KichiForwarderService {
       };
     }
 
-    this.clearReconnectTimeout();
-    this.connect();
+    if (this.reconnectTimeout) {
+      return {
+        accepted: true,
+        mode: "reconnecting",
+        message: "WebSocket reconnect is already scheduled. Rejoin will be sent automatically on open.",
+      };
+    }
+
     return {
-      accepted: true,
-      mode: "reconnecting",
-      message: "Reconnect started. Rejoin will be sent automatically on open.",
+      accepted: false,
+      mode: "unavailable",
+      message: "WebSocket is not connected. Restart the gateway or wait for the scheduled reconnect.",
     };
   }
 
@@ -409,12 +426,18 @@ export class KichiForwarderService {
     });
   }
 
-  private connect(): void {
+  private connect(reason: ConnectReason): void {
     if (this.stopped || !this.host) return;
+    if (this.ws?.readyState === WebSocket.CONNECTING || this.ws?.readyState === WebSocket.OPEN) {
+      this.log("debug", `skipped websocket connect (${reason}) because socket is already ${this.getWebsocketState()}`);
+      return;
+    }
 
+    this.clearReconnectTimeout();
     const wsUrl = this.getWsUrl();
     const ws = new WebSocket(wsUrl);
     this.ws = ws;
+    this.log("debug", `opening websocket (${reason}) to ${wsUrl}`);
 
     ws.on("open", () => {
       if (this.ws !== ws) return;
@@ -431,15 +454,16 @@ export class KichiForwarderService {
       if (this.ws !== ws) return;
       this.ws = null;
       this.rejectPendingRequests("Kichi websocket closed");
+      this.failPendingJoin("Kichi websocket closed");
       if (!this.stopped) {
-        this.reconnectTimeout = setTimeout(() => {
-          this.reconnectTimeout = null;
-          this.connect();
-        }, 2000);
+        this.scheduleReconnect();
       }
     });
 
-    ws.on("error", () => {});
+    ws.on("error", (error) => {
+      if (this.ws !== ws) return;
+      this.log("warn", `websocket error: ${error instanceof Error ? error.message : String(error)}`);
+    });
   }
 
   private handleMessage(data: string): void {
@@ -454,6 +478,7 @@ export class KichiForwarderService {
           this.log("warn", `join failed: ${failure.error}`);
           this.joinResolve?.(failure);
           this.joinResolve = null;
+          this.clearJoinTimeout();
           return;
         }
 
@@ -464,6 +489,7 @@ export class KichiForwarderService {
         }
         this.joinResolve?.({ success: true, authKey: joinAck.authKey });
         this.joinResolve = null;
+        this.clearJoinTimeout();
       } else if (msg.type === "rejoin_failed" || msg.type === "auth_error") {
         this.log("warn", `auth failed: ${msg.reason || "unknown"}`);
         this.clearAuthKey();
@@ -712,6 +738,22 @@ export class KichiForwarderService {
     this.reconnectTimeout = null;
   }
 
+  private clearJoinTimeout(): void {
+    if (!this.joinTimeout) return;
+    clearTimeout(this.joinTimeout);
+    this.joinTimeout = null;
+  }
+
+  private scheduleReconnect(): void {
+    if (this.reconnectTimeout || this.stopped) {
+      return;
+    }
+    this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = null;
+      this.connect("reconnect");
+    }, 2000);
+  }
+
   private closeSocket(): void {
     const socket = this.ws;
     this.ws = null;
@@ -723,6 +765,7 @@ export class KichiForwarderService {
     if (!this.joinResolve) return;
     this.joinResolve({ success: false, error: reason });
     this.joinResolve = null;
+    this.clearJoinTimeout();
   }
 
   private logPrefix(): string {
