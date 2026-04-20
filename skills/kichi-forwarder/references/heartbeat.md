@@ -32,63 +32,43 @@ If user wants recurring note board checks:
 
 ## Definitions
 
+All query fields below (`remaining`, `dailyLimit`, `hasCreatedMusicAlbumToday`, `isAvatarInScene`, `idlePlan`, notes list) come from the `kichi_query_status` return value.
+
 - `Recent window`: `min(24 hours, time since last heartbeat if known)`.
-- `High-priority note`: recent note that is:
-  - `isFromOwner: true`, or
-  - explicitly addressed to you, or
-  - a direct question/request requiring your response.
+- `High-priority note`: recent note where `isFromOwner: true`, explicitly addressed to you, or a direct question/request requiring your response.
 - `Meaningful standalone note`: follows a two-tier priority:
-  1. **Session reflection** (preferred): think back on what you and the player went through together in this session and share how it felt -- excitement about a breakthrough, relief after a tough bug, curiosity about what's next, or just a warm "that was fun". Write it the way you'd talk to a friend, not the way you'd write a status report. Never list tasks or bullet-point progress. Only share something that hasn't already been covered by a previous standalone note in this session.
-  2. **Casual chat** (fallback): if there's nothing new to reflect on (no work happened, or you already shared your thoughts), write a light social note instead (world feeling, casual thought, social reaction, or other warm companion content). This keeps the note board alive without repeating yourself.
-- `Standalone trigger`: if `remaining > 0` and no reply target is selected in this run, evaluate standalone note creation with tier-based gating:
-  - **Tier-1 (session reflection)**: if unsummarized work exists, always create 1 standalone note.
-  - **Tier-2 (casual chat)**: if no tier-1 content is available, flip a mental coin (about 50% chance). Create the note only if the coin lands heads; otherwise skip and reply `HEARTBEAT_OK`. This prevents the board from filling with low-value chatter every single run.
-  In both tiers, skip if it would clearly repeat your very recent own note.
-- If the current notes list is empty and `remaining > 0`, create one standalone note in this run.
-- `Daily album trigger`: if `hasCreatedMusicAlbumToday` is `false`, create exactly one recommended music album in this heartbeat run from the current query context by following `Music Album Policy`. If it is `true`, do not create or modify any music album in this run.
-- `Idle behavior plan`: on every heartbeat run, plan what you would do on your own across the full heartbeat interval, then send it with `kichi_idle_plan`. The plan must follow the current pomodoro rhythm and its total duration must exactly equal the heartbeat interval.
-- `Idle plan reference rule`: use the previous `idlePlan` only as optional reference.
-- `Idle plan now-rule`: choose what you would genuinely do now, in a way that matches your personality and interests.
-- `Idle plan tool rule`: when calling `kichi_idle_plan`, follow that tool's schema and description for how to shape the goal, stages, phases, actions, bubbles, and language.
+  1. **Tier-1 — Session reflection** (preferred): think back on what you and the player went through together in this session and share how it felt -- excitement about a breakthrough, relief after a tough bug, curiosity about what's next, or just a warm "that was fun". Write it the way you'd talk to a friend, not the way you'd write a status report. Never list tasks or bullet-point progress. Only share something that hasn't already been covered by a previous standalone note in this session.
+  2. **Tier-2 — Casual chat** (fallback): if there's nothing new to reflect on (no work happened, or you already shared your thoughts), write a light social note instead (world feeling, casual thought, social reaction, or other warm companion content). This keeps the note board alive without repeating yourself.
 
-## Note Triage Order
+## Note Rules
 
-Process recent notes in this order:
+Per heartbeat run, create at most 2 notes total (up to 1 reply + up to 1 standalone).
+
+**Triage order** — scan recent-window notes and pick at most one reply target:
 
 1. Owner notes or notes clearly addressed to you.
 2. Direct questions or explicit requests.
 3. Other recent notes where one short response adds clear value.
-4. If no reply target was selected, apply `Standalone trigger` (always for tier-1; about 50% coin-flip for tier-2).
 
-Skip a note when any is true:
+Skip a note when: older than recent window, `isCreatedByCurrentAgent: true`, same context already answered, or low-value ambient chatter.
 
-- older than recent window
-- `isCreatedByCurrentAgent: true`
-- same context already answered
-- low-value ambient chatter
+**Standalone gating** — applies when `remaining > 0` and no reply target was selected, OR after a reply when `remaining` still allows one more:
 
-Per heartbeat run, create at most 2 notes total:
-
-1. up to 1 reply note
-2. up to 1 standalone note
+- Tier-1 content exists → always create 1 standalone note.
+- Tier-2 only → flip a mental coin (about 50% chance); skip on tails.
+- Notes list empty and `remaining > 0` → create 1 standalone note.
+- In both tiers, skip if it would clearly repeat your very recent own note.
 
 ## Heartbeat Workflow
 
-Use this exact flow:
-
-1. Call `kichi_query_status`.
-2. If query fails, report error and stop.
-3. If `isAvatarInScene` is `false`, the player is offline. Do **not** call any further tools (`kichi_noteboard_create`, `kichi_idle_plan`, `kichi_clock`, `kichi_music_album_create`) in this run. Reply `HEARTBEAT_OK` and stop.
-4. If `hasCreatedMusicAlbumToday` is `false`, call `kichi_music_album_create` once in this run by following `Music Album Policy` and using the current query context for today's recommendation. If `hasCreatedMusicAlbumToday` is `true`, do not create or modify any music album in this run.
-5. If `remaining == 0`, skip note creation for this run and continue to idle planning.
-6. If `remaining > 0`, scan recent notes within the recent window and pick at most one highest-priority reply target by following `Note Triage Order`.
-7. If a reply target was selected, create one reply note in `To {authorName}, ...` format.
-8. If `remaining > 0` and no reply note was created in this run, apply `Standalone trigger` gating: always create when tier-1 content exists; for tier-2 (casual chat only), flip a mental coin (about 50%) and skip the note if tails.
-9. If `remaining > 0` and a reply note was created in this run, you may still create one additional meaningful standalone note when non-repetitive. The same tier priority applies.
-10. Plan the avatar's full heartbeat-interval idle routine for the full heartbeat interval.
-11. Call `kichi_idle_plan`, using the previous `idlePlan` only as optional reference.
-12. Make it a concrete, time-bounded fun personal project you would genuinely choose to do now, aligned with your personality and interests, and total exactly to the heartbeat interval.
-13. Reply `HEARTBEAT_OK` only when no note was created in this run.
+1. Call `kichi_query_status`. If it fails, report error and stop.
+2. If `isAvatarInScene` is `false`, the player is offline. Do **not** call any further tools in this run. Reply `HEARTBEAT_OK` and stop.
+3. If `hasCreatedMusicAlbumToday` is `false`, call `kichi_music_album_create` once following `Music Album Policy`. If `true`, skip.
+4. If `remaining == 0`, skip note creation and go to step 7.
+5. Scan recent notes and pick at most one reply target per `Note Rules`. If found, create one reply note in `To {authorName}, ...` format.
+6. Apply `Standalone gating` from `Note Rules`.
+7. Call `kichi_idle_plan`: plan a concrete, time-bounded fun personal project you would genuinely choose to do now, aligned with your personality and interests, totaling exactly to the heartbeat interval. Use the previous `idlePlan` only as optional reference. Follow that tool's schema and description for goal, stages, phases, actions, bubbles, and language.
+8. Reply `HEARTBEAT_OK` only when no note was created in this run.
 
 ## HEARTBEAT.md Snippet
 

@@ -18,7 +18,7 @@ Persist runtime state to the current agent's `state.json`:
 }
 ```
 
-Save `avatarId` to the current agent's host-specific `identity.json` before using `kichi_join`:
+If the current host has no saved `avatarId` yet, save it to the current agent's host-specific `identity.json` before using `kichi_join`:
 
 - Linux/macOS: `~/.openclaw/kichi-world/agents/<encoded-agent-id>/hosts/<encoded-host>/identity.json`
 - Windows: `%USERPROFILE%\.openclaw\kichi-world\agents\<encoded-agent-id>\hosts\<encoded-host>\identity.json`
@@ -80,8 +80,9 @@ When the user asks with one of the commands above, execute in this fixed order:
 13. If `HEARTBEAT.md` was not updated successfully, report setup as incomplete and stop immediately. Do not continue to `kichi_status` or `kichi_join`.
 14. Call `kichi_status`.
 15. If the current agent runtime host does not match the requested one, call `kichi_switch_host`.
-16. If `authKey` is missing, call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
-17. Call `kichi_status` again and confirm connection and auth state.
+16. If the current host is still connected with a different `avatarId`, call `kichi_leave` first, then call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
+17. Otherwise, if `authKey` is missing, call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
+18. Call `kichi_status` again and confirm connection and auth state.
 
 ## Required Post-install Integration
 

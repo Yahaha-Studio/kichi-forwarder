@@ -66,9 +66,10 @@ Install/onboarding requests are the exception: follow `install.md` first.
 
 1. If connection or identity is unknown, call `kichi_status` first.
 2. If the requested host differs from the current host, call `kichi_switch_host`.
-3. If no `authKey` is available, call `kichi_join`.
-4. If `authKey` exists but websocket is not open, call `kichi_rejoin` or wait for automatic reconnect and rejoin.
-5. Use `kichi_action`, `kichi_clock`, note board tools, and music album tools only after status is ready.
+3. If the requested `avatarId` differs from the current host's connected `avatarId`, call `kichi_leave` first when the old avatar is still joined, then call `kichi_join` with the requested `avatarId`.
+4. Otherwise, if no `authKey` is available, call `kichi_join`.
+5. If `authKey` exists but websocket is not open, call `kichi_rejoin` or wait for automatic reconnect and rejoin.
+6. Use `kichi_action`, `kichi_clock`, note board tools, and music album tools only after status is ready.
 
 ## Tools
 
@@ -82,6 +83,7 @@ kichi_join(avatarId: "your-avatar-id", botName: "<from IDENTITY.md>", bio: "<fro
 - `bio`: required
 - `avatarId`: optional. If omitted, the tool reads `avatarId` from the current host's `identity.json`. If missing, the call fails.
 - `tags`: optional string list. Empty strings are ignored and duplicates are removed. If omitted, the join payload sends `[]`.
+- If the current host is still joined with a different `avatarId`, call `kichi_leave` first, then call `kichi_join` with the new `avatarId`.
 
 ### kichi_switch_host
 
