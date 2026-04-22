@@ -49,7 +49,7 @@ For install/onboarding/connect requests:
 - Read and follow `install.md` before any tool call.
 - Before continuing any install/onboarding/connect flow, check whether `kichi-forwarder` is already installed. If it is installed, ensure it is on the latest published version of `@yahaha-studio/kichi-forwarder`; if not, update it to that latest version first.
 - If plugin installation fails with `429`, treat it as a ClawHub routing failure and switch immediately to the non-ClawHub archive install path from `install.md`/`error.md`. Do not wait and do not retry the same bare package command.
-- Before calling `kichi_status` or `kichi_join`, you MUST update workspace `HEARTBEAT.md` by following `heartbeat.md`.
+- Before calling `kichi_connection_status` or `kichi_join`, you MUST update workspace `HEARTBEAT.md` by following `heartbeat.md`.
 
 ## LLM Runtime
 
@@ -64,7 +64,7 @@ Use this order unless the user asks for a different explicit action:
 
 Install/onboarding requests are the exception: follow `install.md` first.
 
-1. If connection or identity is unknown, call `kichi_status` first.
+1. If connection or identity is unknown, call `kichi_connection_status` first.
 2. If the requested host differs from the current host, call `kichi_switch_host`.
 3. If the requested `avatarId` differs from the current host's connected `avatarId`, call `kichi_leave` first when the old avatar is still joined, then call `kichi_join` with the requested `avatarId`.
 4. Otherwise, if no `authKey` is available, call `kichi_join`.
@@ -94,10 +94,10 @@ kichi_switch_host(host: "your.kichi.host")
 - `host`: required
 - This reloads the host-specific `identity.json` and reconnects the websocket immediately.
 
-### kichi_status
+### kichi_connection_status
 
 ```text
-kichi_status()
+kichi_connection_status()
 ```
 
 Use this to confirm:

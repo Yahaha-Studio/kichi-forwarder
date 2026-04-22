@@ -1184,8 +1184,8 @@ const plugin = {
     })));
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
-      name: "kichi_status",
-      description: "Read current Kichi connection status and identity readiness",
+      name: "kichi_connection_status",
+      description: "Check WebSocket connection status and identity readiness only. Does NOT return room info, avatar state, or personnel — use kichi_query_status for that.",
       parameters: { type: "object", properties: {} },
       execute: async () => {
         return {
@@ -1487,7 +1487,7 @@ const plugin = {
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_query_status",
       description:
-        "Query Kichi avatar status (notes, ownerState, idlePlan, weather/time, timer snapshot, daily note quota, and `hasCreatedMusicAlbumToday`). Use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
+        "Query Kichi room and avatar status — includes room personnel, notes, ownerState, idlePlan, weather/time, timer snapshot, daily note quota, and `hasCreatedMusicAlbumToday`. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
       parameters: {
         type: "object",
         properties: {
