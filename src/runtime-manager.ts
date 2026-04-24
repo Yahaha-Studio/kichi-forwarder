@@ -7,10 +7,6 @@ import { KichiForwarderService } from "./service.js";
 const OPENCLAW_HOME_DIR = path.join(os.homedir(), ".openclaw");
 const KICHI_WORLD_ROOT_DIR = path.join(OPENCLAW_HOME_DIR, "kichi-world");
 const CANONICAL_AGENT_ROOT_DIR = path.join(KICHI_WORLD_ROOT_DIR, "agents");
-const PREVIOUS_AGENT_ROOT_DIR = path.join(OPENCLAW_HOME_DIR, "kichi-forwarder", "agents");
-const LEGACY_GLOBAL_STATE_PATH = path.join(KICHI_WORLD_ROOT_DIR, "state.json");
-const LEGACY_GLOBAL_HOSTS_DIR = path.join(KICHI_WORLD_ROOT_DIR, "hosts");
-const LEGACY_MIGRATION_AGENT_ID = "main";
 
 type AgentLocator = {
   agentId?: string;
@@ -51,8 +47,6 @@ export class KichiRuntimeManager {
   }
 
   initializeStartupRuntimes(): void {
-    this.migrateRuntimeStorage();
-
     const rootDir = CANONICAL_AGENT_ROOT_DIR;
     if (!fs.existsSync(rootDir)) {
       return;
@@ -115,109 +109,6 @@ export class KichiRuntimeManager {
       return null;
     }
     return this.normalizeAgentId(match[1]);
-  }
-
-  private migrateRuntimeStorage(): void {
-    // Temporary startup migration for this release. Remove after users have
-    // moved off the legacy/global layout and the temporary kichi-forwarder path.
-    this.runMigrationStep("previous-agent-root", () => {
-      this.migratePreviousAgentRoot();
-    });
-    this.runMigrationStep("legacy-global-root", () => {
-      this.migrateLegacyGlobalRoot();
-    });
-  }
-
-  private migratePreviousAgentRoot(): void {
-    if (!fs.existsSync(PREVIOUS_AGENT_ROOT_DIR)) {
-      return;
-    }
-
-    if (!fs.existsSync(CANONICAL_AGENT_ROOT_DIR)) {
-      fs.mkdirSync(path.dirname(CANONICAL_AGENT_ROOT_DIR), { recursive: true, mode: 0o700 });
-      fs.renameSync(PREVIOUS_AGENT_ROOT_DIR, CANONICAL_AGENT_ROOT_DIR);
-      this.logger.info(`[kichi:migration] moved ${PREVIOUS_AGENT_ROOT_DIR} to ${CANONICAL_AGENT_ROOT_DIR}`);
-      return;
-    }
-
-    for (const entry of fs.readdirSync(PREVIOUS_AGENT_ROOT_DIR, { withFileTypes: true })) {
-      const sourcePath = path.join(PREVIOUS_AGENT_ROOT_DIR, entry.name);
-      const targetPath = path.join(CANONICAL_AGENT_ROOT_DIR, entry.name);
-      this.movePathIntoTarget(sourcePath, targetPath);
-    }
-    this.removeDirectoryIfEmpty(PREVIOUS_AGENT_ROOT_DIR);
-    this.removeDirectoryIfEmpty(path.dirname(PREVIOUS_AGENT_ROOT_DIR));
-  }
-
-  private migrateLegacyGlobalRoot(): void {
-    const hasLegacyState = fs.existsSync(LEGACY_GLOBAL_STATE_PATH);
-    const hasLegacyHosts = fs.existsSync(LEGACY_GLOBAL_HOSTS_DIR);
-    if (!hasLegacyState && !hasLegacyHosts) {
-      return;
-    }
-
-    const targetRuntimeDir = this.getRuntimeDir(LEGACY_MIGRATION_AGENT_ID);
-    fs.mkdirSync(targetRuntimeDir, { recursive: true, mode: 0o700 });
-
-    if (hasLegacyState) {
-      const targetStatePath = path.join(targetRuntimeDir, "state.json");
-      this.movePathIntoTarget(LEGACY_GLOBAL_STATE_PATH, targetStatePath);
-    }
-
-    if (hasLegacyHosts) {
-      const targetHostsDir = path.join(targetRuntimeDir, "hosts");
-      this.movePathIntoTarget(LEGACY_GLOBAL_HOSTS_DIR, targetHostsDir);
-    }
-  }
-
-  private movePathIntoTarget(sourcePath: string, targetPath: string): void {
-    if (!fs.existsSync(sourcePath)) {
-      return;
-    }
-
-    if (!fs.existsSync(targetPath)) {
-      fs.mkdirSync(path.dirname(targetPath), { recursive: true, mode: 0o700 });
-      fs.renameSync(sourcePath, targetPath);
-      this.logger.info(`[kichi:migration] moved ${sourcePath} to ${targetPath}`);
-      return;
-    }
-
-    const sourceStat = fs.lstatSync(sourcePath);
-    const targetStat = fs.lstatSync(targetPath);
-
-    if (sourceStat.isDirectory() && targetStat.isDirectory()) {
-      for (const entry of fs.readdirSync(sourcePath, { withFileTypes: true })) {
-        const nextSourcePath = path.join(sourcePath, entry.name);
-        const nextTargetPath = path.join(targetPath, entry.name);
-        this.movePathIntoTarget(nextSourcePath, nextTargetPath);
-      }
-      this.removeDirectoryIfEmpty(sourcePath);
-      return;
-    }
-
-    fs.rmSync(sourcePath, { recursive: sourceStat.isDirectory(), force: true });
-    this.logger.warn(`[kichi:migration] dropped ${sourcePath} because target already exists at ${targetPath}`);
-  }
-
-  private removeDirectoryIfEmpty(dirPath: string): void {
-    if (!fs.existsSync(dirPath)) {
-      return;
-    }
-    if (!fs.lstatSync(dirPath).isDirectory()) {
-      return;
-    }
-    if (fs.readdirSync(dirPath).length > 0) {
-      return;
-    }
-    fs.rmdirSync(dirPath);
-  }
-
-  private runMigrationStep(label: string, fn: () => void): void {
-    try {
-      fn();
-    } catch (error) {
-      this.logger.warn(`[kichi:migration] skipped ${label} due to error: ${String(error)}`);
-    }
   }
 
   private createRuntime(agentId: string): KichiForwarderService {
