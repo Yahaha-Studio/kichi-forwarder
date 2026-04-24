@@ -954,6 +954,7 @@ function buildKichiActionDescription(): string {
     "Directly control the avatar inside Kichi World.",
     "Use this whenever the user explicitly asks you to make the Kichi avatar sit down, stand up, lie down, floor-sit, type, read, meditate, celebrate, or perform another listed animation.",
     "For most work, prefer a sit pose and switch actions as the task moves between stages.",
+    "Set verify to true ONLY when the user explicitly requests a pose or action change. The server will confirm whether the avatar actually applied the requested pose. If it could not (e.g. no available seats), the result will contain the actual fallback pose so you can inform the user accurately. During routine sync steps, omit verify.",
     `stand actions: ${actions.stand.map((entry) => entry.name).join(", ")}`,
     `sit actions: ${actions.sit.map((entry) => entry.name).join(", ")}`,
     `lay actions: ${actions.lay.map((entry) => entry.name).join(", ")}`,
@@ -985,7 +986,7 @@ function buildKichiIdlePlanDescription(): string {
 function buildKichiPrompt(): string {
   return [
     "Kichi avatar control and status sync are available via `kichi_action` and `kichi_clock`.",
-    "If the user gives a direct Kichi pose or action request, fulfill it with `kichi_action`.",
+    "If the user gives a direct Kichi pose or action request, fulfill it with `kichi_action` and set `verify: true` so you can confirm the avatar actually applied the pose. If the result contains a warning about a fallback, tell the user what actually happened instead of assuming success.",
     "Write the visible reply as a natural user-facing response. Keep `kichi_action`, `kichi_clock`, and sync steps internal and absent from the visible reply.",
     "",
     "kichi_action timing (all required when sync is active):",
@@ -1212,15 +1213,21 @@ const plugin = {
             description:
               "Short natural first-person sentence under 15 words. Match the language of the bubble and mention the current action and immediate focus.",
           },
+          verify: {
+            type: "boolean",
+            description:
+              "Set true ONLY when the user explicitly requests a pose or action. Omit during routine sync steps.",
+          },
         },
         required: ["poseType", "action"],
       },
       execute: async (_toolCallId, params) => {
-        const { poseType, action, bubble, log } = (params || {}) as {
+        const { poseType, action, bubble, log, verify } = (params || {}) as {
           poseType?: string;
           action?: string;
           bubble?: string;
           log?: string;
+          verify?: boolean;
         };
         if (!poseType || !action) {
           return { success: false, error: "poseType and action parameters are required" };
@@ -1248,22 +1255,40 @@ const plugin = {
 
         const bubbleText = typeof bubble === "string" && bubble.trim() ? bubble.trim() : matched.name;
         const logText = typeof log === "string" ? log.trim() : "";
-        sendStatusUpdate(
-          service,
-          {
+        const playback = getActionPlayback(matched);
+
+        if (verify) {
+          try {
+            const ack = await service.sendStatusVerified(
+              normalizedPoseType, matched.name, bubbleText, logText, playback,
+            );
+            if (ack.warning) {
+              return {
+                success: true,
+                requested: { poseType: normalizedPoseType, action: matched.name },
+                actual: { poseType: ack.poseType, action: ack.action },
+                warning: ack.warning,
+              };
+            }
+          } catch {
+            // Server not updated or timeout — fall through to normal success
+          }
+        } else {
+          sendStatusUpdate(service, {
             poseType: normalizedPoseType,
             action: matched.name,
             bubble: bubbleText,
             log: logText,
-          },
-        );
+          });
+        }
+
         return {
           success: true,
           poseType: normalizedPoseType,
           action: matched.name,
           bubble: bubbleText,
           log: logText,
-          playback: getActionPlayback(matched),
+          playback,
         };
       },
     })));

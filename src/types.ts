@@ -104,6 +104,7 @@ export type LeavePayload = {
 
 export type StatusPayload = {
   type: "status";
+  requestId?: string;
   avatarId: string;
   authKey: string;
   poseType: PoseType | "";
@@ -111,6 +112,14 @@ export type StatusPayload = {
   bubble: string;
   log: string;
   playback: ActionPlayback;
+};
+
+export type StatusAckPayload = {
+  type: "status_ack";
+  requestId: string;
+  poseType: PoseType | "";
+  action: string;
+  warning?: string;
 };
 
 export type HookNotifyType = "message_received" | "before_send_message";

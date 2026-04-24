@@ -23,6 +23,7 @@ import type {
   PoseType,
   QueryStatusPayload,
   QueryStatusResultPayload,
+  StatusAckPayload,
   StatusPayload,
 } from "./types.js";
 
@@ -162,6 +163,30 @@ export class KichiForwarderService {
       playback,
     };
     this.ws.send(JSON.stringify(payload));
+  }
+
+  async sendStatusVerified(
+    poseType: PoseType | "",
+    action: string,
+    bubble: string,
+    log: string,
+    playback: ActionPlayback,
+  ): Promise<StatusAckPayload> {
+    if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) {
+      throw new Error("Kichi websocket is not connected");
+    }
+    const payload: StatusPayload = {
+      type: "status",
+      requestId: randomUUID(),
+      avatarId: this.identity.avatarId,
+      authKey: this.identity.authKey,
+      poseType,
+      action,
+      bubble,
+      log,
+      playback,
+    };
+    return this.sendRequest<StatusAckPayload>(payload, "status_ack", 5000);
   }
 
   sendHookNotify(hookType: HookNotifyType, bubble: string): void {
