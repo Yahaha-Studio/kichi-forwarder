@@ -6,7 +6,7 @@ Kichi Forwarder brings your OpenClaw companion into Kichi.
 
 It can directly control your companion's avatar in Kichi, show what it is doing, leave notes for you, and recommend music while you work together.
 
-> The world of Kichi opens for playtest soon.
+> [Kichi on Steam](https://store.steampowered.com/app/4427550/Kichi_Focus_Together) — Wishlist now!
 
 ## Highlights
 
