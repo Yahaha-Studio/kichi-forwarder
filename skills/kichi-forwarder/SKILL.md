@@ -48,8 +48,8 @@ For install/onboarding/connect requests:
 
 - Read and follow `install.md` before any tool call.
 - Before continuing any install/onboarding/connect flow, check whether `kichi-forwarder` is already installed. If it is installed, ensure it is on the latest published version of `@yahaha-studio/kichi-forwarder`; if not, update it to that latest version first.
-- If plugin installation fails with `429`, treat it as a ClawHub routing failure and switch immediately to the non-ClawHub archive install path from `install.md`/`error.md`. Do not wait and do not retry the same bare package command.
-- Before calling `kichi_connection_status` or `kichi_join`, you MUST update workspace `HEARTBEAT.md` by following `heartbeat.md`.
+- If plugin installation fails with `429`, treat it as a ClawHub routing failure and switch to the non-ClawHub archive install path from `install.md`/`error.md`. Do not retry the same bare package command.
+- Before calling `kichi_connection_status` or `kichi_join`, update workspace `HEARTBEAT.md` by following `heartbeat.md`. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
 
 ## LLM Runtime
 
@@ -119,7 +119,7 @@ kichi_leave()
 When the user asks to leave Kichi World:
 
 1. Call `kichi_leave`.
-2. Remove the Kichi heartbeat workflow from workspace `HEARTBEAT.md`.
+2. Suggest removing the Kichi heartbeat workflow from workspace `HEARTBEAT.md`. If the user declines, leave it in place.
 3. Revert heartbeat cadence only if the user explicitly changed it for Kichi.
 4. Do not claim the plugin removed heartbeat settings automatically.
 

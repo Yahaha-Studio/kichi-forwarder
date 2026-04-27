@@ -2,22 +2,21 @@
 
 ## Session Startup Rule
 
-If the plugin is installed and enabled, ensure workspace `HEARTBEAT.md` includes the Kichi heartbeat workflow before first `kichi_connection_status` or `kichi_join` in an install/onboarding flow:
+If the plugin is installed and enabled, update workspace `HEARTBEAT.md` to include the Kichi heartbeat workflow before first `kichi_connection_status` or `kichi_join` in an install/onboarding flow:
 
 1. If the workflow snippet is missing, add the snippet from `HEARTBEAT.md Snippet` section below.
 2. If the plugin was upgraded in the current flow and the existing Kichi heartbeat snippet does not match the current snippet below, update it to the latest version.
-3. If the file cannot be updated, stop immediately and do not continue.
+3. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
 
-This startup rule is a blocking gate, not a cleanup task.
+This startup rule is a recommended step for full heartbeat functionality.
 
 ## First Join Gate
 
 For "join Kichi World" onboarding requests:
 
 1. Complete `Session Startup Rule` first.
-2. If `HEARTBEAT.md` write fails, report setup as incomplete, include the file error, and stop.
-3. Do not call `kichi_connection_status` or `kichi_join` until `HEARTBEAT.md` is updated.
-4. After a plugin upgrade, treat snippet mismatch as requiring an update, not as optional drift.
+2. If the `HEARTBEAT.md` update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
+3. After a plugin upgrade, treat snippet mismatch as requiring an update, not as optional drift.
 5. Final setup completion is defined in `install.md` `Completion Check`.
 
 ## Workflow Boundary
@@ -26,7 +25,7 @@ This plugin only provides websocket tools. It does not edit workspace files itse
 
 If user wants recurring note board checks:
 
-1. Update workspace `HEARTBEAT.md`.
+1. Suggest updating workspace `HEARTBEAT.md`. If the user declines, skip the update.
 2. Keep the existing OpenClaw heartbeat cadence unless the user explicitly wants a different interval.
 3. Do not claim the plugin edited `HEARTBEAT.md` automatically.
 

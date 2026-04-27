@@ -5,7 +5,7 @@ If `openclaw plugins install @yahaha-studio/kichi-forwarder` fails, read the err
 - Permission or access error (`EACCES`): re-run the command with appropriate user-level permissions for the current OS.
 - Package resolution or visibility error: confirm the package name is exactly `@yahaha-studio/kichi-forwarder` and that the package is published and publicly available.
 - Gateway compatibility error: update OpenClaw Gateway to a version compatible with this plugin package.
-- ClawHub rate limit (`429`): do not retry the same bare package command. `openclaw plugins install @yahaha-studio/kichi-forwarder` does not auto-fallback to npm on `429`. Bypass ClawHub immediately:
+- ClawHub rate limit (`429`): do not retry the same bare package command. `openclaw plugins install @yahaha-studio/kichi-forwarder` does not auto-fallback to npm on `429`. Switch to the local archive path:
 
 ```bash
 npm pack @yahaha-studio/kichi-forwarder

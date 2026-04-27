@@ -1,4 +1,4 @@
-﻿# Install
+# Install
 
 ## Host Rules
 
@@ -75,14 +75,13 @@ When the user asks with one of the commands above, execute in this fixed order:
 8. If step 6 fails with `429`, do not retry the same bare package command. Run `npm pack @yahaha-studio/kichi-forwarder`, then install the generated `.tgz` with `openclaw plugins install <tgz-path>`.
 9. If step 7 fails with `429`, do not retry the same bare package command. Run `npm pack @yahaha-studio/kichi-forwarder`, then overwrite the existing install with `openclaw plugins install <tgz-path> --force`.
 10. Ensure the plugin is installed, enabled, and at the latest version.
-11. If the plugin was newly installed or upgraded in this flow, re-check workspace `HEARTBEAT.md` against the latest Kichi heartbeat requirements before continuing.
-12. Update workspace `HEARTBEAT.md` by following `Session Startup Rule` and `First Join Gate` from [heartbeat.md](heartbeat.md).
-13. If `HEARTBEAT.md` was not updated successfully, report setup as incomplete and stop immediately. Do not continue to `kichi_connection_status` or `kichi_join`.
-14. Call `kichi_connection_status`.
-15. If the current agent runtime host does not match the requested one, call `kichi_switch_host`.
-16. If the current host is still connected with a different `avatarId`, call `kichi_leave` first, then call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
-17. Otherwise, if `authKey` is missing, call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
-18. Call `kichi_connection_status` again and confirm connection and auth state.
+11. If the plugin was newly installed or upgraded in this flow, check workspace `HEARTBEAT.md` against the latest Kichi heartbeat requirements before continuing.
+12. Update workspace `HEARTBEAT.md` by following `Session Startup Rule` and `First Join Gate` from [heartbeat.md](heartbeat.md). If the update fails, warn the user and continue.
+13. Call `kichi_connection_status`.
+14. If the current agent runtime host does not match the requested one, call `kichi_switch_host`.
+15. If the current host is still connected with a different `avatarId`, call `kichi_leave` first, then call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
+16. Otherwise, if `authKey` is missing, call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
+17. Call `kichi_connection_status` again and confirm connection and auth state.
 
 ## Required Post-install Integration
 
@@ -94,6 +93,6 @@ Use this completion checklist:
 
 If any box is unchecked, the onboarding remains incomplete.
 
-If writing `HEARTBEAT.md` fails, treat the setup and join flow as incomplete and do not announce success.
+If the `HEARTBEAT.md` update fails, warn the user that heartbeat integration will be unavailable but do not block the connection flow.
 
 This plugin does not edit workspace files automatically. Do not claim plugin-side auto-write of `HEARTBEAT.md`.
