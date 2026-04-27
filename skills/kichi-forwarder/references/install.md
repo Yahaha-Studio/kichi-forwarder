@@ -53,9 +53,9 @@ openclaw plugins install ./yahaha-studio-kichi-forwarder-<version>.tgz
 
 You may also use the exact absolute or relative `.tgz` path that `npm pack` produced. The local archive path bypasses the preferred ClawHub lookup.
 
-## Remote URL Install Command Path (Non-skippable)
+## Remote URL Install Command Path
 
-If the user asks:
+This section only applies when the skill is first loaded from a remote URL before local installation. If the user asks:
 
 ```text
 Read https://yahaha-studio.github.io/kichi-forwarder/SKILL.md and connect me to Kichi World with avatarId: {avatarId} and host: {host}
@@ -65,7 +65,7 @@ Read https://yahaha-studio.github.io/kichi-forwarder/SKILL.md and connect me to 
 
 When the user asks with one of the commands above, execute in this fixed order:
 
-1. Read `install.md` and `heartbeat.md` from the published skill URLs before any tool call.
+1. If loaded from a remote URL, read `install.md` and `heartbeat.md` from the published skill URLs first. If installed locally, use the local files.
 2. Parse `avatarId` from user text (`AvatarId`/`avatarId`, case-insensitive).
 3. Resolve the host and write the current agent's `state.json`.
 4. Check whether `@yahaha-studio/kichi-forwarder` is already installed.

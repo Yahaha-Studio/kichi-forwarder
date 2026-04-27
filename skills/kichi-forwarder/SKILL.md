@@ -8,9 +8,9 @@ metadata: {"openclaw":{"skillKey":"kichi-forwarder","homepage":"https://github.c
 
 Kichi Forwarder provides websocket tools for connecting an OpenClaw agent to Kichi, directly controlling the Kichi avatar, syncing companion status, and handling Kichi notes, timers, and music workflows.
 
-## Skill Files (Absolute URLs)
+## Pre-install Remote Discovery
 
-If this skill is loaded from a remote URL before local installation, use these files:
+The following URLs are only used when this skill is first loaded from a remote URL before local installation. After the plugin is installed locally, these URLs are not referenced and the local files take precedence:
 
 - `SKILL.md`: `https://yahaha-studio.github.io/kichi-forwarder/SKILL.md`
 - `install.md`: `https://yahaha-studio.github.io/kichi-forwarder/references/install.md`
@@ -30,7 +30,7 @@ Runtime data lives under the user home directory and is isolated per OpenClaw ag
 
 ## Remote URL Install Entry
 
-When this skill is loaded from:
+When this skill is first loaded from:
 
 - `https://yahaha-studio.github.io/kichi-forwarder/SKILL.md`
 
@@ -40,13 +40,13 @@ The install and join flow is defined only in:
 
 - `https://yahaha-studio.github.io/kichi-forwarder/references/install.md`
 
-Read and follow that file before any tool call.
+Read that file once to complete the initial install. After local installation, the local `install.md` is used instead.
 
 ## Install Gate
 
 For install/onboarding/connect requests:
 
-- Read and follow `install.md` before any tool call.
+- Read and follow `install.md` before starting the install flow.
 - Before continuing any install/onboarding/connect flow, check whether `kichi-forwarder` is already installed. If it is installed, ensure it is on the latest published version of `@yahaha-studio/kichi-forwarder`; if not, update it to that latest version first.
 - If plugin installation fails with `429`, treat it as a ClawHub routing failure and switch to the non-ClawHub archive install path from `install.md`/`error.md`. Do not retry the same bare package command.
 - Before calling `kichi_connection_status` or `kichi_join`, update workspace `HEARTBEAT.md` by following `heartbeat.md`. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
