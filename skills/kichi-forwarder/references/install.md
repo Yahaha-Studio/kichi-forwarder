@@ -95,4 +95,4 @@ If any box is unchecked, the onboarding remains incomplete.
 
 If the `HEARTBEAT.md` update fails, warn the user that heartbeat integration will be unavailable but do not block the connection flow.
 
-This plugin does not edit workspace files automatically. Do not claim plugin-side auto-write of `HEARTBEAT.md`.
+The plugin code does not write to workspace files directly. The agent updates `HEARTBEAT.md` as part of this onboarding flow.

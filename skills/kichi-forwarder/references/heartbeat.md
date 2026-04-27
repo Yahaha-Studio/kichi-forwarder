@@ -21,11 +21,11 @@ For "join Kichi World" onboarding requests:
 
 ## Workflow Boundary
 
-This plugin only provides websocket tools. It does not edit workspace files itself.
+The plugin code itself does not write to workspace files. The onboarding instructions above direct the agent to update `HEARTBEAT.md` on behalf of the user as part of the install flow.
 
 If user wants recurring note board checks:
 
-1. Suggest updating workspace `HEARTBEAT.md`. If the user declines, skip the update.
+1. Update workspace `HEARTBEAT.md`.
 2. Keep the existing OpenClaw heartbeat cadence unless the user explicitly wants a different interval.
 3. Do not claim the plugin edited `HEARTBEAT.md` automatically.
 
