@@ -68,20 +68,19 @@ When the user asks with one of the commands above, execute in this fixed order:
 1. If loaded from a remote URL, read `install.md` and `heartbeat.md` from the published skill URLs first. If installed locally, use the local files.
 2. Parse `avatarId` from user text (`AvatarId`/`avatarId`, case-insensitive).
 3. Resolve the host and write the current agent's `state.json`.
-4. Check whether `@yahaha-studio/kichi-forwarder` is already installed.
-5. If the plugin already exists, check whether the installed version is the latest published version.
-6. If the plugin is missing, run `openclaw plugins install @yahaha-studio/kichi-forwarder`.
-7. If the plugin is already installed but the version is not the latest, run `openclaw plugins update @yahaha-studio/kichi-forwarder`.
-8. If step 6 fails with `429`, do not retry the same bare package command. Run `npm pack @yahaha-studio/kichi-forwarder`, then install the generated `.tgz` with `openclaw plugins install <tgz-path>`.
-9. If step 7 fails with `429`, do not retry the same bare package command. Run `npm pack @yahaha-studio/kichi-forwarder`, then overwrite the existing install with `openclaw plugins install <tgz-path> --force`.
-10. Ensure the plugin is installed, enabled, and at the latest version.
-11. If the plugin was newly installed or upgraded in this flow, check workspace `HEARTBEAT.md` against the latest Kichi heartbeat requirements before continuing.
-12. Update workspace `HEARTBEAT.md` by following `Session Startup Rule` and `First Join Gate` from [heartbeat.md](heartbeat.md). If the update fails, warn the user and continue.
-13. Call `kichi_connection_status`.
-14. If the current agent runtime host does not match the requested one, call `kichi_switch_host`.
-15. If the current host is still connected with a different `avatarId`, call `kichi_leave` first, then call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
-16. Otherwise, if `authKey` is missing, call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
-17. Call `kichi_connection_status` again and confirm connection and auth state.
+4. Run `openclaw plugins install @yahaha-studio/kichi-forwarder`.
+5. If step 4 succeeds, the plugin is installed and up-to-date — skip to step 9.
+6. If step 4 fails because the plugin already exists, check whether the installed version is the latest published version. If the version is already the latest, skip to step 9. If not, run `openclaw plugins update @yahaha-studio/kichi-forwarder`.
+7. If step 4 fails with `429`, do not retry the same bare package command. Run `npm pack @yahaha-studio/kichi-forwarder`, then install the generated `.tgz` with `openclaw plugins install <tgz-path>`.
+8. If step 6 update fails with `429`, do not retry the same bare package command. Run `npm pack @yahaha-studio/kichi-forwarder`, then overwrite the existing install with `openclaw plugins install <tgz-path> --force`.
+9. Ensure the plugin is installed, enabled, and at the latest version.
+10. If the plugin was newly installed or upgraded in this flow, check workspace `HEARTBEAT.md` against the latest Kichi heartbeat requirements before continuing.
+11. Update workspace `HEARTBEAT.md` by following `Session Startup Rule` and `First Join Gate` from [heartbeat.md](heartbeat.md). If the update fails, warn the user and continue.
+12. Call `kichi_connection_status`.
+13. If the current agent runtime host does not match the requested one, call `kichi_switch_host`.
+14. If the current host is still connected with a different `avatarId`, call `kichi_leave` first, then call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
+15. Otherwise, if `authKey` is missing, call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
+16. Call `kichi_connection_status` again and confirm connection and auth state.
 
 ## Required Post-install Integration
 
