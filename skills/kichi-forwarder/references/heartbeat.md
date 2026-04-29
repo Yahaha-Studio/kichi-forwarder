@@ -21,7 +21,7 @@ For "join Kichi World" onboarding requests:
 
 ## Workflow Boundary
 
-The plugin code itself does not write to workspace files. The onboarding instructions direct the agent to update `HEARTBEAT.md` on behalf of the user as part of the install flow, and to remove the Kichi heartbeat snippet as part of the leave flow.
+The plugin code itself does not write to workspace files. The onboarding instructions above direct the agent to update `HEARTBEAT.md` on behalf of the user as part of the install flow.
 
 If user wants recurring note board checks:
 
