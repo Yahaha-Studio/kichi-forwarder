@@ -119,9 +119,9 @@ kichi_leave()
 When the user asks to leave Kichi World:
 
 1. Call `kichi_leave`.
-2. Suggest removing the Kichi heartbeat workflow from workspace `HEARTBEAT.md`. If the user declines, leave it in place.
+2. Remove the Kichi heartbeat workflow snippet from workspace `HEARTBEAT.md`. If the removal fails, warn the user and continue.
 3. Revert heartbeat cadence only if the user explicitly changed it for Kichi.
-4. Do not claim the plugin removed heartbeat settings automatically.
+4. Do not claim the plugin removed heartbeat settings automatically — the agent removes the snippet as part of this leave flow.
 
 ### kichi_action
 
