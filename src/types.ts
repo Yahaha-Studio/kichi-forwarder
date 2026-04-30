@@ -36,8 +36,12 @@ export type Album = {
   track: Track[];
 };
 
+export type KichiEnvironment = "steam" | "steam-playtest" | "test";
+
+export type KichiEnvironmentsConfig = Record<KichiEnvironment, string | null>;
+
 export type KichiState = {
-  currentHost?: string;
+  currentEnvironment?: KichiEnvironment;
   llmRuntimeEnabled: boolean;
 };
 
@@ -51,6 +55,7 @@ export type KichiConnectionStatus = {
   runtimeDir?: string;
   statePath?: string;
   host?: string;
+  environment?: KichiEnvironment;
   wsUrl?: string;
   identityPath?: string;
   hostConfigured: boolean;

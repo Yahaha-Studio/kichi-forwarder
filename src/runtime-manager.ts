@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import type { Logger } from "openclaw/plugin-sdk";
 import { KichiForwarderService } from "./service.js";
+import type { KichiEnvironment } from "./types.js";
 
 const OPENCLAW_HOME_DIR = path.join(os.homedir(), ".openclaw");
 const KICHI_WORLD_ROOT_DIR = path.join(OPENCLAW_HOME_DIR, "kichi-world");
@@ -16,8 +17,13 @@ type AgentLocator = {
 
 export class KichiRuntimeManager {
   private services = new Map<string, KichiForwarderService>();
+  private resolveEnvironmentHost: ((environment: KichiEnvironment) => string | null) | null = null;
 
   constructor(private logger: Logger) {}
+
+  setEnvironmentHostResolver(resolver: (environment: KichiEnvironment) => string | null): void {
+    this.resolveEnvironmentHost = resolver;
+  }
 
   getRuntime(locator: AgentLocator): KichiForwarderService | null {
     const agentId = this.resolveAgentId(locator);
@@ -112,12 +118,17 @@ export class KichiRuntimeManager {
   }
 
   private createRuntime(agentId: string): KichiForwarderService {
+    if (!this.resolveEnvironmentHost) {
+      throw new Error("Environment host resolver not set on KichiRuntimeManager");
+    }
     const runtimeDir = this.getRuntimeDir(agentId);
     fs.mkdirSync(runtimeDir, { recursive: true, mode: 0o700 });
 
+    const resolveEnvironmentHost = this.resolveEnvironmentHost;
     const service = new KichiForwarderService(this.logger, {
       agentId,
       runtimeDir,
+      resolveEnvironmentHost,
     });
     service.start();
     this.services.set(agentId, service);

@@ -17,6 +17,7 @@ import type {
   JoinAckPayload,
   JoinPayload,
   KichiConnectionStatus,
+  KichiEnvironment,
   KichiIdentity,
   KichiState,
   LeaveAckPayload,
@@ -53,6 +54,7 @@ export type LeaveResult =
 type KichiForwarderServiceOptions = {
   agentId: string;
   runtimeDir: string;
+  resolveEnvironmentHost: (environment: KichiEnvironment) => string | null;
 };
 
 type ConnectReason = "startup" | "switch_host" | "reconnect";
@@ -64,6 +66,7 @@ export class KichiForwarderService {
   private joinTimeout: NodeJS.Timeout | null = null;
   private identity: KichiIdentity | null = null;
   private host: string | null = null;
+  private environment: KichiEnvironment | null = null;
   private joinResolve: ((result: JoinResult) => void) | null = null;
   private pendingRequests = new Map<
     string,
@@ -81,7 +84,13 @@ export class KichiForwarderService {
   ) {}
 
   start(): void {
-    this.host = this.loadCurrentHost();
+    const state = this.readStateFile();
+    this.environment = (state?.currentEnvironment as KichiEnvironment) ?? null;
+    if (this.environment) {
+      this.host = this.options.resolveEnvironmentHost(this.environment);
+    } else {
+      this.host = null;
+    }
     this.identity = this.host ? this.loadIdentity() : null;
     this.stopped = false;
     if (this.host) {
@@ -99,9 +108,10 @@ export class KichiForwarderService {
     this.closeSocket();
   }
 
-  async switchHost(host: string): Promise<KichiConnectionStatus> {
-    this.persistCurrentHost(host);
+  async switchHost(host: string, environment?: KichiEnvironment): Promise<KichiConnectionStatus> {
+    this.persistCurrentHost(host, environment);
     this.host = host;
+    this.environment = environment ?? null;
     this.identity = this.loadIdentity();
     this.clearReconnectTimeout();
     this.rejectPendingRequests(`Kichi websocket switched to ${host}`);
@@ -406,6 +416,7 @@ export class KichiForwarderService {
         wsUrl: this.getWsUrl(),
         identityPath: this.getIdentityPath(),
       } : {}),
+      ...(this.environment ? { environment: this.environment } : {}),
       hostConfigured: !!host,
       connected: this.isConnected(),
       websocketState: this.getWebsocketState(),
@@ -709,8 +720,10 @@ export class KichiForwarderService {
     if (!this.host) {
       throw new Error("No Kichi host configured");
     }
-    const protocol = this.isPlainIpHost(this.host) || this.host === "localhost" ? "ws" : "wss";
-    return `${protocol}://${this.host}:48870/ws/openclaw`;
+    const isLocal = this.isPlainIpHost(this.host) || this.host === "localhost";
+    const protocol = isLocal ? "ws" : "wss";
+    const port = isLocal ? ":48870" : "";
+    return `${protocol}://${this.host}${port}/ws/openclaw`;
   }
 
   private isPlainIpHost(host: string): boolean {
@@ -719,26 +732,10 @@ export class KichiForwarderService {
       || /^[0-9a-f:]+$/i.test(host);
   }
 
-  private loadCurrentHost(): string | null {
-    try {
-      const statePath = this.getStatePath();
-      if (!fs.existsSync(statePath)) {
-        return null;
-      }
-      const data = JSON.parse(fs.readFileSync(statePath, "utf-8")) as { currentHost?: unknown };
-      if (typeof data.currentHost === "string" && data.currentHost.trim()) {
-        return data.currentHost;
-      }
-      throw new Error(`Invalid currentHost value in ${statePath}`);
-    } catch (error) {
-      throw new Error(`Failed to load current host: ${error}`);
-    }
-  }
-
-  private persistCurrentHost(host: string): void {
+  private persistCurrentHost(host: string, environment?: KichiEnvironment): void {
     const previousState = this.readStateFile();
     const nextState: KichiState = {
-      currentHost: host,
+      ...(environment ? { currentEnvironment: environment } : {}),
       llmRuntimeEnabled: previousState?.llmRuntimeEnabled ?? DEFAULT_LLM_RUNTIME_ENABLED,
     };
     fs.mkdirSync(this.options.runtimeDir, { recursive: true, mode: 0o700 });

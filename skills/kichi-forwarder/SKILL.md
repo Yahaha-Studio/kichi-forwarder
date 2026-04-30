@@ -17,15 +17,19 @@ The following URLs are only used when this skill is first loaded from a remote U
 - `error.md`: `https://yahaha-studio.github.io/kichi-forwarder/references/error.md`
 - `heartbeat.md`: `https://yahaha-studio.github.io/kichi-forwarder/references/heartbeat.md`
 
-## Host Rules
+## Environment Rules
 
-- Install and connect requests include `host: <value>`.
+Install and connect requests use `on <environment>` syntax. Supported environments:
+
+- `steam`: connects to `focus-wss.yahaha.com`
+- `steam-playtest`: connects to `focus-steam-playtest-wss-int.yahaha.com`
+- `test`: no fixed host — ask the user for the current test node host, write it to the plugin's `config/environments.json`, then call `kichi_switch_host`
 
 ## Runtime State
 
 Runtime data lives under the user home directory and is isolated per OpenClaw agent:
 
-- `kichi-world/agents/<encoded-agent-id>/state.json`: stores that agent's `currentHost` and `llmRuntimeEnabled`
+- `kichi-world/agents/<encoded-agent-id>/state.json`: stores that agent's `currentEnvironment` and `llmRuntimeEnabled`
 - `kichi-world/agents/<encoded-agent-id>/hosts/<encoded-host>/identity.json`: stores that agent's host-specific `avatarId` and `authKey`
 
 ## Remote URL Install Entry
@@ -34,7 +38,7 @@ When this skill is first loaded from:
 
 - `https://yahaha-studio.github.io/kichi-forwarder/SKILL.md`
 
-and the user asks to connect/install with `avatarId` and `host`, do not invent a separate install flow in this file.
+and the user asks to connect/install with `avatarId` and an environment (e.g. `on steam-playtest`), do not invent a separate install flow in this file.
 
 The install and join flow is defined only in:
 
@@ -42,14 +46,18 @@ The install and join flow is defined only in:
 
 Read that file once to complete the initial install. After local installation, the local `install.md` is used instead.
 
-## Install Gate
+## Tool Availability
+
+All tools listed in this file (`kichi_join`, `kichi_connection_status`, `kichi_action`, etc.) are available immediately once the plugin is installed and loaded. The recommended order below is sequencing guidance, not an availability gate — you can call any tool at any time.
+
+## Install Flow
 
 For install/onboarding/connect requests:
 
 - Read and follow `install.md` before starting the install flow.
-- Before continuing any install/onboarding/connect flow, attempt to install `@yahaha-studio/kichi-forwarder` directly. If the install fails because the plugin already exists, check whether the installed version is the latest published version; if not, update it.
+- Attempt to install `@yahaha-studio/kichi-forwarder` directly. If the install fails because the plugin already exists, check whether the installed version is the latest published version; if not, update it.
 - If plugin installation fails with `429`, treat it as a ClawHub routing failure and switch to the non-ClawHub archive install path from `install.md`/`error.md`. Do not retry the same bare package command.
-- Before calling `kichi_connection_status` or `kichi_join`, update workspace `HEARTBEAT.md` by following `heartbeat.md`. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
+- Recommended: update workspace `HEARTBEAT.md` by following `heartbeat.md` before calling `kichi_connection_status` or `kichi_join`. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
 
 ## LLM Runtime
 
@@ -58,18 +66,16 @@ For install/onboarding/connect requests:
 - When `true`, sync status uses LLM-driven prompts and may consume extra tokens.
 - When `false`, sync uses fixed English text.
 
-## Tool Selection Flow
+## Recommended Tool Order
 
-Use this order unless the user asks for a different explicit action:
-
-Install/onboarding requests are the exception: follow `install.md` first.
+Use this order unless the user asks for a different explicit action. For install/onboarding requests, follow `install.md` first.
 
 1. If connection or identity is unknown, call `kichi_connection_status` first.
-2. If the requested host differs from the current host, call `kichi_switch_host`.
+2. If the requested environment differs from the current environment, call `kichi_switch_host` with the target environment.
 3. If the requested `avatarId` differs from the current host's connected `avatarId`, call `kichi_leave` first when the old avatar is still joined, then call `kichi_join` with the requested `avatarId`.
-4. Otherwise, if no `authKey` is available, call `kichi_join`.
+4. If no `authKey` is available, call `kichi_join`.
 5. If `authKey` exists but websocket is not open, call `kichi_rejoin` or wait for automatic reconnect and rejoin.
-6. Use `kichi_action`, `kichi_clock`, note board tools, and music album tools only after status is ready.
+6. Use `kichi_action`, `kichi_clock`, note board tools, and music album tools after status is ready.
 
 ## Tools
 
@@ -88,10 +94,13 @@ kichi_join(avatarId: "your-avatar-id", botName: "<from IDENTITY.md>", bio: "<fro
 ### kichi_switch_host
 
 ```text
-kichi_switch_host(host: "your.kichi.host")
+kichi_switch_host(environment: "steam")
+kichi_switch_host(environment: "test")
 ```
 
-- `host`: required
+- `environment`: required. One of `steam`, `steam-playtest`, `test`.
+- Host is resolved from `config/environments.json`. If the environment has no configured host (null), the call fails.
+- For `test` environment: ask the user for the test node host, write it to the plugin's `config/environments.json`, then call this tool.
 - This reloads the host-specific `identity.json` and reconnects the websocket immediately.
 
 ### kichi_connection_status
@@ -102,7 +111,7 @@ kichi_connection_status()
 
 Use this to confirm:
 
-- current host
+- current environment and host
 - websocket URL
 - host-specific identity file path
 - websocket state

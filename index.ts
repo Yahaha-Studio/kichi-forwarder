@@ -15,11 +15,14 @@ import type {
   Album,
   ClockAction,
   ClockConfig,
+  KichiEnvironment,
+  KichiEnvironmentsConfig,
   KichiStaticConfig,
   PomodoroPhase,
   PoseType,
 } from "./src/types.js";
 const BUNDLED_STATIC_CONFIG_PATH = new URL("./config/kichi-config.json", import.meta.url);
+const BUNDLED_ENVIRONMENTS_CONFIG_PATH = new URL("./config/environments.json", import.meta.url);
 const FIXED_HOOK_STATUSES: Record<string, ActionResult> = {
   beforePromptBuild: {
     poseType: "sit",
@@ -198,6 +201,52 @@ function loadStaticConfig(): KichiStaticConfig {
     cachedStaticConfigMtime = stat.mtimeMs;
   }
   return cachedStaticConfig;
+}
+
+const VALID_ENVIRONMENTS: KichiEnvironment[] = ["steam", "steam-playtest", "test"];
+let cachedEnvironmentsConfig: KichiEnvironmentsConfig | null = null;
+let cachedEnvironmentsConfigMtime = 0;
+
+function getEnvironmentsConfigPath(): string {
+  return fileURLToPath(BUNDLED_ENVIRONMENTS_CONFIG_PATH);
+}
+
+function loadEnvironmentsConfig(): KichiEnvironmentsConfig {
+  const configPath = getEnvironmentsConfigPath();
+  const stat = fs.statSync(configPath);
+  if (cachedEnvironmentsConfig && stat.mtimeMs === cachedEnvironmentsConfigMtime) {
+    return cachedEnvironmentsConfig;
+  }
+  const raw = JSON.parse(fs.readFileSync(configPath, "utf-8")) as unknown;
+  if (!raw || typeof raw !== "object") {
+    throw new Error("config/environments.json must be a valid object");
+  }
+  const config = raw as Record<string, unknown>;
+  for (const env of VALID_ENVIRONMENTS) {
+    if (!(env in config)) {
+      throw new Error(`config/environments.json missing environment "${env}"`);
+    }
+    const value = config[env];
+    if (value !== null && typeof value !== "string") {
+      throw new Error(`config/environments.json environment "${env}" must be a string or null`);
+    }
+  }
+  cachedEnvironmentsConfig = config as KichiEnvironmentsConfig;
+  cachedEnvironmentsConfigMtime = stat.mtimeMs;
+  return cachedEnvironmentsConfig;
+}
+
+function isKichiEnvironment(value: unknown): value is KichiEnvironment {
+  return typeof value === "string" && VALID_ENVIRONMENTS.includes(value as KichiEnvironment);
+}
+
+function resolveEnvironmentHost(environment: KichiEnvironment): { host?: string; error?: string } {
+  const config = loadEnvironmentsConfig();
+  const configuredHost = config[environment];
+  if (typeof configuredHost === "string" && configuredHost.trim()) {
+    return { host: configuredHost };
+  }
+  return { error: `environment "${environment}" has no configured host — update config/environments.json first` };
 }
 
 function sendStatusUpdate(service: KichiForwarderService, status: ActionResult): void {
@@ -902,18 +951,6 @@ function buildMusicAlbumToolDescription(): string {
   ].join("\n");
 }
 
-function isKichiHost(value: unknown): value is string {
-  if (typeof value !== "string") {
-    return false;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0
-    && !trimmed.includes("://")
-    && !trimmed.includes("/")
-    && !trimmed.includes("?")
-    && !trimmed.includes("#");
-}
-
 function buildMusicTitlesDescription(): string {
   return [
     "Track names are injected into this tool schema from the static config bundled with the plugin package.",
@@ -1006,10 +1043,12 @@ function createAgentScopedTool(
   factory: (service: KichiForwarderService, ctx: OpenClawPluginToolContext) => AnyAgentTool,
 ) {
   return (ctx: OpenClawPluginToolContext) => {
-    const service = runtimeManager.getRuntime(resolveToolLocator(ctx));
-    if (!service) {
+    const locator = resolveToolLocator(ctx);
+    const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+    if (!agentId) {
       throw new Error("Failed to resolve agent-scoped Kichi runtime");
     }
+    const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
     return factory(service, ctx);
   };
 }
@@ -1045,6 +1084,11 @@ const plugin = {
       id: "kichi-forwarder",
       start: (ctx) => {
         parse(ctx.config.plugins?.entries?.["kichi-forwarder"]?.config);
+        runtimeManager.setEnvironmentHostResolver((environment) => {
+          const config = loadEnvironmentsConfig();
+          const host = config[environment];
+          return typeof host === "string" && host.trim() ? host : null;
+        });
         runtimeManager.initializeStartupRuntimes();
       },
       stop: () => {
@@ -1124,27 +1168,34 @@ const plugin = {
       return ({
       name: "kichi_switch_host",
       description:
-        "Switch Kichi runtime host and reconnect immediately without restarting the gateway.",
+        "Switch Kichi runtime environment and reconnect immediately without restarting the gateway. Host is resolved from config/environments.json.",
       parameters: {
         type: "object",
         properties: {
-          host: {
+          environment: {
             type: "string",
-            description: "Target Kichi host, for example your.kichi.host or 127.0.0.1",
+            enum: VALID_ENVIRONMENTS,
+            description: "Target environment: steam, steam-playtest, or test",
           },
         },
-        required: ["host"],
+        required: ["environment"],
       },
       execute: async (_toolCallId, params) => {
-        const host = (params as { host?: unknown } | null)?.host;
-        if (!isKichiHost(host)) {
-          return { success: false, error: "host must be a non-empty hostname without protocol or path" };
+        const environment = (params as { environment?: unknown } | null)?.environment;
+        if (!isKichiEnvironment(environment)) {
+          return { success: false, error: `environment must be one of: ${VALID_ENVIRONMENTS.join(", ")}` };
         }
 
-        const status = await service.switchHost(host.trim());
+        const resolved = resolveEnvironmentHost(environment);
+        if (resolved.error) {
+          return { success: false, error: resolved.error };
+        }
+
+        const status = await service.switchHost(resolved.host!, environment);
         return {
           success: true,
-          host: host.trim(),
+          environment,
+          host: resolved.host,
           status,
         };
       },
