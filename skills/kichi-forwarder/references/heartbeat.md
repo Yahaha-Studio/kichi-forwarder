@@ -4,7 +4,7 @@
 
 If the plugin is installed and enabled, update workspace `HEARTBEAT.md` to include the Kichi heartbeat workflow as part of the install/onboarding flow (recommended before first `kichi_connection_status` or `kichi_join`, but not required):
 
-1. If the workflow snippet is missing, add the snippet from `HEARTBEAT.md Snippet` section below.
+1. If the workflow snippet is missing, add the snippet from `HEARTBEAT.md Snippet` section below. An empty or blank `HEARTBEAT.md` counts as "snippet missing" — not as a read error.
 2. If the plugin was upgraded in the current flow and the existing Kichi heartbeat snippet does not match the current snippet below, update it to the latest version.
 3. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
 
