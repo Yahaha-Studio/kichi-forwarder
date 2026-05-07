@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { Logger } from "openclaw/plugin-sdk";
+import type { PluginLogger } from "openclaw/plugin-sdk";
 import { KichiForwarderService } from "./service.js";
 import type { BotMessageReceivedHandler } from "./service.js";
 import type { KichiEnvironment } from "./types.js";
@@ -21,7 +21,7 @@ export class KichiRuntimeManager {
   private resolveEnvironmentHost: ((environment: KichiEnvironment) => string | null) | null = null;
   private botMessageHandler: BotMessageReceivedHandler | null = null;
 
-  constructor(private logger: Logger) {}
+  constructor(private logger: PluginLogger) {}
 
   setBotMessageHandler(handler: BotMessageReceivedHandler): void {
     this.botMessageHandler = handler;

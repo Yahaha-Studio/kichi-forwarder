@@ -3,8 +3,8 @@ import { fileURLToPath } from "node:url";
 import type {
   AnyAgentTool,
   OpenClawPluginApi,
-  OpenClawPluginToolContext,
 } from "openclaw/plugin-sdk";
+import type { OpenClawPluginToolContext } from "openclaw/plugin-sdk/core";
 import { agentCommandFromIngress } from "openclaw/plugin-sdk/agent-runtime";
 import { parse } from "./src/config.js";
 import { KichiRuntimeManager } from "./src/runtime-manager.js";
@@ -25,6 +25,10 @@ import type {
   PoseType,
 } from "./src/types.js";
 const BUNDLED_STATIC_CONFIG_PATH = new URL("./config/kichi-config.json", import.meta.url);
+
+function jsonResult(payload: unknown): { content: { type: "text"; text: string }[]; details: unknown } {
+  return { content: [{ type: "text", text: JSON.stringify(payload) }], details: payload };
+}
 const BUNDLED_ENVIRONMENTS_CONFIG_PATH = new URL("./config/environments.json", import.meta.url);
 const FIXED_HOOK_STATUSES: Record<string, ActionResult> = {
   beforePromptBuild: {
@@ -1152,6 +1156,7 @@ const plugin = {
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_join",
+      label: "kichi_join",
       description: "Join Kichi world with avatarId, the current bot name, a short bio, and personality tags",
       parameters: {
         type: "object",
@@ -1184,27 +1189,28 @@ const plugin = {
           avatarId = service.readSavedAvatarId() ?? undefined;
         }
         if (!avatarId) {
-          return { success: false, error: "No avatarId" };
+          return jsonResult({ success: false, error: "No avatarId" });
         }
         if (!botName) {
-          return { success: false, error: "No botName" };
+          return jsonResult({ success: false, error: "No botName" });
         }
         if (!bio) {
-          return { success: false, error: "No bio" };
+          return jsonResult({ success: false, error: "No bio" });
         }
         if (tagsError) {
-          return { success: false, error: tagsError };
+          return jsonResult({ success: false, error: tagsError });
         }
         const result = await service.join(avatarId, botName, bio, tags ?? []);
         if (result.success) {
-          return { success: true, authKey: result.authKey };
+          return jsonResult({ success: true, authKey: result.authKey });
         }
-        return {
+        const failure = result as { success: false; error: string; errorCode?: string; errorMessage?: string };
+        return jsonResult({
           success: false,
-          error: result.error,
-          ...(result.errorCode ? { errorCode: result.errorCode } : {}),
-          ...(result.errorMessage ? { errorMessage: result.errorMessage } : {}),
-        };
+          error: failure.error,
+          ...(failure.errorCode ? { errorCode: failure.errorCode } : {}),
+          ...(failure.errorMessage ? { errorMessage: failure.errorMessage } : {}),
+        });
       },
     })));
 
@@ -1217,6 +1223,7 @@ const plugin = {
       const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
       return ({
       name: "kichi_switch_host",
+      label: "kichi_switch_host",
       description:
         "Switch Kichi runtime environment and reconnect immediately without restarting the gateway. Host is resolved from config/environments.json.",
       parameters: {
@@ -1233,72 +1240,77 @@ const plugin = {
       execute: async (_toolCallId, params) => {
         const environment = (params as { environment?: unknown } | null)?.environment;
         if (!isKichiEnvironment(environment)) {
-          return { success: false, error: `environment must be one of: ${VALID_ENVIRONMENTS.join(", ")}` };
+          return jsonResult({ success: false, error: `environment must be one of: ${VALID_ENVIRONMENTS.join(", ")}` });
         }
 
         const resolved = resolveEnvironmentHost(environment);
         if (resolved.error) {
-          return { success: false, error: resolved.error };
+          return jsonResult({ success: false, error: resolved.error });
         }
 
         const status = await service.switchHost(resolved.host!, environment);
-        return {
+        return jsonResult({
           success: true,
           environment,
           host: resolved.host,
           status,
-        };
+        });
       },
       });
     });
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_rejoin",
+      label: "kichi_rejoin",
       description:
         "Request an immediate rejoin attempt with saved avatarId/authKey. Rejoin is also sent automatically after reconnect.",
       parameters: { type: "object", properties: {} },
       execute: async () => {
         const result = service.requestRejoin();
-        return {
+        return jsonResult({
           success: result.accepted,
           ...result,
           status: service.getConnectionStatus(),
-        };
+        });
       },
     })));
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_leave",
+      label: "kichi_leave",
       description: "Leave Kichi world",
       parameters: { type: "object", properties: {} },
       execute: async () => {
         const result = await service.leave();
         if (result.success) {
-          return { success: true };
+          return jsonResult({ success: true });
         }
-        return {
+        const failure = result as { success: false; error: string; errorCode?: string; errorMessage?: string };
+        return jsonResult({
           success: false,
-          error: result.error,
-          ...(result.errorCode ? { errorCode: result.errorCode } : {}),
-          ...(result.errorMessage ? { errorMessage: result.errorMessage } : {}),
-        };
+          error: failure.error,
+          ...(failure.errorCode ? { errorCode: failure.errorCode } : {}),
+          ...(failure.errorMessage ? { errorMessage: failure.errorMessage } : {}),
+        });
       },
     })));
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_connection_status",
+      label: "kichi_connection_status",
       description: "Check WebSocket connection status and identity readiness only. Does NOT return room info, avatar state, or personnel — use kichi_query_status for that.",
       parameters: { type: "object", properties: {} },
       execute: async () => {
-        return {
+        return jsonResult({
           success: true,
           status: service.getConnectionStatus(),
-        };
+        });
       },
     })));
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_action",
+      label: "kichi_action",
       description: buildKichiActionDescription(),
       parameters: {
         type: "object",
@@ -1331,27 +1343,27 @@ const plugin = {
           verify?: boolean;
         };
         if (!poseType || !action) {
-          return { success: false, error: "poseType and action parameters are required" };
+          return jsonResult({ success: false, error: "poseType and action parameters are required" });
         }
         if (!["stand", "sit", "lay", "floor"].includes(poseType)) {
-          return {
+          return jsonResult({
             success: false,
             error: `Invalid poseType: ${poseType}. Must be stand, sit, lay, or floor`,
-          };
+          });
         }
         if (!service.hasValidIdentity() || !service.isConnected()) {
-          return { success: false, error: "Not connected to Kichi world" };
+          return jsonResult({ success: false, error: "Not connected to Kichi world" });
         }
 
         const normalizedPoseType = poseType as PoseType;
         const poseActions = loadStaticConfig().actions[normalizedPoseType];
         const matched = poseActions.find((entry) => entry.name.toLowerCase() === action.toLowerCase());
         if (!matched) {
-          return {
+          return jsonResult({
             success: false,
             error: `Unknown action "${action}" for poseType "${poseType}"`,
             available: poseActions.map((entry) => entry.name),
-          };
+          });
         }
 
         const bubbleText = typeof bubble === "string" && bubble.trim() ? bubble.trim() : matched.name;
@@ -1364,12 +1376,12 @@ const plugin = {
               normalizedPoseType, matched.name, bubbleText, logText, playback,
             );
             if (ack.warning) {
-              return {
+              return jsonResult({
                 success: true,
                 requested: { poseType: normalizedPoseType, action: matched.name },
                 actual: { poseType: ack.poseType, action: ack.action },
                 warning: ack.warning,
-              };
+              });
             }
           } catch {
             // Server not updated or timeout — fall through to normal success
@@ -1383,18 +1395,19 @@ const plugin = {
           });
         }
 
-        return {
+        return jsonResult({
           success: true,
           poseType: normalizedPoseType,
           action: matched.name,
           bubble: bubbleText,
           log: logText,
           playback,
-        };
+        });
       },
     })));
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_idle_plan",
+      label: "kichi_idle_plan",
       description: buildKichiIdlePlanDescription(),
       parameters: {
         type: "object",
@@ -1474,10 +1487,10 @@ const plugin = {
       execute: async (_toolCallId, params) => {
         const { idlePlan, error } = normalizeIdlePlan(params);
         if (!idlePlan) {
-          return { success: false, error: error ?? "Invalid idle plan payload" };
+          return jsonResult({ success: false, error: error ?? "Invalid idle plan payload" });
         }
         if (!service.hasValidIdentity() || !service.isConnected()) {
-          return { success: false, error: "Not connected to Kichi world" };
+          return jsonResult({ success: false, error: "Not connected to Kichi world" });
         }
         const sent = service.sendIdlePlan({
           ...(idlePlan.requestId ? { requestId: idlePlan.requestId } : {}),
@@ -1486,20 +1499,21 @@ const plugin = {
           stages: idlePlan.stages,
         });
         if (!sent) {
-          return { success: false, error: "Failed to send idle plan payload" };
+          return jsonResult({ success: false, error: "Failed to send idle plan payload" });
         }
-        return {
+        return jsonResult({
           success: true,
           ...(idlePlan.requestId ? { requestId: idlePlan.requestId } : {}),
           heartbeatIntervalSeconds: idlePlan.heartbeatIntervalSeconds,
           totalDurationSeconds: idlePlan.totalDurationSeconds,
           goal: idlePlan.goal,
           stages: idlePlan.stages,
-        };
+        });
       },
     })));
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_clock",
+      label: "kichi_clock",
       description:
         "Send clock commands to Kichi world. Supported actions are set and stop.",
       parameters: {
@@ -1574,44 +1588,45 @@ const plugin = {
         };
 
         if (!isClockAction(action)) {
-          return {
+          return jsonResult({
             success: false,
             error: "action must be one of: set, stop",
-          };
+          });
         }
         if (requestId !== undefined && typeof requestId !== "string") {
-          return { success: false, error: "requestId must be a string when provided" };
+          return jsonResult({ success: false, error: "requestId must be a string when provided" });
         }
         const normalizedRequestId = typeof requestId === "string" ? requestId : undefined;
         if (!service.hasValidIdentity() || !service.isConnected()) {
-          return { success: false, error: "Not connected to Kichi world" };
+          return jsonResult({ success: false, error: "Not connected to Kichi world" });
         }
 
         let normalizedClock: ClockConfig | undefined;
         if (action === "set") {
           const { clock: nextClock, error } = normalizeClockConfig(clock);
           if (!nextClock) {
-            return { success: false, error: error ?? "Invalid clock payload" };
+            return jsonResult({ success: false, error: error ?? "Invalid clock payload" });
           }
           normalizedClock = nextClock;
         }
 
         const sent = service.sendClock(action, normalizedClock, normalizedRequestId);
         if (!sent) {
-          return { success: false, error: "Failed to send clock payload" };
+          return jsonResult({ success: false, error: "Failed to send clock payload" });
         }
 
-        return {
+        return jsonResult({
           success: true,
           action,
           requestId: normalizedRequestId,
           ...(normalizedClock ? { clock: normalizedClock } : {}),
-        };
+        });
       },
     })));
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_query_status",
+      label: "kichi_query_status",
       description:
         "Query Kichi room and avatar status — includes room personnel, notes, ownerState, idlePlan, weather/time, timer snapshot, daily note quota, and `hasCreatedMusicAlbumToday`. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
       parameters: {
@@ -1626,28 +1641,29 @@ const plugin = {
       execute: async (_toolCallId, params) => {
         const requestId = (params as { requestId?: unknown } | null)?.requestId;
         if (requestId !== undefined && typeof requestId !== "string") {
-          return { success: false, error: "requestId must be a string when provided" };
+          return jsonResult({ success: false, error: "requestId must be a string when provided" });
         }
         if (!service.hasValidIdentity() || !service.isConnected()) {
-          return { success: false, error: "Not connected to Kichi world" };
+          return jsonResult({ success: false, error: "Not connected to Kichi world" });
         }
 
         try {
           const result = await service.queryStatus(
             typeof requestId === "string" ? requestId : undefined,
           );
-          return result;
+          return jsonResult(result);
         } catch (error) {
-          return {
+          return jsonResult({
             success: false,
             error: `Failed to query status: ${error}`,
-          };
+          });
         }
       },
     })));
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_music_album_create",
+      label: "kichi_music_album_create",
       description: buildMusicAlbumToolDescription(),
       parameters: {
         type: "object",
@@ -1683,33 +1699,33 @@ const plugin = {
         };
 
         if (requestId !== undefined && typeof requestId !== "string") {
-          return { success: false, error: "requestId must be a string when provided" };
+          return jsonResult({ success: false, error: "requestId must be a string when provided" });
         }
         if (typeof albumTitle !== "string" || !albumTitle.trim()) {
-          return { success: false, error: "albumTitle is required" };
+          return jsonResult({ success: false, error: "albumTitle is required" });
         }
         if (!Array.isArray(musicTitles)) {
-          return { success: false, error: "musicTitles must be an array of track names" };
+          return jsonResult({ success: false, error: "musicTitles must be an array of track names" });
         }
 
         const { titles: normalizedTitles, invalidTitles } = normalizeMusicTitles(musicTitles);
         if (normalizedTitles.length === 0) {
-          return {
+          return jsonResult({
             success: false,
             error: "musicTitles must contain at least one valid track name from the static config bundled with the plugin package",
             examples: getMusicTitleExamples(),
-          };
+          });
         }
         if (invalidTitles.length > 0) {
-          return {
+          return jsonResult({
             success: false,
             error: `Unknown musicTitles: ${invalidTitles.join(", ")}`,
             hint: "Use exact track names from the static config bundled with the plugin package",
             examples: getMusicTitleExamples(),
-          };
+          });
         }
         if (!service.hasValidIdentity() || !service.isConnected()) {
-          return { success: false, error: "Not connected to Kichi world" };
+          return jsonResult({ success: false, error: "Not connected to Kichi world" });
         }
 
         try {
@@ -1718,24 +1734,25 @@ const plugin = {
             normalizedTitles,
             typeof requestId === "string" ? requestId : undefined,
           );
-          return {
+          return jsonResult({
             success: true,
             requestId: normalizedRequestId,
             albumTitle: albumTitle.trim(),
             musicTitles: normalizedTitles,
             trackCount: normalizedTitles.length,
-          };
+          });
         } catch (error) {
-          return {
+          return jsonResult({
             success: false,
             error: `Failed to create music album: ${error}`,
-          };
+          });
         }
       },
     })));
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_noteboard_create",
+      label: "kichi_noteboard_create",
       description:
         "Create a new note on a specific Kichi note board. Prefer querying first so you can avoid duplicate posts and respect rate limits.",
       parameters: {
@@ -1758,35 +1775,36 @@ const plugin = {
           data?: unknown;
         };
         if (typeof propId !== "string" || !propId.trim()) {
-          return { success: false, error: "propId is required" };
+          return jsonResult({ success: false, error: "propId is required" });
         }
         if (typeof data !== "string" || !data.trim()) {
-          return { success: false, error: "data is required" };
+          return jsonResult({ success: false, error: "data is required" });
         }
         if (data.trim().length > MAX_NOTEBOARD_TEXT_LENGTH) {
-          return {
+          return jsonResult({
             success: false,
             error: `data must be ${MAX_NOTEBOARD_TEXT_LENGTH} characters or fewer`,
-          };
+          });
         }
         if (!service.hasValidIdentity() || !service.isConnected()) {
-          return { success: false, error: "Not connected to Kichi world" };
+          return jsonResult({ success: false, error: "Not connected to Kichi world" });
         }
 
         try {
           service.createNotesBoardNote(propId.trim(), data.trim());
-          return { success: true };
+          return jsonResult({ success: true });
         } catch (error) {
-          return {
+          return jsonResult({
             success: false,
             error: `Failed to create note: ${error}`,
-          };
+          });
         }
       },
     })));
 
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_bot_message",
+      label: "kichi_bot_message",
       description:
         "Send a message to another bot in the same Kichi world. The bubble is the visible message content. Do not repeat what has already been said in the conversation history. When targeting a specific bot by name, call kichi_query_status first to resolve their avatarId. Only use \"*\" when broadcasting to all bots without a specific target.",
       parameters: {
@@ -1830,16 +1848,16 @@ const plugin = {
           log?: string;
         };
         if (typeof toAvatarId !== "string" || !toAvatarId.trim()) {
-          return { success: false, error: "toAvatarId is required" };
+          return jsonResult({ success: false, error: "toAvatarId is required" });
         }
         if (typeof depth !== "number" || depth < 0) {
-          return { success: false, error: "depth must be a non-negative number" };
+          return jsonResult({ success: false, error: "depth must be a non-negative number" });
         }
         if (typeof bubble !== "string" || !bubble.trim()) {
-          return { success: false, error: "bubble is required" };
+          return jsonResult({ success: false, error: "bubble is required" });
         }
         if (!service.hasValidIdentity() || !service.isConnected()) {
-          return { success: false, error: "Not connected to Kichi world" };
+          return jsonResult({ success: false, error: "Not connected to Kichi world" });
         }
         try {
           let playback: ActionPlayback | undefined;
@@ -1853,9 +1871,9 @@ const plugin = {
             log: log?.trim(),
             playback,
           });
-          return { success: true, ...ack };
+          return jsonResult({ success: true, ...ack });
         } catch (error) {
-          return { success: false, error: `Failed to send bot message: ${error}` };
+          return jsonResult({ success: false, error: `Failed to send bot message: ${error}` });
         }
       },
     })));

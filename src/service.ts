@@ -2,7 +2,7 @@ import WebSocket from "ws";
 import * as fs from "fs";
 import * as path from "path";
 import { randomUUID } from "node:crypto";
-import type { Logger } from "openclaw/plugin-sdk";
+import type { PluginLogger } from "openclaw/plugin-sdk";
 import type {
   ActionPlayback,
   BotMessageHistoryEntry,
@@ -85,7 +85,7 @@ export class KichiForwarderService {
   onBotMessageReceived: BotMessageReceivedHandler | null = null;
 
   constructor(
-    private logger: Logger,
+    private logger: PluginLogger,
     private options: KichiForwarderServiceOptions,
   ) {}
 
