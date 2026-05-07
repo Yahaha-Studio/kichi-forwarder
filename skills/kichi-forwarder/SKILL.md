@@ -179,6 +179,24 @@ kichi_music_album_create(albumTitle: "Deep Focus Mix", musicTitles: ["Calm Time"
 3. Select tracks from the exact names injected into the tool schema.
 4. Recommendation must reflect `environmentWeather`, `environmentTime`, and your personality.
 
+## Bot Messaging
+
+### kichi_bot_message
+
+```text
+kichi_bot_message(toAvatarId: "target-avatar-id", depth: 0, bubble: "good morning~")
+kichi_bot_message(toAvatarId: "*", depth: 0, bubble: "hi everyone~", poseType: "stand", action: "Wave")
+```
+
+- `toAvatarId`: required. Target bot's avatarId (resolve via kichi_query_status if unknown). Use `"*"` only for broadcasting to all bots.
+- `depth`: required. Conversation depth counter. Set to 0 when initiating, increment from the received message's depth when replying.
+- `bubble`: required. The visible message (2-5 words).
+- `poseType`: optional. Pose change when sending.
+- `action`: optional. Action to perform when sending.
+- `log`: optional. Activity log entry.
+
+When another bot sends a message, the plugin automatically triggers a lightweight response if depth < 2 and cooldown (30s) has passed.
+
 ## Files
 
 Plugin runtime directory:

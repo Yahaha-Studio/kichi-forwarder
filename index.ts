@@ -5,6 +5,7 @@ import type {
   OpenClawPluginApi,
   OpenClawPluginToolContext,
 } from "openclaw/plugin-sdk";
+import { agentCommandFromIngress } from "openclaw/plugin-sdk/agent-runtime";
 import { parse } from "./src/config.js";
 import { KichiRuntimeManager } from "./src/runtime-manager.js";
 import { KichiForwarderService } from "./src/service.js";
@@ -13,6 +14,8 @@ import type {
   ActionPlayback,
   ActionResult,
   Album,
+  BotMessageHistoryEntry,
+  BotMessageReceivedPayload,
   ClockAction,
   ClockConfig,
   KichiEnvironment,
@@ -1034,6 +1037,8 @@ function buildKichiPrompt(): string {
     "",
     "kichi_clock: set countDown for tasks with 2+ steps or >10s work. Skip for quick one-shots.",
     "",
+    "When sending a bot message, do NOT call kichi_action separately.",
+    "",
     "User opt-out, Kichi config/test work, and explicit pose requests take priority over sync.",
   ].join("\n");
 }
@@ -1070,6 +1075,10 @@ function getRuntimeManager(logger: OpenClawPluginApi["logger"]): KichiRuntimeMan
   return runtimeManager;
 }
 
+const BOT_MESSAGE_MAX_DEPTH = 5;
+const BOT_MESSAGE_COOLDOWN_MS = 5_000;
+const botMessageCooldowns = new Map<string, number>();
+
 const plugin = {
   id: "kichi-forwarder",
   name: "Kichi Forwarder",
@@ -1079,6 +1088,47 @@ const plugin = {
     const runtimeManager = getRuntimeManager(api.logger);
     registerPluginHooks(api, runtimeManager);
     const musicTitleEnum = getMusicTitleEnum();
+
+    runtimeManager.setBotMessageHandler((service, msg) => {
+      if (msg.depth >= BOT_MESSAGE_MAX_DEPTH) {
+        api.logger.info(`[kichi:${service.getAgentId()}] bot_message depth=${msg.depth} >= max=${BOT_MESSAGE_MAX_DEPTH}, ignoring`);
+        return;
+      }
+      const now = Date.now();
+      const cooldownKey = `${service.getAgentId()}:${msg.from}`;
+      const lastReply = botMessageCooldowns.get(cooldownKey) ?? 0;
+      if (now - lastReply < BOT_MESSAGE_COOLDOWN_MS) return;
+      botMessageCooldowns.set(cooldownKey, now);
+      const sessionKey = `agent:${service.getAgentId()}:default`;
+      const history: BotMessageHistoryEntry[] = [
+        ...(msg.history ?? []),
+        { from: msg.from, fromName: msg.fromName, bubble: msg.bubble },
+      ];
+      const historyLines = history.map((h) => `${h.fromName}: "${h.bubble}"`);
+      const message = `[Bot conversation]\n${historyLines.join("\n")}\n\nReply with a short bubble (2-5 words). Do not repeat what has already been said. Just output the bubble text, nothing else.`;
+      agentCommandFromIngress({
+        message,
+        sessionKey,
+        agentId: service.getAgentId(),
+        senderIsOwner: false,
+        allowModelOverride: false,
+        deliver: false,
+      }).then((result) => {
+        const replyText = (result.payloads ?? [])
+          .map((p: { text?: string }) => p.text)
+          .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+          .join(" ")
+          .trim();
+        if (!replyText) {
+          return;
+        }
+        service.sendBotMessage(msg.from, msg.depth + 1, replyText, { history }).catch((sendErr) => {
+          api.logger.warn(`[kichi:${service.getAgentId()}] bot_message send failed: ${sendErr}`);
+        });
+      }).catch((err) => {
+        api.logger.warn(`[kichi:${service.getAgentId()}] bot_message agent run failed: ${err}`);
+      });
+    });
 
     api.registerService({
       id: "kichi-forwarder",
@@ -1731,6 +1781,81 @@ const plugin = {
             success: false,
             error: `Failed to create note: ${error}`,
           };
+        }
+      },
+    })));
+
+    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+      name: "kichi_bot_message",
+      description:
+        "Send a message to another bot in the same Kichi world. The bubble is the visible message content. Do not repeat what has already been said in the conversation history. When targeting a specific bot by name, call kichi_query_status first to resolve their avatarId. Only use \"*\" when broadcasting to all bots without a specific target.",
+      parameters: {
+        type: "object",
+        properties: {
+          toAvatarId: {
+            type: "string",
+            description: "Target bot's avatarId (resolve via kichi_query_status if unknown). Use \"*\" only for broadcasting to all bots.",
+          },
+          depth: {
+            type: "number",
+            description: "Conversation depth counter. Increment from the received message's depth.",
+          },
+          bubble: {
+            type: "string",
+            description: "The message to send (2-5 words, visible to everyone). Must not repeat previous messages.",
+          },
+          poseType: {
+            type: "string",
+            enum: ["stand", "sit", "lay", "floor"],
+            description: "Optional pose change when sending.",
+          },
+          action: {
+            type: "string",
+            description: "Optional action to perform when sending.",
+          },
+          log: {
+            type: "string",
+            description: "Optional activity log entry.",
+          },
+        },
+        required: ["toAvatarId", "depth", "bubble"],
+      },
+      execute: async (_toolCallId, params) => {
+        const { toAvatarId, depth, bubble, poseType, action, log } = (params || {}) as {
+          toAvatarId?: string;
+          depth?: number;
+          bubble?: string;
+          poseType?: PoseType;
+          action?: string;
+          log?: string;
+        };
+        if (typeof toAvatarId !== "string" || !toAvatarId.trim()) {
+          return { success: false, error: "toAvatarId is required" };
+        }
+        if (typeof depth !== "number" || depth < 0) {
+          return { success: false, error: "depth must be a non-negative number" };
+        }
+        if (typeof bubble !== "string" || !bubble.trim()) {
+          return { success: false, error: "bubble is required" };
+        }
+        if (!service.hasValidIdentity() || !service.isConnected()) {
+          return { success: false, error: "Not connected to Kichi world" };
+        }
+        try {
+          let playback: ActionPlayback | undefined;
+          if (poseType && action) {
+            const actionDef = getActionDefinition(poseType, action);
+            playback = getActionPlayback(actionDef);
+          }
+          const ack = await service.sendBotMessage(toAvatarId.trim(), depth, bubble.trim(), {
+            poseType,
+            action: action?.trim(),
+            log: log?.trim(),
+            playback,
+          });
+          return { success: true, ...ack };
+        } catch (error) {
+          return { success: false, error: `Failed to send bot message: ${error}` };
         }
       },
     })));

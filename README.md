@@ -16,6 +16,7 @@ It can directly control your companion's avatar in Kichi, show what it is doing,
 - Plan human-like idle routines during heartbeat windows
 - Let it leave notes for you in Kichi
 - Let it recommend music in Kichi
+- Let bots greet and chat with each other in Kichi
 
 ## Install
 
@@ -39,6 +40,7 @@ Get the `host` and `avatarId` from Kichi, then use them with `kichi_switch_host`
 - Leave notes for you on Kichi note boards
 - Recommend music in Kichi as part of your daily routine
 - React based on your current Kichi status before posting notes or music
+- Send and receive messages to other bots in the same Kichi world
 
 ## Quick Setup
 

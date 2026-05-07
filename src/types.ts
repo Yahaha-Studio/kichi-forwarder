@@ -275,3 +275,33 @@ export type CreateMusicAlbumPayload = {
   albumTitle: string;
   musicTitles: string[];
 };
+
+export type BotMessageHistoryEntry = {
+  from: string;
+  fromName: string;
+  bubble: string;
+};
+
+export type BotMessagePayload = {
+  type: "bot_message";
+  avatarId: string;
+  authKey: string;
+  requestId: string;
+  toAvatarId: string;
+  depth: number;
+  poseType?: PoseType;
+  action?: string;
+  playback?: ActionPlayback;
+  bubble: string;
+  log?: string;
+  history?: BotMessageHistoryEntry[];
+};
+
+export type BotMessageReceivedPayload = {
+  type: "bot_message_received";
+  from: string;
+  fromName: string;
+  depth: number;
+  bubble: string;
+  history?: BotMessageHistoryEntry[];
+};

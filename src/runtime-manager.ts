@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import type { Logger } from "openclaw/plugin-sdk";
 import { KichiForwarderService } from "./service.js";
+import type { BotMessageReceivedHandler } from "./service.js";
 import type { KichiEnvironment } from "./types.js";
 
 const OPENCLAW_HOME_DIR = path.join(os.homedir(), ".openclaw");
@@ -18,8 +19,16 @@ type AgentLocator = {
 export class KichiRuntimeManager {
   private services = new Map<string, KichiForwarderService>();
   private resolveEnvironmentHost: ((environment: KichiEnvironment) => string | null) | null = null;
+  private botMessageHandler: BotMessageReceivedHandler | null = null;
 
   constructor(private logger: Logger) {}
+
+  setBotMessageHandler(handler: BotMessageReceivedHandler): void {
+    this.botMessageHandler = handler;
+    for (const service of this.services.values()) {
+      service.onBotMessageReceived = handler;
+    }
+  }
 
   setEnvironmentHostResolver(resolver: (environment: KichiEnvironment) => string | null): void {
     this.resolveEnvironmentHost = resolver;
@@ -130,6 +139,9 @@ export class KichiRuntimeManager {
       runtimeDir,
       resolveEnvironmentHost,
     });
+    if (this.botMessageHandler) {
+      service.onBotMessageReceived = this.botMessageHandler;
+    }
     service.start();
     this.services.set(agentId, service);
     this.logger.debug(`[kichi:${agentId}] runtime initialized at ${runtimeDir}`);

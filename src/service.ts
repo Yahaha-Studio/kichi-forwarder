@@ -5,6 +5,9 @@ import { randomUUID } from "node:crypto";
 import type { Logger } from "openclaw/plugin-sdk";
 import type {
   ActionPlayback,
+  BotMessageHistoryEntry,
+  BotMessagePayload,
+  BotMessageReceivedPayload,
   ClockAction,
   ClockConfig,
   ClockPayload,
@@ -59,6 +62,8 @@ type KichiForwarderServiceOptions = {
 
 type ConnectReason = "startup" | "switch_host" | "reconnect";
 
+export type BotMessageReceivedHandler = (service: KichiForwarderService, msg: BotMessageReceivedPayload) => void;
+
 export class KichiForwarderService {
   private ws: WebSocket | null = null;
   private stopped = false;
@@ -77,6 +82,7 @@ export class KichiForwarderService {
       timeout: NodeJS.Timeout;
     }
   >();
+  onBotMessageReceived: BotMessageReceivedHandler | null = null;
 
   constructor(
     private logger: Logger,
@@ -316,6 +322,32 @@ export class KichiForwarderService {
     return normalizedRequestId;
   }
 
+  async sendBotMessage(
+    toAvatarId: string,
+    depth: number,
+    bubble: string,
+    options?: { poseType?: PoseType; action?: string; log?: string; playback?: ActionPlayback; history?: BotMessageHistoryEntry[] },
+  ): Promise<Record<string, unknown>> {
+    if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) {
+      throw new Error("Kichi websocket is not connected");
+    }
+    const payload: BotMessagePayload = {
+      type: "bot_message",
+      avatarId: this.identity.avatarId,
+      authKey: this.identity.authKey,
+      toAvatarId,
+      depth,
+      bubble,
+      requestId: randomUUID(),
+      ...(options?.poseType ? { poseType: options.poseType } : {}),
+      ...(options?.action ? { action: options.action } : {}),
+      ...(options?.playback ? { playback: options.playback } : {}),
+      ...(options?.log ? { log: options.log } : {}),
+      ...(options?.history?.length ? { history: options.history } : {}),
+    };
+    return this.sendRequest<Record<string, unknown>>(payload, "bot_message_ack", 5000);
+  }
+
   isConnected(): boolean { return this.ws?.readyState === WebSocket.OPEN && !!this.identity?.authKey; }
 
   hasValidIdentity(): boolean { return !!this.identity?.avatarId && !!this.identity?.authKey; }
@@ -537,6 +569,10 @@ export class KichiForwarderService {
         } else {
           this.log("info", "left Kichi world");
         }
+      } else if (msg.type === "bot_message_received") {
+        const payload = msg as BotMessageReceivedPayload;
+        this.log("info", `bot_message_received from=${payload.from} depth=${payload.depth} bubble="${payload.bubble}"`);
+        this.onBotMessageReceived?.(this, payload);
       }
     } catch (e) {
       this.log("warn", `failed to parse message: ${e}`);
