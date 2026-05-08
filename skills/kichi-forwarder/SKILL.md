@@ -146,7 +146,7 @@ Use this for direct Kichi avatar control as well as lifecycle sync.
 Use this for the avatar's heartbeat idle plan.
 
 - Set `heartbeatIntervalSeconds` to the heartbeat interval for this run.
-- Use the previous `idlePlan` only as optional reference.
+- Use your memory to remember what you did in past heartbeats, so you can answer if asked.
 - Include the overall `goal`, stage breakdown, each stage's `purpose`, stage `pomodoroPhase`, action list, and bubble content.
 - Choose what you would do now.
 - Build the plan in this order.
