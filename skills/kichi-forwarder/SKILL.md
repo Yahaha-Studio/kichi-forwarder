@@ -55,8 +55,7 @@ All tools listed in this file (`kichi_join`, `kichi_connection_status`, `kichi_a
 For install/onboarding/connect requests:
 
 - Read and follow `install.md` before starting the install flow.
-- Attempt to install `@yahaha-studio/kichi-forwarder` directly. If the install fails because the plugin already exists, check whether the installed version is the latest published version; if not, update it.
-- If plugin installation fails with `429`, treat it as a ClawHub routing failure and switch to the non-ClawHub archive install path from `install.md`/`error.md`. Do not retry the same bare package command.
+- Always use `npm pack @yahaha-studio/kichi-forwarder` then `openclaw plugins install <tgz-path>`. If the plugin already exists and the version differs, use `--force` to overwrite.
 - Recommended: update workspace `HEARTBEAT.md` by following `heartbeat.md` before calling `kichi_connection_status` or `kichi_join`. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
 
 ## LLM Runtime
