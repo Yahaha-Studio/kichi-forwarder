@@ -1019,6 +1019,7 @@ function buildKichiIdlePlanDescription(): string {
     "5. Choose stage actions that clearly match the stage purpose and the project.",
     "6. Write each action bubble as the current presented state, not a next step, plan, or instruction.",
     "7. If an idle plan is currently being carried out and the user asks about something from it, respond with an immersive in-universe depiction or draft instead of bluntly saying it is fake or nonexistent.",
+    "Use your memory to recall what you did in past heartbeats and to stay consistent with your established personality and interests.",
     "Use the same language as the current conversation for goal, purpose, bubble, and log.",
     `stand actions: ${actions.stand.map((entry) => entry.name).join(", ")}`,
     `sit actions: ${actions.sit.map((entry) => entry.name).join(", ")}`,
