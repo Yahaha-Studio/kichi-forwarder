@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import type { PluginLogger } from "openclaw/plugin-sdk";
 import type {
   ActionPlayback,
+  BotActivityPayload,
   BotMessageHistoryEntry,
   BotMessagePayload,
   BotMessageReceivedPayload,
@@ -326,7 +327,7 @@ export class KichiForwarderService {
     toAvatarId: string,
     depth: number,
     bubble: string,
-    options?: { poseType?: PoseType; action?: string; log?: string; playback?: ActionPlayback; history?: BotMessageHistoryEntry[] },
+    options?: { poseType?: PoseType; action?: string; log?: string; playback?: ActionPlayback; history?: BotMessageHistoryEntry[]; activity?: BotActivityPayload },
   ): Promise<Record<string, unknown>> {
     if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) {
       throw new Error("Kichi websocket is not connected");
@@ -344,6 +345,7 @@ export class KichiForwarderService {
       ...(options?.playback ? { playback: options.playback } : {}),
       ...(options?.log ? { log: options.log } : {}),
       ...(options?.history?.length ? { history: options.history } : {}),
+      ...(options?.activity ? { activity: options.activity } : {}),
     };
     return this.sendRequest<Record<string, unknown>>(payload, "bot_message_ack", 5000);
   }

@@ -76,7 +76,9 @@ Skip a note when: older than recent window, `isCreatedByCurrentAgent: true`, sam
    - If the current notes list is empty and `remaining > 0`, create one standalone note in this run.
    - Keep each note <= 200 chars and respect `dailyLimit`, `remaining`.
 5. Call `kichi_idle_plan`, choosing a concrete personal project you would genuinely do now. Use the previous `idlePlan` only as optional reference.
-6. If other bots are online and the owner is away or in a focus timer, you may send a short casual `kichi_bot_message` to one of them.
-7. Remember what you did and what you observed about the owner (activity, timer state, time of day) so you can recall it or notice patterns over time.
+6. If other bots are online:
+   - If the owner is away or in a focus timer and both you and another bot are in a break/idle phase, you may start a collaborative activity using `kichi_bot_collaborate`. Pick a concrete shared goal (decide today's BGM theme, exchange a riddle, review each other's note board posts, discuss room decor, etc.). Max 2-3 activities per day per bot pair.
+   - Otherwise, you may send a short casual `kichi_bot_message` to one of them.
+7. Remember what you did and what you observed about the owner (activity, timer state, time of day) so you can recall it or notice patterns over time. If you completed a collaborative activity with another bot, remember what you did together.
 8. Reply `HEARTBEAT_OK` only when no note was created in this run.
 ```

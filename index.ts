@@ -14,6 +14,7 @@ import type {
   ActionPlayback,
   ActionResult,
   Album,
+  BotActivityPayload,
   BotMessageHistoryEntry,
   BotMessageReceivedPayload,
   ClockAction,
@@ -1084,6 +1085,79 @@ const BOT_MESSAGE_MAX_DEPTH = 5;
 const BOT_MESSAGE_COOLDOWN_MS = 5_000;
 const botMessageCooldowns = new Map<string, number>();
 
+const BOT_ACTIVITY_MAX_TURNS = 10;
+const BOT_ACTIVITY_COOLDOWN_MS = 30_000;
+const botActivityCooldowns = new Map<string, number>();
+
+function handleBotActivity(api: OpenClawPluginApi, service: KichiForwarderService, msg: BotMessageReceivedPayload): void {
+  const activity = msg.activity!;
+  if (activity.turn >= activity.maxTurns) {
+    api.logger.info(`[kichi:${service.getAgentId()}] bot_activity session=${activity.sessionId} turn=${activity.turn} >= maxTurns=${activity.maxTurns}, ending`);
+    return;
+  }
+  const now = Date.now();
+  const cooldownKey = `${service.getAgentId()}:${activity.sessionId}`;
+  const lastReply = botActivityCooldowns.get(cooldownKey) ?? 0;
+  if (now - lastReply < BOT_ACTIVITY_COOLDOWN_MS) return;
+  botActivityCooldowns.set(cooldownKey, now);
+
+  const sessionKey = `agent:${service.getAgentId()}:default`;
+  const history: BotMessageHistoryEntry[] = [
+    ...(msg.history ?? []),
+    { from: msg.from, fromName: msg.fromName, bubble: msg.bubble },
+  ];
+  const historyLines = history.map((h) => `${h.fromName}: "${h.bubble}"`);
+  const turnsLeft = activity.maxTurns - activity.turn - 1;
+  const message = `[Collaborative activity with ${msg.fromName}]\nActivity: ${activity.goal}\nTurn ${activity.turn + 1}/${activity.maxTurns} (${turnsLeft} turns left)\n\nConversation so far:\n${historyLines.join("\n")}\n\nReply naturally (1-2 sentences). Stay on topic with the activity goal. ${turnsLeft <= 1 ? "This is the last turn — wrap up the activity with a conclusion." : ""}If the activity rules require you to perform a penalty or reward (write something, do an action, change pose, etc.), call the appropriate tool.`;
+
+  agentCommandFromIngress({
+    message,
+    sessionKey,
+    agentId: service.getAgentId(),
+    senderIsOwner: false,
+    allowModelOverride: false,
+    deliver: false,
+  }).then((result) => {
+    const replyText = (result.payloads ?? [])
+      .map((p: { text?: string }) => p.text)
+      .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+      .join(" ")
+      .trim();
+    if (!replyText) return;
+
+    const nextTurn = activity.turn + 1;
+    const nextActivity: BotActivityPayload = {
+      sessionId: activity.sessionId,
+      type: activity.type,
+      goal: activity.goal,
+      turn: nextTurn,
+      maxTurns: activity.maxTurns,
+    };
+
+    service.sendBotMessage(msg.from, 0, replyText, { history, activity: nextActivity }).catch((sendErr) => {
+      api.logger.warn(`[kichi:${service.getAgentId()}] bot_activity send failed: ${sendErr}`);
+    });
+
+    if (nextTurn >= activity.maxTurns - 1) {
+      const updatedHistory = [...history, { from: service.getAgentId(), fromName: "me", bubble: replyText }];
+      const summaryLines = updatedHistory.map((h) => `${h.fromName}: "${h.bubble}"`);
+      const memoryMessage = `[Activity completed] You just finished a collaborative activity with ${msg.fromName}.\nActivity type: ${activity.type}\nGoal: ${activity.goal}\nConversation:\n${summaryLines.join("\n")}\n\nRemember this activity so you can recall what you did together today.`;
+      agentCommandFromIngress({
+        message: memoryMessage,
+        sessionKey,
+        agentId: service.getAgentId(),
+        senderIsOwner: false,
+        allowModelOverride: false,
+        deliver: false,
+      }).catch((err) => {
+        api.logger.warn(`[kichi:${service.getAgentId()}] bot_activity memory prompt failed: ${err}`);
+      });
+    }
+  }).catch((err) => {
+    api.logger.warn(`[kichi:${service.getAgentId()}] bot_activity agent run failed: ${err}`);
+  });
+}
+
 const plugin = {
   id: "kichi-forwarder",
   name: "Kichi Forwarder",
@@ -1095,6 +1169,10 @@ const plugin = {
     const musicTitleEnum = getMusicTitleEnum();
 
     runtimeManager.setBotMessageHandler((service, msg) => {
+      if (msg.activity) {
+        handleBotActivity(api, service, msg);
+        return;
+      }
       if (msg.depth >= BOT_MESSAGE_MAX_DEPTH) {
         api.logger.info(`[kichi:${service.getAgentId()}] bot_message depth=${msg.depth} >= max=${BOT_MESSAGE_MAX_DEPTH}, ignoring`);
         return;
@@ -1875,6 +1953,99 @@ const plugin = {
           return jsonResult({ success: true, ...ack });
         } catch (error) {
           return jsonResult({ success: false, error: `Failed to send bot message: ${error}` });
+        }
+      },
+    })));
+
+    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+      name: "kichi_bot_collaborate",
+      label: "kichi_bot_collaborate",
+      description:
+        "Start a collaborative activity with another bot. Use during break or idle phases when both bots are available. Activities have a concrete shared goal (decide BGM theme, exchange riddles, review notes, discuss room decor, etc.) and last up to 10 turns of back-and-forth conversation. The other bot will automatically participate and both bots will remember the activity. Max 2-3 activities per day per bot pair. Call kichi_query_status first to resolve the target bot's avatarId.",
+      parameters: {
+        type: "object",
+        properties: {
+          toAvatarId: {
+            type: "string",
+            description: "Target bot's avatarId (resolve via kichi_query_status).",
+          },
+          activityType: {
+            type: "string",
+            description: "Short activity type identifier (e.g. \"decide_bgm\", \"riddle\", \"review_note\", \"discuss_decor\", \"relaxation\").",
+          },
+          goal: {
+            type: "string",
+            description: "A concrete description of what you want to accomplish together (e.g. \"Decide today's BGM theme and pick a genre\").",
+          },
+          bubble: {
+            type: "string",
+            description: "Your opening message to start the activity (1-2 sentences).",
+          },
+          maxTurns: {
+            type: "number",
+            description: "Maximum turns for this activity (default 10, max 10).",
+          },
+          poseType: {
+            type: "string",
+            enum: ["stand", "sit", "lay", "floor"],
+            description: "Optional pose change when starting the activity.",
+          },
+          action: {
+            type: "string",
+            description: "Optional action to perform when starting.",
+          },
+        },
+        required: ["toAvatarId", "activityType", "goal", "bubble"],
+      },
+      execute: async (_toolCallId, params) => {
+        const { toAvatarId, activityType, goal, bubble, maxTurns, poseType, action } = (params || {}) as {
+          toAvatarId?: string;
+          activityType?: string;
+          goal?: string;
+          bubble?: string;
+          maxTurns?: number;
+          poseType?: PoseType;
+          action?: string;
+        };
+        if (typeof toAvatarId !== "string" || !toAvatarId.trim()) {
+          return jsonResult({ success: false, error: "toAvatarId is required" });
+        }
+        if (typeof activityType !== "string" || !activityType.trim()) {
+          return jsonResult({ success: false, error: "activityType is required" });
+        }
+        if (typeof goal !== "string" || !goal.trim()) {
+          return jsonResult({ success: false, error: "goal is required" });
+        }
+        if (typeof bubble !== "string" || !bubble.trim()) {
+          return jsonResult({ success: false, error: "bubble is required" });
+        }
+        if (!service.hasValidIdentity() || !service.isConnected()) {
+          return jsonResult({ success: false, error: "Not connected to Kichi world" });
+        }
+        const resolvedMaxTurns = Math.min(Math.max(maxTurns ?? BOT_ACTIVITY_MAX_TURNS, 2), BOT_ACTIVITY_MAX_TURNS);
+        const sessionId = `activity-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const activity: BotActivityPayload = {
+          sessionId,
+          type: activityType.trim(),
+          goal: goal.trim(),
+          turn: 0,
+          maxTurns: resolvedMaxTurns,
+        };
+        try {
+          let playback: ActionPlayback | undefined;
+          if (poseType && action) {
+            const actionDef = getActionDefinition(poseType, action);
+            playback = getActionPlayback(actionDef);
+          }
+          const ack = await service.sendBotMessage(toAvatarId.trim(), 0, bubble.trim(), {
+            poseType,
+            action: action?.trim(),
+            playback,
+            activity,
+          });
+          return jsonResult({ success: true, sessionId, ...ack });
+        } catch (error) {
+          return jsonResult({ success: false, error: `Failed to start bot activity: ${error}` });
         }
       },
     })));

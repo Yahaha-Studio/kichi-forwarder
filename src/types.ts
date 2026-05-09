@@ -282,6 +282,14 @@ export type BotMessageHistoryEntry = {
   bubble: string;
 };
 
+export type BotActivityPayload = {
+  sessionId: string;
+  type: string;
+  goal: string;
+  turn: number;
+  maxTurns: number;
+};
+
 export type BotMessagePayload = {
   type: "bot_message";
   avatarId: string;
@@ -295,6 +303,7 @@ export type BotMessagePayload = {
   bubble: string;
   log?: string;
   history?: BotMessageHistoryEntry[];
+  activity?: BotActivityPayload;
 };
 
 export type BotMessageReceivedPayload = {
@@ -304,4 +313,5 @@ export type BotMessageReceivedPayload = {
   depth: number;
   bubble: string;
   history?: BotMessageHistoryEntry[];
+  activity?: BotActivityPayload;
 };

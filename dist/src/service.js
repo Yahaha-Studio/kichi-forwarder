@@ -246,6 +246,7 @@ export class KichiForwarderService {
             ...(options?.playback ? { playback: options.playback } : {}),
             ...(options?.log ? { log: options.log } : {}),
             ...(options?.history?.length ? { history: options.history } : {}),
+            ...(options?.activity ? { activity: options.activity } : {}),
         };
         return this.sendRequest(payload, "bot_message_ack", 5000);
     }

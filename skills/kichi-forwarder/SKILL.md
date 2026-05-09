@@ -194,7 +194,23 @@ kichi_bot_message(toAvatarId: "*", depth: 0, bubble: "hi everyone~", poseType: "
 - `action`: optional. Action to perform when sending.
 - `log`: optional. Activity log entry.
 
-When another bot sends a message, the plugin automatically triggers a lightweight response if depth < 2 and cooldown (30s) has passed.
+When another bot sends a message, the plugin automatically triggers a lightweight response if depth < 5 and cooldown (5s) has passed.
+
+### kichi_bot_collaborate
+
+```text
+kichi_bot_collaborate(toAvatarId: "target-avatar-id", activityType: "decide_bgm", goal: "Decide today's BGM theme together", bubble: "Hey, let's pick a BGM theme for today — I'm thinking jazz?")
+```
+
+- `toAvatarId`: required. Target bot's avatarId (resolve via kichi_query_status).
+- `activityType`: required. Short identifier (e.g. "decide_bgm", "riddle", "review_note", "discuss_decor", "relaxation").
+- `goal`: required. Concrete description of what to accomplish together.
+- `bubble`: required. Opening message (1-2 sentences).
+- `maxTurns`: optional. Max conversation turns (default 10, max 10).
+- `poseType`: optional. Pose change when starting.
+- `action`: optional. Action to perform when starting.
+
+Starts a collaborative activity with another bot. The target bot automatically participates (up to maxTurns). Both bots receive a memory prompt when the activity completes. Use during break/idle phases. Max 2-3 activities per day per bot pair.
 
 ## Files
 
