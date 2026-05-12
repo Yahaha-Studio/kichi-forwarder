@@ -17,6 +17,7 @@ export class KichiForwarderService {
     joinResolve = null;
     pendingRequests = new Map();
     onBotMessageReceived = null;
+    cachedRoomContext = null;
     constructor(logger, options) {
         this.logger = logger;
         this.options = options;
@@ -91,7 +92,7 @@ export class KichiForwarderService {
             }, 10000);
         });
     }
-    sendStatus(poseType, action, bubble, log, playback) {
+    sendStatus(poseType, action, bubble, log, playback, propId) {
         if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN)
             return;
         const payload = {
@@ -103,10 +104,11 @@ export class KichiForwarderService {
             bubble,
             log,
             playback,
+            ...(propId ? { propId } : {}),
         };
         this.ws.send(JSON.stringify(payload));
     }
-    async sendStatusVerified(poseType, action, bubble, log, playback) {
+    async sendStatusVerified(poseType, action, bubble, log, playback, propId) {
         if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) {
             throw new Error("Kichi websocket is not connected");
         }
@@ -120,6 +122,7 @@ export class KichiForwarderService {
             bubble,
             log,
             playback,
+            ...(propId ? { propId } : {}),
         };
         return this.sendRequest(payload, "status_ack", 5000);
     }
@@ -181,7 +184,11 @@ export class KichiForwarderService {
             avatarId: identity.avatarId,
             authKey: identity.authKey,
         };
-        return this.sendRequest(payload, "query_status_result");
+        const result = await this.sendRequest(payload, "query_status_result");
+        if (result.RoomContext && typeof result.RoomContext === "object") {
+            this.cachedRoomContext = result.RoomContext;
+        }
+        return result;
     }
     createNotesBoardNote(propId, data) {
         const identity = this.requireIdentity();
@@ -250,6 +257,7 @@ export class KichiForwarderService {
         return this.sendRequest(payload, "bot_message_ack", 5000);
     }
     isConnected() { return this.ws?.readyState === WebSocket.OPEN && !!this.identity?.authKey; }
+    getCachedRoomContext() { return this.cachedRoomContext; }
     hasValidIdentity() { return !!this.identity?.avatarId && !!this.identity?.authKey; }
     isLlmRuntimeEnabled() {
         return this.readStateFile()?.llmRuntimeEnabled ?? DEFAULT_LLM_RUNTIME_ENABLED;

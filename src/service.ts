@@ -83,6 +83,7 @@ export class KichiForwarderService {
     }
   >();
   onBotMessageReceived: BotMessageReceivedHandler | null = null;
+  private cachedRoomContext: Record<string, unknown> | null = null;
 
   constructor(
     private logger: PluginLogger,
@@ -166,7 +167,7 @@ export class KichiForwarderService {
     });
   }
 
-  sendStatus(poseType: PoseType | "", action: string, bubble: string, log: string, playback: ActionPlayback): void {
+  sendStatus(poseType: PoseType | "", action: string, bubble: string, log: string, playback: ActionPlayback, propId?: string): void {
     if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) return;
     const payload: StatusPayload = {
       type: "status",
@@ -177,6 +178,7 @@ export class KichiForwarderService {
       bubble,
       log,
       playback,
+      ...(propId ? { propId } : {}),
     };
     this.ws.send(JSON.stringify(payload));
   }
@@ -187,6 +189,7 @@ export class KichiForwarderService {
     bubble: string,
     log: string,
     playback: ActionPlayback,
+    propId?: string,
   ): Promise<StatusAckPayload> {
     if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) {
       throw new Error("Kichi websocket is not connected");
@@ -201,6 +204,7 @@ export class KichiForwarderService {
       bubble,
       log,
       playback,
+      ...(propId ? { propId } : {}),
     };
     return this.sendRequest<StatusAckPayload>(payload, "status_ack", 5000);
   }
@@ -267,7 +271,11 @@ export class KichiForwarderService {
       avatarId: identity.avatarId,
       authKey: identity.authKey,
     };
-    return this.sendRequest<QueryStatusResultPayload>(payload, "query_status_result");
+    const result = await this.sendRequest<QueryStatusResultPayload>(payload, "query_status_result");
+    if (result.RoomContext && typeof result.RoomContext === "object") {
+      this.cachedRoomContext = result.RoomContext as Record<string, unknown>;
+    }
+    return result;
   }
 
   createNotesBoardNote(propId: string, data: string): void {
@@ -349,6 +357,8 @@ export class KichiForwarderService {
   }
 
   isConnected(): boolean { return this.ws?.readyState === WebSocket.OPEN && !!this.identity?.authKey; }
+
+  getCachedRoomContext(): Record<string, unknown> | null { return this.cachedRoomContext; }
 
   hasValidIdentity(): boolean { return !!this.identity?.avatarId && !!this.identity?.authKey; }
 

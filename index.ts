@@ -264,6 +264,7 @@ function sendStatusUpdate(service: KichiForwarderService, status: ActionResult):
     status.bubble || status.action,
     typeof status.log === "string" ? status.log.trim() : "",
     getActionPlayback(actionDefinition),
+    status.propId,
   );
 }
 
@@ -712,6 +713,7 @@ function normalizeIdlePlan(value: unknown): { idlePlan?: IdlePlan; error?: strin
       const actionDurationSeconds = rawAction.durationSeconds;
       const bubble = rawAction.bubble;
       const log = rawAction.log;
+      const propId = rawAction.propId;
 
       if (!["stand", "sit", "lay", "floor"].includes(String(poseType))) {
         return {
@@ -759,6 +761,7 @@ function normalizeIdlePlan(value: unknown): { idlePlan?: IdlePlan; error?: strin
         durationSeconds: actionDurationSeconds,
         bubble: bubble.trim(),
         ...(typeof log === "string" && log.trim() ? { log: log.trim() } : {}),
+        ...(typeof propId === "string" && propId.trim() ? { propId: propId.trim() } : {}),
       });
     }
 
@@ -992,9 +995,9 @@ function formatActionList(actions: ActionDefinition[], playback: ActionPlayback[
     .join(", ");
 }
 
-function buildKichiActionDescription(): string {
+function buildKichiActionDescription(service: KichiForwarderService): string {
   const actions = loadStaticConfig().actions;
-  return [
+  const lines = [
     "Directly control the avatar inside Kichi World.",
     "Use this whenever the user explicitly asks you to make the Kichi avatar sit down, stand up, lie down, floor-sit, type, read, meditate, celebrate, or perform another listed animation.",
     "For most work, prefer a sit pose and switch actions as the task moves between stages.",
@@ -1003,7 +1006,20 @@ function buildKichiActionDescription(): string {
     `sit actions: ${actions.sit.map((entry) => entry.name).join(", ")}`,
     `lay actions: ${actions.lay.map((entry) => entry.name).join(", ")}`,
     `floor actions: ${actions.floor.map((entry) => entry.name).join(", ")}`,
-  ].join("\n");
+  ];
+
+  const roomContext = service.getCachedRoomContext();
+  const poseableProps = roomContext?.PoseableProps;
+  if (Array.isArray(poseableProps) && poseableProps.length > 0) {
+    lines.push(
+      "",
+      "Cached RoomContext.PoseableProps (from last kichi_query_status):",
+      JSON.stringify(poseableProps),
+      "When using a sit or lay pose, pick the propId whose DisplayName best matches the current task context and whose OccupancyState is not fully_occupied. If no prop fits, omit propId.",
+    );
+  }
+
+  return lines.join("\n");
 }
 
 function buildKichiIdlePlanDescription(): string {
@@ -1312,7 +1328,7 @@ const plugin = {
     api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
       name: "kichi_action",
       label: "kichi_action",
-      description: buildKichiActionDescription(),
+      description: buildKichiActionDescription(service),
       parameters: {
         type: "object",
         properties: {
@@ -1332,16 +1348,22 @@ const plugin = {
             description:
               "Set true ONLY when the user explicitly requests a pose or action. Omit during routine sync steps.",
           },
+          propId: {
+            type: "string",
+            description:
+              "Optional poseable prop ID from RoomContext.PoseableProps (obtained via kichi_query_status or cached). When specified, the avatar is seated at this prop; when omitted, the server picks the nearest available prop.",
+          },
         },
         required: ["poseType", "action"],
       },
       execute: async (_toolCallId, params) => {
-        const { poseType, action, bubble, log, verify } = (params || {}) as {
+        const { poseType, action, bubble, log, verify, propId } = (params || {}) as {
           poseType?: string;
           action?: string;
           bubble?: string;
           log?: string;
           verify?: boolean;
+          propId?: string;
         };
         if (!poseType || !action) {
           return jsonResult({ success: false, error: "poseType and action parameters are required" });
@@ -1374,7 +1396,7 @@ const plugin = {
         if (verify) {
           try {
             const ack = await service.sendStatusVerified(
-              normalizedPoseType, matched.name, bubbleText, logText, playback,
+              normalizedPoseType, matched.name, bubbleText, logText, playback, propId,
             );
             if (ack.warning) {
               return jsonResult({
@@ -1393,6 +1415,7 @@ const plugin = {
             action: matched.name,
             bubble: bubbleText,
             log: logText,
+            propId,
           });
         }
 
@@ -1473,6 +1496,10 @@ const plugin = {
                       log: {
                         type: "string",
                         description: "Optional log content for this action. Use the same language as the current conversation.",
+                      },
+                      propId: {
+                        type: "string",
+                        description: "Optional poseable prop ID from RoomContext.PoseableProps. When specified, the avatar is seated at this prop.",
                       },
                     },
                     required: ["poseType", "action", "durationSeconds", "bubble"],
@@ -1629,7 +1656,7 @@ const plugin = {
       name: "kichi_query_status",
       label: "kichi_query_status",
       description:
-        "Query Kichi room and avatar status — includes room personnel, notes, ownerState, idlePlan, weather/time, timer snapshot, daily note quota, and `hasCreatedMusicAlbumToday`. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
+        "Query Kichi room and avatar status — includes room personnel, notes, ownerState, idlePlan, weather/time, timer snapshot, daily note quota, `hasCreatedMusicAlbumToday`, and RoomContext.PoseableProps (poseable props with PropId, DisplayName, SupportedPoseTypes, OccupancyState). The PoseableProps list is cached internally so that kichi_action can reference a propId during regular work sync without re-querying. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
       parameters: {
         type: "object",
         properties: {

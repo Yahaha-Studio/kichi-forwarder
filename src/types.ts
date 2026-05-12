@@ -17,6 +17,7 @@ export type ActionResult = {
   action: string;
   bubble: string;
   log?: string;
+  propId?: string;
 };
 
 export type KichiStaticConfig = {
@@ -117,6 +118,7 @@ export type StatusPayload = {
   bubble: string;
   log: string;
   playback: ActionPlayback;
+  propId?: string;
 };
 
 export type StatusAckPayload = {
@@ -124,6 +126,7 @@ export type StatusAckPayload = {
   requestId: string;
   poseType: PoseType | "";
   action: string;
+  requestedPropId?: string;
   warning?: string;
 };
 
@@ -144,6 +147,7 @@ export type IdlePlanStageAction = {
   durationSeconds: number;
   bubble: string;
   log?: string;
+  propId?: string;
 };
 
 export type IdlePlanStage = {
