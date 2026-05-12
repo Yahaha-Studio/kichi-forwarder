@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import type {
-  AnyAgentTool,
   OpenClawPluginApi,
 } from "openclaw/plugin-sdk";
 import type { OpenClawPluginToolContext } from "openclaw/plugin-sdk/core";
@@ -995,7 +994,7 @@ function formatActionList(actions: ActionDefinition[], playback: ActionPlayback[
     .join(", ");
 }
 
-function buildKichiActionDescription(service: KichiForwarderService): string {
+function buildKichiActionDescription(service?: KichiForwarderService): string {
   const actions = loadStaticConfig().actions;
   const lines = [
     "Directly control the avatar inside Kichi World.",
@@ -1008,7 +1007,7 @@ function buildKichiActionDescription(service: KichiForwarderService): string {
     `floor actions: ${actions.floor.map((entry) => entry.name).join(", ")}`,
   ];
 
-  const roomContext = service.getCachedRoomContext();
+  const roomContext = service?.getCachedRoomContext();
   const poseableProps = roomContext?.PoseableProps;
   if (Array.isArray(poseableProps) && poseableProps.length > 0) {
     lines.push(
@@ -1064,20 +1063,6 @@ function buildKichiPrompt(): string {
   ].join("\n");
 }
 
-function createAgentScopedTool(
-  runtimeManager: KichiRuntimeManager,
-  factory: (service: KichiForwarderService, ctx: OpenClawPluginToolContext) => AnyAgentTool,
-) {
-  return (ctx: OpenClawPluginToolContext) => {
-    const locator = resolveToolLocator(ctx);
-    const agentId = runtimeManager.resolveRuntimeAgentId(locator);
-    if (!agentId) {
-      throw new Error("Failed to resolve agent-scoped Kichi runtime");
-    }
-    const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
-    return factory(service, ctx);
-  };
-}
 
 const GLOBAL_RUNTIME_MANAGER_KEY = "__kichi_forwarder_runtime_manager__";
 
@@ -1107,6 +1092,13 @@ const plugin = {
 
   register(api: OpenClawPluginApi) {
     const runtimeManager = getRuntimeManager(api.logger);
+
+    runtimeManager.setEnvironmentHostResolver((environment) => {
+      const config = loadEnvironmentsConfig();
+      const host = config[environment];
+      return typeof host === "string" && host.trim() ? host : null;
+    });
+
     registerPluginHooks(api, runtimeManager);
     const musicTitleEnum = getMusicTitleEnum();
 
@@ -1155,11 +1147,6 @@ const plugin = {
       id: "kichi-forwarder",
       start: (ctx) => {
         parse(ctx.config.plugins?.entries?.["kichi-forwarder"]?.config);
-        runtimeManager.setEnvironmentHostResolver((environment) => {
-          const config = loadEnvironmentsConfig();
-          const host = config[environment];
-          return typeof host === "string" && host.trim() ? host : null;
-        });
         runtimeManager.initializeStartupRuntimes();
       },
       stop: () => {
@@ -1171,7 +1158,7 @@ const plugin = {
       },
     });
 
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    api.registerTool((ctx) => ({
       name: "kichi_join",
       label: "kichi_join",
       description: "Join Kichi world with avatarId, the current bot name, a short bio, and personality tags",
@@ -1196,6 +1183,12 @@ const plugin = {
         required: ["botName", "bio"],
       },
       execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         let avatarId = (params as { avatarId?: string } | null)?.avatarId;
         const botName = (params as { botName?: string } | null)?.botName?.trim();
         const bio = (params as { bio?: string } | null)?.bio?.trim();
@@ -1229,16 +1222,9 @@ const plugin = {
           ...(failure.errorMessage ? { errorMessage: failure.errorMessage } : {}),
         });
       },
-    })));
+    }), { name: "kichi_join" });
 
-    api.registerTool((ctx: OpenClawPluginToolContext) => {
-      const locator = resolveToolLocator(ctx);
-      const agentId = runtimeManager.resolveRuntimeAgentId(locator);
-      if (!agentId) {
-        throw new Error("Failed to resolve agent-scoped Kichi runtime");
-      }
-      const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
-      return ({
+    api.registerTool((ctx) => ({
       name: "kichi_switch_host",
       label: "kichi_switch_host",
       description:
@@ -1255,6 +1241,12 @@ const plugin = {
         required: ["environment"],
       },
       execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const environment = (params as { environment?: unknown } | null)?.environment;
         if (!isKichiEnvironment(environment)) {
           return jsonResult({ success: false, error: `environment must be one of: ${VALID_ENVIRONMENTS.join(", ")}` });
@@ -1273,16 +1265,21 @@ const plugin = {
           status,
         });
       },
-      });
-    });
+    }), { name: "kichi_switch_host" });
 
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    api.registerTool((ctx) => ({
       name: "kichi_rejoin",
       label: "kichi_rejoin",
       description:
         "Request an immediate rejoin attempt with saved avatarId/authKey. Rejoin is also sent automatically after reconnect.",
       parameters: { type: "object", properties: {} },
-      execute: async () => {
+      execute: async (_toolCallId, _params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const result = service.requestRejoin();
         return jsonResult({
           success: result.accepted,
@@ -1290,14 +1287,20 @@ const plugin = {
           status: service.getConnectionStatus(),
         });
       },
-    })));
+    }), { name: "kichi_rejoin" });
 
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    api.registerTool((ctx) => ({
       name: "kichi_leave",
       label: "kichi_leave",
       description: "Leave Kichi world",
       parameters: { type: "object", properties: {} },
-      execute: async () => {
+      execute: async (_toolCallId, _params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const result = await service.leave();
         if (result.success) {
           return jsonResult({ success: true });
@@ -1310,25 +1313,34 @@ const plugin = {
           ...(failure.errorMessage ? { errorMessage: failure.errorMessage } : {}),
         });
       },
-    })));
+    }), { name: "kichi_leave" });
 
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    api.registerTool((ctx) => ({
       name: "kichi_connection_status",
       label: "kichi_connection_status",
       description: "Check WebSocket connection status and identity readiness only. Does NOT return room info, avatar state, or personnel — use kichi_query_status for that.",
       parameters: { type: "object", properties: {} },
-      execute: async () => {
+      execute: async (_toolCallId, _params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         return jsonResult({
           success: true,
           status: service.getConnectionStatus(),
         });
       },
-    })));
+    }), { name: "kichi_connection_status" });
 
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    api.registerTool((ctx) => {
+      const locator = resolveToolLocator(ctx);
+      const existingService = runtimeManager.getRuntime(locator);
+      return ({
       name: "kichi_action",
       label: "kichi_action",
-      description: buildKichiActionDescription(service),
+      description: buildKichiActionDescription(existingService ?? undefined),
       parameters: {
         type: "object",
         properties: {
@@ -1357,6 +1369,12 @@ const plugin = {
         required: ["poseType", "action"],
       },
       execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const { poseType, action, bubble, log, verify, propId } = (params || {}) as {
           poseType?: string;
           action?: string;
@@ -1428,8 +1446,8 @@ const plugin = {
           playback,
         });
       },
-    })));
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    })}, { name: "kichi_action" });
+    api.registerTool((ctx) => ({
       name: "kichi_idle_plan",
       label: "kichi_idle_plan",
       description: buildKichiIdlePlanDescription(),
@@ -1513,6 +1531,12 @@ const plugin = {
         required: ["heartbeatIntervalSeconds", "goal", "stages"],
       },
       execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const { idlePlan, error } = normalizeIdlePlan(params);
         if (!idlePlan) {
           return jsonResult({ success: false, error: error ?? "Invalid idle plan payload" });
@@ -1538,8 +1562,8 @@ const plugin = {
           stages: idlePlan.stages,
         });
       },
-    })));
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    }), { name: "kichi_idle_plan" });
+    api.registerTool((ctx) => ({
       name: "kichi_clock",
       label: "kichi_clock",
       description:
@@ -1609,6 +1633,12 @@ const plugin = {
         required: ["action"],
       },
       execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const { action, requestId, clock } = (params || {}) as {
           action?: unknown;
           requestId?: unknown;
@@ -1650,9 +1680,9 @@ const plugin = {
           ...(normalizedClock ? { clock: normalizedClock } : {}),
         });
       },
-    })));
+    }), { name: "kichi_clock" });
 
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    api.registerTool((ctx) => ({
       name: "kichi_query_status",
       label: "kichi_query_status",
       description:
@@ -1667,6 +1697,12 @@ const plugin = {
         },
       },
       execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const requestId = (params as { requestId?: unknown } | null)?.requestId;
         if (requestId !== undefined && typeof requestId !== "string") {
           return jsonResult({ success: false, error: "requestId must be a string when provided" });
@@ -1687,9 +1723,9 @@ const plugin = {
           });
         }
       },
-    })));
+    }), { name: "kichi_query_status" });
 
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    api.registerTool((ctx) => ({
       name: "kichi_music_album_create",
       label: "kichi_music_album_create",
       description: buildMusicAlbumToolDescription(),
@@ -1716,6 +1752,12 @@ const plugin = {
         required: ["albumTitle", "musicTitles"],
       },
       execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const {
           requestId,
           albumTitle,
@@ -1776,9 +1818,9 @@ const plugin = {
           });
         }
       },
-    })));
+    }), { name: "kichi_music_album_create" });
 
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    api.registerTool((ctx) => ({
       name: "kichi_noteboard_create",
       label: "kichi_noteboard_create",
       description:
@@ -1798,6 +1840,12 @@ const plugin = {
         required: ["propId", "data"],
       },
       execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const { propId, data } = (params || {}) as {
           propId?: unknown;
           data?: unknown;
@@ -1828,9 +1876,9 @@ const plugin = {
           });
         }
       },
-    })));
+    }), { name: "kichi_noteboard_create" });
 
-    api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+    api.registerTool((ctx) => ({
       name: "kichi_bot_message",
       label: "kichi_bot_message",
       description:
@@ -1867,6 +1915,12 @@ const plugin = {
         required: ["toAvatarId", "depth", "bubble"],
       },
       execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const { toAvatarId, depth, bubble, poseType, action, log } = (params || {}) as {
           toAvatarId?: string;
           depth?: number;
@@ -1904,7 +1958,7 @@ const plugin = {
           return jsonResult({ success: false, error: `Failed to send bot message: ${error}` });
         }
       },
-    })));
+    }), { name: "kichi_bot_message" });
 
   },
 };

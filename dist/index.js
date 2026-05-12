@@ -811,7 +811,7 @@ function buildKichiActionDescription(service) {
         `lay actions: ${actions.lay.map((entry) => entry.name).join(", ")}`,
         `floor actions: ${actions.floor.map((entry) => entry.name).join(", ")}`,
     ];
-    const roomContext = service.getCachedRoomContext();
+    const roomContext = service?.getCachedRoomContext();
     const poseableProps = roomContext?.PoseableProps;
     if (Array.isArray(poseableProps) && poseableProps.length > 0) {
         lines.push("", "Cached RoomContext.PoseableProps (from last kichi_query_status):", JSON.stringify(poseableProps), "When using a sit or lay pose, pick the propId whose DisplayName best matches the current task context and whose OccupancyState is not fully_occupied. If no prop fits, omit propId.");
@@ -858,17 +858,6 @@ function buildKichiPrompt() {
         "User opt-out, Kichi config/test work, and explicit pose requests take priority over sync.",
     ].join("\n");
 }
-function createAgentScopedTool(runtimeManager, factory) {
-    return (ctx) => {
-        const locator = resolveToolLocator(ctx);
-        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
-        if (!agentId) {
-            throw new Error("Failed to resolve agent-scoped Kichi runtime");
-        }
-        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
-        return factory(service, ctx);
-    };
-}
 const GLOBAL_RUNTIME_MANAGER_KEY = "__kichi_forwarder_runtime_manager__";
 function getRuntimeManager(logger) {
     const globalState = globalThis;
@@ -889,6 +878,11 @@ const plugin = {
     configSchema: { parse },
     register(api) {
         const runtimeManager = getRuntimeManager(api.logger);
+        runtimeManager.setEnvironmentHostResolver((environment) => {
+            const config = loadEnvironmentsConfig();
+            const host = config[environment];
+            return typeof host === "string" && host.trim() ? host : null;
+        });
         registerPluginHooks(api, runtimeManager);
         const musicTitleEnum = getMusicTitleEnum();
         runtimeManager.setBotMessageHandler((service, msg) => {
@@ -936,11 +930,6 @@ const plugin = {
             id: "kichi-forwarder",
             start: (ctx) => {
                 parse(ctx.config.plugins?.entries?.["kichi-forwarder"]?.config);
-                runtimeManager.setEnvironmentHostResolver((environment) => {
-                    const config = loadEnvironmentsConfig();
-                    const host = config[environment];
-                    return typeof host === "string" && host.trim() ? host : null;
-                });
                 runtimeManager.initializeStartupRuntimes();
             },
             stop: () => {
@@ -951,7 +940,7 @@ const plugin = {
                 }
             },
         });
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+        api.registerTool((ctx) => ({
             name: "kichi_join",
             label: "kichi_join",
             description: "Join Kichi world with avatarId, the current bot name, a short bio, and personality tags",
@@ -976,6 +965,12 @@ const plugin = {
                 required: ["botName", "bio"],
             },
             execute: async (_toolCallId, params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
                 let avatarId = params?.avatarId;
                 const botName = params?.botName?.trim();
                 const bio = params?.bio?.trim();
@@ -1007,54 +1002,58 @@ const plugin = {
                     ...(failure.errorMessage ? { errorMessage: failure.errorMessage } : {}),
                 });
             },
-        })));
-        api.registerTool((ctx) => {
-            const locator = resolveToolLocator(ctx);
-            const agentId = runtimeManager.resolveRuntimeAgentId(locator);
-            if (!agentId) {
-                throw new Error("Failed to resolve agent-scoped Kichi runtime");
-            }
-            const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
-            return ({
-                name: "kichi_switch_host",
-                label: "kichi_switch_host",
-                description: "Switch Kichi runtime environment and reconnect immediately without restarting the gateway. Host is resolved from config/environments.json.",
-                parameters: {
-                    type: "object",
-                    properties: {
-                        environment: {
-                            type: "string",
-                            enum: VALID_ENVIRONMENTS,
-                            description: "Target environment: steam, steam-playtest, or test",
-                        },
+        }), { name: "kichi_join" });
+        api.registerTool((ctx) => ({
+            name: "kichi_switch_host",
+            label: "kichi_switch_host",
+            description: "Switch Kichi runtime environment and reconnect immediately without restarting the gateway. Host is resolved from config/environments.json.",
+            parameters: {
+                type: "object",
+                properties: {
+                    environment: {
+                        type: "string",
+                        enum: VALID_ENVIRONMENTS,
+                        description: "Target environment: steam, steam-playtest, or test",
                     },
-                    required: ["environment"],
                 },
-                execute: async (_toolCallId, params) => {
-                    const environment = params?.environment;
-                    if (!isKichiEnvironment(environment)) {
-                        return jsonResult({ success: false, error: `environment must be one of: ${VALID_ENVIRONMENTS.join(", ")}` });
-                    }
-                    const resolved = resolveEnvironmentHost(environment);
-                    if (resolved.error) {
-                        return jsonResult({ success: false, error: resolved.error });
-                    }
-                    const status = await service.switchHost(resolved.host, environment);
-                    return jsonResult({
-                        success: true,
-                        environment,
-                        host: resolved.host,
-                        status,
-                    });
-                },
-            });
-        });
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+                required: ["environment"],
+            },
+            execute: async (_toolCallId, params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
+                const environment = params?.environment;
+                if (!isKichiEnvironment(environment)) {
+                    return jsonResult({ success: false, error: `environment must be one of: ${VALID_ENVIRONMENTS.join(", ")}` });
+                }
+                const resolved = resolveEnvironmentHost(environment);
+                if (resolved.error) {
+                    return jsonResult({ success: false, error: resolved.error });
+                }
+                const status = await service.switchHost(resolved.host, environment);
+                return jsonResult({
+                    success: true,
+                    environment,
+                    host: resolved.host,
+                    status,
+                });
+            },
+        }), { name: "kichi_switch_host" });
+        api.registerTool((ctx) => ({
             name: "kichi_rejoin",
             label: "kichi_rejoin",
             description: "Request an immediate rejoin attempt with saved avatarId/authKey. Rejoin is also sent automatically after reconnect.",
             parameters: { type: "object", properties: {} },
-            execute: async () => {
+            execute: async (_toolCallId, _params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
                 const result = service.requestRejoin();
                 return jsonResult({
                     success: result.accepted,
@@ -1062,13 +1061,19 @@ const plugin = {
                     status: service.getConnectionStatus(),
                 });
             },
-        })));
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+        }), { name: "kichi_rejoin" });
+        api.registerTool((ctx) => ({
             name: "kichi_leave",
             label: "kichi_leave",
             description: "Leave Kichi world",
             parameters: { type: "object", properties: {} },
-            execute: async () => {
+            execute: async (_toolCallId, _params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
                 const result = await service.leave();
                 if (result.success) {
                     return jsonResult({ success: true });
@@ -1081,110 +1086,126 @@ const plugin = {
                     ...(failure.errorMessage ? { errorMessage: failure.errorMessage } : {}),
                 });
             },
-        })));
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+        }), { name: "kichi_leave" });
+        api.registerTool((ctx) => ({
             name: "kichi_connection_status",
             label: "kichi_connection_status",
             description: "Check WebSocket connection status and identity readiness only. Does NOT return room info, avatar state, or personnel — use kichi_query_status for that.",
             parameters: { type: "object", properties: {} },
-            execute: async () => {
+            execute: async (_toolCallId, _params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
                 return jsonResult({
                     success: true,
                     status: service.getConnectionStatus(),
                 });
             },
-        })));
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
-            name: "kichi_action",
-            label: "kichi_action",
-            description: buildKichiActionDescription(service),
-            parameters: {
-                type: "object",
-                properties: {
-                    poseType: { type: "string", description: "Pose type: stand, sit, lay, or floor" },
-                    action: {
-                        type: "string",
-                        description: "Action name for the selected pose (for example Sit Nicely, Typing with Keyboard, Reading, High Five, or Meditate)",
+        }), { name: "kichi_connection_status" });
+        api.registerTool((ctx) => {
+            const locator = resolveToolLocator(ctx);
+            const existingService = runtimeManager.getRuntime(locator);
+            return ({
+                name: "kichi_action",
+                label: "kichi_action",
+                description: buildKichiActionDescription(existingService ?? undefined),
+                parameters: {
+                    type: "object",
+                    properties: {
+                        poseType: { type: "string", description: "Pose type: stand, sit, lay, or floor" },
+                        action: {
+                            type: "string",
+                            description: "Action name for the selected pose (for example Sit Nicely, Typing with Keyboard, Reading, High Five, or Meditate)",
+                        },
+                        bubble: { type: "string", description: "Optional bubble text to display (max 5 words)" },
+                        log: {
+                            type: "string",
+                            description: "Short natural first-person sentence under 15 words. Match the language of the bubble and mention the current action and immediate focus.",
+                        },
+                        verify: {
+                            type: "boolean",
+                            description: "Set true ONLY when the user explicitly requests a pose or action. Omit during routine sync steps.",
+                        },
+                        propId: {
+                            type: "string",
+                            description: "Optional poseable prop ID from RoomContext.PoseableProps (obtained via kichi_query_status or cached). When specified, the avatar is seated at this prop; when omitted, the server picks the nearest available prop.",
+                        },
                     },
-                    bubble: { type: "string", description: "Optional bubble text to display (max 5 words)" },
-                    log: {
-                        type: "string",
-                        description: "Short natural first-person sentence under 15 words. Match the language of the bubble and mention the current action and immediate focus.",
-                    },
-                    verify: {
-                        type: "boolean",
-                        description: "Set true ONLY when the user explicitly requests a pose or action. Omit during routine sync steps.",
-                    },
-                    propId: {
-                        type: "string",
-                        description: "Optional poseable prop ID from RoomContext.PoseableProps (obtained via kichi_query_status or cached). When specified, the avatar is seated at this prop; when omitted, the server picks the nearest available prop.",
-                    },
+                    required: ["poseType", "action"],
                 },
-                required: ["poseType", "action"],
-            },
-            execute: async (_toolCallId, params) => {
-                const { poseType, action, bubble, log, verify, propId } = (params || {});
-                if (!poseType || !action) {
-                    return jsonResult({ success: false, error: "poseType and action parameters are required" });
-                }
-                if (!["stand", "sit", "lay", "floor"].includes(poseType)) {
-                    return jsonResult({
-                        success: false,
-                        error: `Invalid poseType: ${poseType}. Must be stand, sit, lay, or floor`,
-                    });
-                }
-                if (!service.hasValidIdentity() || !service.isConnected()) {
-                    return jsonResult({ success: false, error: "Not connected to Kichi world" });
-                }
-                const normalizedPoseType = poseType;
-                const poseActions = loadStaticConfig().actions[normalizedPoseType];
-                const matched = poseActions.find((entry) => entry.name.toLowerCase() === action.toLowerCase());
-                if (!matched) {
-                    return jsonResult({
-                        success: false,
-                        error: `Unknown action "${action}" for poseType "${poseType}"`,
-                        available: poseActions.map((entry) => entry.name),
-                    });
-                }
-                const bubbleText = typeof bubble === "string" && bubble.trim() ? bubble.trim() : matched.name;
-                const logText = typeof log === "string" ? log.trim() : "";
-                const playback = getActionPlayback(matched);
-                if (verify) {
-                    try {
-                        const ack = await service.sendStatusVerified(normalizedPoseType, matched.name, bubbleText, logText, playback, propId);
-                        if (ack.warning) {
-                            return jsonResult({
-                                success: true,
-                                requested: { poseType: normalizedPoseType, action: matched.name },
-                                actual: { poseType: ack.poseType, action: ack.action },
-                                warning: ack.warning,
-                            });
+                execute: async (_toolCallId, params) => {
+                    const locator = resolveToolLocator(ctx);
+                    const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                    if (!agentId) {
+                        return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                    }
+                    const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
+                    const { poseType, action, bubble, log, verify, propId } = (params || {});
+                    if (!poseType || !action) {
+                        return jsonResult({ success: false, error: "poseType and action parameters are required" });
+                    }
+                    if (!["stand", "sit", "lay", "floor"].includes(poseType)) {
+                        return jsonResult({
+                            success: false,
+                            error: `Invalid poseType: ${poseType}. Must be stand, sit, lay, or floor`,
+                        });
+                    }
+                    if (!service.hasValidIdentity() || !service.isConnected()) {
+                        return jsonResult({ success: false, error: "Not connected to Kichi world" });
+                    }
+                    const normalizedPoseType = poseType;
+                    const poseActions = loadStaticConfig().actions[normalizedPoseType];
+                    const matched = poseActions.find((entry) => entry.name.toLowerCase() === action.toLowerCase());
+                    if (!matched) {
+                        return jsonResult({
+                            success: false,
+                            error: `Unknown action "${action}" for poseType "${poseType}"`,
+                            available: poseActions.map((entry) => entry.name),
+                        });
+                    }
+                    const bubbleText = typeof bubble === "string" && bubble.trim() ? bubble.trim() : matched.name;
+                    const logText = typeof log === "string" ? log.trim() : "";
+                    const playback = getActionPlayback(matched);
+                    if (verify) {
+                        try {
+                            const ack = await service.sendStatusVerified(normalizedPoseType, matched.name, bubbleText, logText, playback, propId);
+                            if (ack.warning) {
+                                return jsonResult({
+                                    success: true,
+                                    requested: { poseType: normalizedPoseType, action: matched.name },
+                                    actual: { poseType: ack.poseType, action: ack.action },
+                                    warning: ack.warning,
+                                });
+                            }
+                        }
+                        catch {
+                            // Server not updated or timeout — fall through to normal success
                         }
                     }
-                    catch {
-                        // Server not updated or timeout — fall through to normal success
+                    else {
+                        sendStatusUpdate(service, {
+                            poseType: normalizedPoseType,
+                            action: matched.name,
+                            bubble: bubbleText,
+                            log: logText,
+                            propId,
+                        });
                     }
-                }
-                else {
-                    sendStatusUpdate(service, {
+                    return jsonResult({
+                        success: true,
                         poseType: normalizedPoseType,
                         action: matched.name,
                         bubble: bubbleText,
                         log: logText,
-                        propId,
+                        playback,
                     });
-                }
-                return jsonResult({
-                    success: true,
-                    poseType: normalizedPoseType,
-                    action: matched.name,
-                    bubble: bubbleText,
-                    log: logText,
-                    playback,
-                });
-            },
-        })));
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+                },
+            });
+        }, { name: "kichi_action" });
+        api.registerTool((ctx) => ({
             name: "kichi_idle_plan",
             label: "kichi_idle_plan",
             description: buildKichiIdlePlanDescription(),
@@ -1268,6 +1289,12 @@ const plugin = {
                 required: ["heartbeatIntervalSeconds", "goal", "stages"],
             },
             execute: async (_toolCallId, params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
                 const { idlePlan, error } = normalizeIdlePlan(params);
                 if (!idlePlan) {
                     return jsonResult({ success: false, error: error ?? "Invalid idle plan payload" });
@@ -1293,8 +1320,8 @@ const plugin = {
                     stages: idlePlan.stages,
                 });
             },
-        })));
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+        }), { name: "kichi_idle_plan" });
+        api.registerTool((ctx) => ({
             name: "kichi_clock",
             label: "kichi_clock",
             description: "Send clock commands to Kichi world. Supported actions are set and stop.",
@@ -1363,6 +1390,12 @@ const plugin = {
                 required: ["action"],
             },
             execute: async (_toolCallId, params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
                 const { action, requestId, clock } = (params || {});
                 if (!isClockAction(action)) {
                     return jsonResult({
@@ -1396,8 +1429,8 @@ const plugin = {
                     ...(normalizedClock ? { clock: normalizedClock } : {}),
                 });
             },
-        })));
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+        }), { name: "kichi_clock" });
+        api.registerTool((ctx) => ({
             name: "kichi_query_status",
             label: "kichi_query_status",
             description: "Query Kichi room and avatar status — includes room personnel, notes, ownerState, idlePlan, weather/time, timer snapshot, daily note quota, `hasCreatedMusicAlbumToday`, and RoomContext.PoseableProps (poseable props with PropId, DisplayName, SupportedPoseTypes, OccupancyState). The PoseableProps list is cached internally so that kichi_action can reference a propId during regular work sync without re-querying. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
@@ -1411,6 +1444,12 @@ const plugin = {
                 },
             },
             execute: async (_toolCallId, params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
                 const requestId = params?.requestId;
                 if (requestId !== undefined && typeof requestId !== "string") {
                     return jsonResult({ success: false, error: "requestId must be a string when provided" });
@@ -1429,8 +1468,8 @@ const plugin = {
                     });
                 }
             },
-        })));
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+        }), { name: "kichi_query_status" });
+        api.registerTool((ctx) => ({
             name: "kichi_music_album_create",
             label: "kichi_music_album_create",
             description: buildMusicAlbumToolDescription(),
@@ -1457,6 +1496,12 @@ const plugin = {
                 required: ["albumTitle", "musicTitles"],
             },
             execute: async (_toolCallId, params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
                 const { requestId, albumTitle, musicTitles, } = (params || {});
                 if (requestId !== undefined && typeof requestId !== "string") {
                     return jsonResult({ success: false, error: "requestId must be a string when provided" });
@@ -1503,8 +1548,8 @@ const plugin = {
                     });
                 }
             },
-        })));
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+        }), { name: "kichi_music_album_create" });
+        api.registerTool((ctx) => ({
             name: "kichi_noteboard_create",
             label: "kichi_noteboard_create",
             description: "Create a new note on a specific Kichi note board. Prefer querying first so you can avoid duplicate posts and respect rate limits.",
@@ -1523,6 +1568,12 @@ const plugin = {
                 required: ["propId", "data"],
             },
             execute: async (_toolCallId, params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
                 const { propId, data } = (params || {});
                 if (typeof propId !== "string" || !propId.trim()) {
                     return jsonResult({ success: false, error: "propId is required" });
@@ -1550,8 +1601,8 @@ const plugin = {
                     });
                 }
             },
-        })));
-        api.registerTool(createAgentScopedTool(runtimeManager, (service) => ({
+        }), { name: "kichi_noteboard_create" });
+        api.registerTool((ctx) => ({
             name: "kichi_bot_message",
             label: "kichi_bot_message",
             description: "Send a message to another bot in the same Kichi world. The bubble is the visible message content. Do not repeat what has already been said in the conversation history. When targeting a specific bot by name, call kichi_query_status first to resolve their avatarId. Only use \"*\" when broadcasting to all bots without a specific target.",
@@ -1587,6 +1638,12 @@ const plugin = {
                 required: ["toAvatarId", "depth", "bubble"],
             },
             execute: async (_toolCallId, params) => {
+                const locator = resolveToolLocator(ctx);
+                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+                if (!agentId) {
+                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+                }
+                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
                 const { toAvatarId, depth, bubble, poseType, action, log } = (params || {});
                 if (typeof toAvatarId !== "string" || !toAvatarId.trim()) {
                     return jsonResult({ success: false, error: "toAvatarId is required" });
@@ -1618,7 +1675,7 @@ const plugin = {
                     return jsonResult({ success: false, error: `Failed to send bot message: ${error}` });
                 }
             },
-        })));
+        }), { name: "kichi_bot_message" });
     },
 };
 export default plugin;

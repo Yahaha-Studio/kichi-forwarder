@@ -2,9 +2,25 @@
   "id": "kichi-forwarder",
   "name": "Kichi Forwarder",
   "description": "Native OpenClaw plugin for Kichi World with direct avatar control, status sync, timers, notes, and music tools",
-  "version": "0.1.2-beta.8",
+  "version": "0.1.2-beta.10",
   "author": "OpenClaw",
   "skills": ["./skills/kichi-forwarder"],
+  "contracts": {
+    "tools": [
+      "kichi_join",
+      "kichi_switch_host",
+      "kichi_rejoin",
+      "kichi_leave",
+      "kichi_connection_status",
+      "kichi_action",
+      "kichi_idle_plan",
+      "kichi_clock",
+      "kichi_query_status",
+      "kichi_music_album_create",
+      "kichi_noteboard_create",
+      "kichi_bot_message"
+    ]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
