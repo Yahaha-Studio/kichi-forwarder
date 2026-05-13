@@ -44,6 +44,7 @@ export type KichiEnvironmentsConfig = Record<KichiEnvironment, string | null>;
 export type KichiState = {
   currentEnvironment?: KichiEnvironment;
   llmRuntimeEnabled: boolean;
+  testHost?: string;
 };
 
 export type KichiIdentity = {
@@ -249,9 +250,7 @@ export type QueryStatusOwnerState = {
   poseType?: string;
   action?: string;
   interactingItemName?: string;
-  desktopActivityCategory?: string;
   desktopAppName?: string;
-  desktopSummary?: string;
 };
 
 export type QueryStatusNote = {

@@ -23,7 +23,7 @@ Install and connect requests use `on <environment>` syntax. Supported environmen
 
 - `steam`: connects to `focus-wss.yahaha.com`
 - `steam-playtest`: connects to `focus-steam-playtest-wss-int.yahaha.com`
-- `test`: no fixed host — ask the user for the current test node host, write it to the plugin's `config/environments.json`, then call `kichi_switch_host`
+- `test`: no fixed host — ask the user for the current test node host, then call `kichi_switch_host` with both the environment and host. The host is persisted in `state.json` and reused on restart
 
 ## Runtime State
 
@@ -94,12 +94,12 @@ kichi_join(avatarId: "your-avatar-id", botName: "<from IDENTITY.md>", bio: "<fro
 
 ```text
 kichi_switch_host(environment: "steam")
-kichi_switch_host(environment: "test")
+kichi_switch_host(environment: "test", host: "192.168.1.100")
 ```
 
 - `environment`: required. One of `steam`, `steam-playtest`, `test`.
-- Host is resolved from `config/environments.json`. If the environment has no configured host (null), the call fails.
-- For `test` environment: ask the user for the test node host, write it to the plugin's `config/environments.json`, then call this tool.
+- `host`: required for `test` environment, ignored otherwise. The test host is persisted in `state.json` and reused on restart.
+- For `steam` and `steam-playtest`, the host is resolved automatically from the bundled config.
 - This reloads the host-specific `identity.json` and reconnects the websocket immediately.
 
 ### kichi_connection_status

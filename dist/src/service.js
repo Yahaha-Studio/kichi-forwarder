@@ -27,6 +27,9 @@ export class KichiForwarderService {
         this.environment = state?.currentEnvironment ?? null;
         if (this.environment) {
             this.host = this.options.resolveEnvironmentHost(this.environment);
+            if (!this.host && this.environment === "test" && state?.testHost) {
+                this.host = state.testHost;
+            }
         }
         else {
             this.host = null;
@@ -634,9 +637,11 @@ export class KichiForwarderService {
     }
     persistCurrentHost(host, environment) {
         const previousState = this.readStateFile();
+        const testHost = environment === "test" ? host : (previousState?.testHost ?? undefined);
         const nextState = {
             ...(environment ? { currentEnvironment: environment } : {}),
             llmRuntimeEnabled: previousState?.llmRuntimeEnabled ?? DEFAULT_LLM_RUNTIME_ENABLED,
+            ...(testHost ? { testHost } : {}),
         };
         fs.mkdirSync(this.options.runtimeDir, { recursive: true, mode: 0o700 });
         fs.writeFileSync(this.getStatePath(), JSON.stringify(nextState, null, 2), { mode: 0o600 });

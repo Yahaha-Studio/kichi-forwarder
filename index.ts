@@ -1228,7 +1228,7 @@ const plugin = {
       name: "kichi_switch_host",
       label: "kichi_switch_host",
       description:
-        "Switch Kichi runtime environment and reconnect immediately without restarting the gateway. Host is resolved from config/environments.json.",
+        "Switch Kichi runtime environment and reconnect immediately without restarting the gateway. For steam/steam-playtest the host is resolved automatically. For test, pass the host explicitly.",
       parameters: {
         type: "object",
         properties: {
@@ -1236,6 +1236,10 @@ const plugin = {
             type: "string",
             enum: VALID_ENVIRONMENTS,
             description: "Target environment: steam, steam-playtest, or test",
+          },
+          host: {
+            type: "string",
+            description: "Test node host (required for test environment, ignored otherwise)",
           },
         },
         required: ["environment"],
@@ -1247,21 +1251,32 @@ const plugin = {
           return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
         }
         const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
-        const environment = (params as { environment?: unknown } | null)?.environment;
+        const p = params as { environment?: unknown; host?: unknown } | null;
+        const environment = p?.environment;
         if (!isKichiEnvironment(environment)) {
           return jsonResult({ success: false, error: `environment must be one of: ${VALID_ENVIRONMENTS.join(", ")}` });
         }
 
-        const resolved = resolveEnvironmentHost(environment);
-        if (resolved.error) {
-          return jsonResult({ success: false, error: resolved.error });
+        let targetHost: string;
+        if (environment === "test") {
+          const testHost = typeof p?.host === "string" ? p.host.trim() : "";
+          if (!testHost) {
+            return jsonResult({ success: false, error: "host is required for the test environment" });
+          }
+          targetHost = testHost;
+        } else {
+          const resolved = resolveEnvironmentHost(environment);
+          if (resolved.error) {
+            return jsonResult({ success: false, error: resolved.error });
+          }
+          targetHost = resolved.host!;
         }
 
-        const status = await service.switchHost(resolved.host!, environment);
+        const status = await service.switchHost(targetHost, environment);
         return jsonResult({
           success: true,
           environment,
-          host: resolved.host,
+          host: targetHost,
           status,
         });
       },
