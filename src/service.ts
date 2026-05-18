@@ -33,6 +33,7 @@ import type {
 
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
+const JOIN_SOURCE_FILE_NAME = "join-source.json";
 
 type AckFailureResult = {
   success: false;
@@ -138,6 +139,7 @@ export class KichiForwarderService {
     botName: string,
     bio: string,
     tags: string[],
+    source: string,
   ): Promise<JoinResult> {
     if (!this.host) {
       return { success: false, error: "No Kichi host configured. Run kichi_switch_host first." };
@@ -153,7 +155,7 @@ export class KichiForwarderService {
       this.identity = { avatarId };
       this.saveIdentity();
       this.joinResolve = resolve;
-      const payload: JoinPayload = { type: "join", avatarId, botName, bio, tags };
+      const payload: JoinPayload = { type: "join", avatarId, botName, bio, tags, source };
       const sendJoin = () => this.ws?.send(JSON.stringify(payload));
       if (this.ws?.readyState === WebSocket.OPEN) {
         sendJoin();
@@ -379,6 +381,29 @@ export class KichiForwarderService {
 
   getRuntimeDir(): string {
     return this.options.runtimeDir;
+  }
+
+  getJoinSourcePath(): string {
+    return path.join(this.getKichiWorldRootDir(), JOIN_SOURCE_FILE_NAME);
+  }
+
+  readConfiguredJoinSource(): string | null {
+    const sourcePath = this.getJoinSourcePath();
+    if (!fs.existsSync(sourcePath)) {
+      return null;
+    }
+
+    const data = JSON.parse(fs.readFileSync(sourcePath, "utf-8")) as unknown;
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error(`${JOIN_SOURCE_FILE_NAME} must contain a JSON object`);
+    }
+
+    const source = (data as { source?: unknown }).source;
+    if (typeof source !== "string" || !source.trim()) {
+      throw new Error(`${JOIN_SOURCE_FILE_NAME} must contain a non-empty string source`);
+    }
+
+    return source.trim();
   }
 
   getStatePath(): string {
@@ -763,6 +788,10 @@ export class KichiForwarderService {
       throw new Error("No Kichi host configured");
     }
     return path.join(this.options.runtimeDir, "hosts", encodeURIComponent(this.host));
+  }
+
+  private getKichiWorldRootDir(): string {
+    return path.dirname(path.dirname(this.options.runtimeDir));
   }
 
   private getWsUrl(): string {

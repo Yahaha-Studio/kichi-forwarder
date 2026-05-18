@@ -86,6 +86,7 @@ export type JoinPayload = {
   botName: string;
   bio: string;
   tags: string[];
+  source: string;
 };
 
 export type JoinAckPayload = {

@@ -4,6 +4,7 @@ import * as path from "path";
 import { randomUUID } from "node:crypto";
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
+const JOIN_SOURCE_FILE_NAME = "join-source.json";
 export class KichiForwarderService {
     logger;
     options;
@@ -63,7 +64,7 @@ export class KichiForwarderService {
         }
         return this.getConnectionStatus();
     }
-    async join(avatarId, botName, bio, tags) {
+    async join(avatarId, botName, bio, tags, source) {
         if (!this.host) {
             return { success: false, error: "No Kichi host configured. Run kichi_switch_host first." };
         }
@@ -78,7 +79,7 @@ export class KichiForwarderService {
             this.identity = { avatarId };
             this.saveIdentity();
             this.joinResolve = resolve;
-            const payload = { type: "join", avatarId, botName, bio, tags };
+            const payload = { type: "join", avatarId, botName, bio, tags, source };
             const sendJoin = () => this.ws?.send(JSON.stringify(payload));
             if (this.ws?.readyState === WebSocket.OPEN) {
                 sendJoin();
@@ -273,6 +274,24 @@ export class KichiForwarderService {
     }
     getRuntimeDir() {
         return this.options.runtimeDir;
+    }
+    getJoinSourcePath() {
+        return path.join(this.getKichiWorldRootDir(), JOIN_SOURCE_FILE_NAME);
+    }
+    readConfiguredJoinSource() {
+        const sourcePath = this.getJoinSourcePath();
+        if (!fs.existsSync(sourcePath)) {
+            return null;
+        }
+        const data = JSON.parse(fs.readFileSync(sourcePath, "utf-8"));
+        if (!data || typeof data !== "object" || Array.isArray(data)) {
+            throw new Error(`${JOIN_SOURCE_FILE_NAME} must contain a JSON object`);
+        }
+        const source = data.source;
+        if (typeof source !== "string" || !source.trim()) {
+            throw new Error(`${JOIN_SOURCE_FILE_NAME} must contain a non-empty string source`);
+        }
+        return source.trim();
     }
     getStatePath() {
         return path.join(this.options.runtimeDir, "state.json");
@@ -620,6 +639,9 @@ export class KichiForwarderService {
             throw new Error("No Kichi host configured");
         }
         return path.join(this.options.runtimeDir, "hosts", encodeURIComponent(this.host));
+    }
+    getKichiWorldRootDir() {
+        return path.dirname(path.dirname(this.options.runtimeDir));
     }
     getWsUrl() {
         if (!this.host) {

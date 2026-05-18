@@ -961,6 +961,10 @@ const plugin = {
                         description: "Optional list of OpenClaw self-perceived personality tags",
                         items: { type: "string" },
                     },
+                    source: {
+                        type: "string",
+                        description: "Optional join source identifier. Defaults to Kichi World join-source.json, then openclaw.",
+                    },
                 },
                 required: ["botName", "bio"],
             },
@@ -974,6 +978,7 @@ const plugin = {
                 let avatarId = params?.avatarId;
                 const botName = params?.botName?.trim();
                 const bio = params?.bio?.trim();
+                const rawSource = params?.source;
                 const { tags, error: tagsError } = normalizeJoinTags(params?.tags);
                 if (!avatarId) {
                     avatarId = service.readSavedAvatarId() ?? undefined;
@@ -987,10 +992,22 @@ const plugin = {
                 if (!bio) {
                     return jsonResult({ success: false, error: "No bio" });
                 }
+                let source;
+                try {
+                    source = rawSource === undefined
+                        ? service.readConfiguredJoinSource() ?? "openclaw"
+                        : trimOptionalString(rawSource);
+                }
+                catch (err) {
+                    return jsonResult({ success: false, error: err instanceof Error ? err.message : String(err) });
+                }
+                if (!source) {
+                    return jsonResult({ success: false, error: "source must be a non-empty string" });
+                }
                 if (tagsError) {
                     return jsonResult({ success: false, error: tagsError });
                 }
-                const result = await service.join(avatarId, botName, bio, tags ?? []);
+                const result = await service.join(avatarId, botName, bio, tags ?? [], source);
                 if (result.success) {
                     return jsonResult({ success: true, authKey: result.authKey });
                 }
