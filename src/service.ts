@@ -13,6 +13,9 @@ import type {
   ClockPayload,
   CreateMusicAlbumPayload,
   CreateNotesBoardNotePayload,
+  GlanceAckPayload,
+  GlancePayload,
+  GlanceTarget,
   HookNotifyPayload,
   HookNotifyType,
   IdlePlanContent,
@@ -33,6 +36,7 @@ import type {
 
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
+const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
 const JOIN_SOURCE_FILE_NAME = "join-source.json";
 
 type AckFailureResult = {
@@ -262,6 +266,36 @@ export class KichiForwarderService {
 
     this.ws.send(JSON.stringify(payload));
     return true;
+  }
+
+  async sendGlance(
+    target: GlanceTarget,
+    durationSeconds = DEFAULT_GLANCE_DURATION_SECONDS,
+    requestId?: string,
+  ): Promise<GlanceAckPayload> {
+    const identity = this.requireIdentity();
+    if (!identity) {
+      throw new Error("Missing Kichi identity");
+    }
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      throw new Error("Kichi websocket is not connected");
+    }
+    if (target !== "camera") {
+      throw new Error("target must be camera");
+    }
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+      throw new Error("duration must be a positive finite number");
+    }
+
+    const payload: GlancePayload = {
+      type: "kichi_glance",
+      requestId: requestId?.trim() || randomUUID(),
+      avatarId: identity.avatarId,
+      authKey: identity.authKey,
+      target,
+      duration: durationSeconds,
+    };
+    return this.sendRequest<GlanceAckPayload>(payload, "kichi_glance_ack", 5000);
   }
 
   async queryStatus(requestId?: string): Promise<QueryStatusResultPayload> {

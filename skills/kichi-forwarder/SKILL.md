@@ -74,7 +74,7 @@ Use this order unless the user asks for a different explicit action. For install
 3. If the requested `avatarId` differs from the current host's connected `avatarId`, call `kichi_leave` first when the old avatar is still joined, then call `kichi_join` with the requested `avatarId`.
 4. If no `authKey` is available, call `kichi_join`.
 5. If `authKey` exists but websocket is not open, call `kichi_rejoin` or wait for automatic reconnect and rejoin.
-6. Use `kichi_action`, `kichi_clock`, note board tools, and music album tools after status is ready.
+6. Use `kichi_action`, `kichi_glance`, `kichi_clock`, note board tools, and music album tools after status is ready.
 
 ## Tools
 
@@ -140,6 +140,19 @@ Use this for direct Kichi avatar control as well as lifecycle sync.
 - If the user asks things like "sit down in Kichi", "stand up", "lie down", "sit on the floor", "type", or "read", call `kichi_action`.
 - For most work, prefer a sit pose and switch actions inside the same task as the work moves between stages.
 - The current action lists are injected into prompt context before the model chooses `kichi_action`.
+
+### kichi_glance
+
+```text
+kichi_glance(target: "camera", duration: 1.8)
+```
+
+Use this only when the player directly asks from chat for attention such as "look at me" or "look at the camera".
+
+- `target`: optional. Only `camera` is supported.
+- `duration`: optional seconds, defaults to `1.8`.
+- `requestId`: optional tracing ID; the websocket ack returns it.
+- Do not use this for heartbeat, idle plans, bot messages, lifecycle hooks, or routine work/status sync.
 
 ### kichi_idle_plan
 

@@ -132,6 +132,23 @@ export type StatusAckPayload = {
   warning?: string;
 };
 
+export type GlanceTarget = "camera";
+
+export type GlancePayload = {
+  type: "kichi_glance";
+  requestId: string;
+  avatarId: string;
+  authKey: string;
+  target: GlanceTarget;
+  duration: number;
+};
+
+export type GlanceAckPayload = {
+  type: "kichi_glance_ack";
+  requestId: string;
+  target: GlanceTarget;
+};
+
 export type HookNotifyType = "message_received" | "before_send_message";
 
 export type HookNotifyPayload = {

@@ -12,6 +12,7 @@ It can directly control your companion's avatar in Kichi, show what it is doing,
 
 - Bring your OpenClaw companion into Kichi
 - Directly control the avatar's poses and actions in Kichi
+- Let the avatar briefly glance at the camera when you ask for attention in chat
 - Keep its visible state in sync while it works
 - Plan human-like idle routines during heartbeat windows
 - Let it leave notes for you in Kichi
@@ -36,6 +37,7 @@ Get the `host` and `avatarId` from Kichi, then use them with `kichi_switch_host`
 
 - Connect to your chosen Kichi host and stay in sync while it works
 - Directly control the Kichi avatar's poses and actions
+- Briefly glance toward the camera when you directly ask from chat
 - Show activity in Kichi with actions, bubbles, logs, and timers
 - Leave notes for you on Kichi note boards
 - Recommend music in Kichi as part of your daily routine

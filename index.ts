@@ -60,6 +60,7 @@ const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const MAX_MESSAGE_RECEIVED_PREVIEW_WIDTH = 20;
 const MAX_AGENT_END_PREVIEW_WIDTH = 10;
 const MESSAGE_RECEIVED_ELLIPSIS = "...";
+const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
 const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"] as const;
 let cachedStaticConfig: KichiStaticConfig | null = null;
 let cachedStaticConfigMtime = 0;
@@ -1478,6 +1479,71 @@ const plugin = {
         });
       },
     })}, { name: "kichi_action" });
+
+    api.registerTool((ctx) => ({
+      name: "kichi_glance",
+      label: "kichi_glance",
+      description:
+        "Ask the Kichi avatar to briefly look at the camera. Use only for direct player chat requests such as \"look at me\" or \"look at the camera\". Do not use for heartbeat, idle planning, bot-to-bot messages, lifecycle hooks, or routine work/status sync.",
+      parameters: {
+        type: "object",
+        properties: {
+          requestId: {
+            type: "string",
+            description: "Optional client request ID for tracing. The websocket ack returns this ID.",
+          },
+          target: {
+            type: "string",
+            enum: ["camera"],
+            description: "Glance target. The only supported target is camera.",
+          },
+          duration: {
+            type: "number",
+            description: "Optional glance duration in seconds. Defaults to 1.8.",
+          },
+        },
+      },
+      execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
+        const { requestId, target, duration } = (params || {}) as {
+          requestId?: unknown;
+          target?: unknown;
+          duration?: unknown;
+        };
+
+        if (requestId !== undefined && typeof requestId !== "string") {
+          return jsonResult({ success: false, error: "requestId must be a string when provided" });
+        }
+        const normalizedTarget = target === undefined ? "camera" : target;
+        if (normalizedTarget !== "camera") {
+          return jsonResult({ success: false, error: "target must be camera" });
+        }
+        const normalizedDuration = duration === undefined ? DEFAULT_GLANCE_DURATION_SECONDS : duration;
+        if (typeof normalizedDuration !== "number" || !Number.isFinite(normalizedDuration) || normalizedDuration <= 0) {
+          return jsonResult({ success: false, error: "duration must be a positive finite number" });
+        }
+        if (!service.hasValidIdentity() || !service.isConnected()) {
+          return jsonResult({ success: false, error: "Not connected to Kichi world" });
+        }
+
+        try {
+          const ack = await service.sendGlance(
+            "camera",
+            normalizedDuration,
+            typeof requestId === "string" ? requestId : undefined,
+          );
+          return jsonResult({ success: true, ...ack });
+        } catch (error) {
+          return jsonResult({ success: false, error: `Failed to send glance: ${error}` });
+        }
+      },
+    }), { name: "kichi_glance" });
+
     api.registerTool((ctx) => ({
       name: "kichi_idle_plan",
       label: "kichi_idle_plan",
