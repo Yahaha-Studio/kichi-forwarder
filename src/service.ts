@@ -38,6 +38,19 @@ const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
 const JOIN_SOURCE_FILE_NAME = "join-source.json";
+const SMS_STATE_FILE_NAME = "sms-state.json";
+
+type SmsState = {
+  lastActiveAt: string;
+  date: string;
+  totalSent: number;
+  windows: {
+    morning: number;
+    afternoon: number;
+    evening: number;
+  };
+  lastTypes: string[];
+};
 
 type AckFailureResult = {
   success: false;
@@ -625,6 +638,7 @@ export class KichiForwarderService {
         if (this.identity) {
           this.identity.authKey = joinAck.authKey;
           this.saveIdentity();
+          this.updateSmsLastActiveAt();
           this.log("info", `joined as ${this.identity.avatarId}`);
         }
         this.joinResolve?.({ success: true, authKey: joinAck.authKey });
@@ -824,6 +838,10 @@ export class KichiForwarderService {
     return path.join(this.options.runtimeDir, "hosts", encodeURIComponent(this.host));
   }
 
+  private getSmsStatePath(): string {
+    return path.join(this.options.runtimeDir, SMS_STATE_FILE_NAME);
+  }
+
   private getKichiWorldRootDir(): string {
     return path.dirname(path.dirname(this.options.runtimeDir));
   }
@@ -856,6 +874,25 @@ export class KichiForwarderService {
     fs.writeFileSync(this.getStatePath(), JSON.stringify(nextState, null, 2), { mode: 0o600 });
   }
 
+  private updateSmsLastActiveAt(): void {
+    try {
+      const now = new Date();
+      const previousState = this.readSmsStateFile();
+      const nextState: SmsState = {
+        date: now.toISOString().slice(0, 10),
+        totalSent: 0,
+        windows: { morning: 0, afternoon: 0, evening: 0 },
+        lastTypes: [],
+        ...previousState,
+        lastActiveAt: now.toISOString(),
+      };
+      fs.mkdirSync(this.options.runtimeDir, { recursive: true, mode: 0o700 });
+      fs.writeFileSync(this.getSmsStatePath(), JSON.stringify(nextState, null, 2), { mode: 0o600 });
+    } catch (e) {
+      this.log("error", `failed to update sms state: ${e}`);
+    }
+  }
+
   private readStateFile(): Partial<KichiState> | null {
     const statePath = this.getStatePath();
     if (!fs.existsSync(statePath)) {
@@ -866,6 +903,18 @@ export class KichiForwarderService {
       throw new Error(`Invalid state payload in ${statePath}`);
     }
     return data as Partial<KichiState>;
+  }
+
+  private readSmsStateFile(): Partial<SmsState> | null {
+    const smsStatePath = this.getSmsStatePath();
+    if (!fs.existsSync(smsStatePath)) {
+      return null;
+    }
+    const data = JSON.parse(fs.readFileSync(smsStatePath, "utf-8")) as unknown;
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error(`Invalid SMS state payload in ${smsStatePath}`);
+    }
+    return data as Partial<SmsState>;
   }
 
   private clearReconnectTimeout(): void {
