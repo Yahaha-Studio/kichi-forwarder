@@ -1049,6 +1049,7 @@ function buildKichiPrompt(): string {
     "Kichi avatar control and status sync are available via `kichi_action` and `kichi_clock`.",
     "If the user gives a direct Kichi pose or action request, fulfill it with `kichi_action` and set `verify: true` so you can confirm the avatar actually applied the pose. If the result contains a warning about a fallback, tell the user what actually happened instead of assuming success.",
     "Write the visible reply as a natural user-facing response. Keep `kichi_action`, `kichi_clock`, and sync steps internal and absent from the visible reply.",
+    "If the user asks OpenClaw to send a selfie, base the visual appearance on the avatar details in IDENTITY.",
     "",
     "kichi_action timing (all required when sync is active):",
     "1. Task start: call BEFORE your first tool call OR before composing a multi-paragraph reply. For most work, start from a sit pose unless the user asked for a different pose or the task clearly fits another pose better.",
