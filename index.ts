@@ -256,6 +256,27 @@ function resolveEnvironmentHost(environment: KichiEnvironment): { host?: string;
   return { error: `environment "${environment}" has no configured host — update config/environments.json first` };
 }
 
+function resolveJoinEnvironmentHost(params: {
+  environment?: unknown;
+  host?: unknown;
+}): { environment?: KichiEnvironment; host?: string; error?: string } {
+  if (!isKichiEnvironment(params.environment)) {
+    return { error: `environment must be one of: ${VALID_ENVIRONMENTS.join(", ")}` };
+  }
+  if (params.environment === "test") {
+    const testHost = typeof params.host === "string" ? params.host.trim() : "";
+    if (!testHost) {
+      return { error: "host is required for the test environment" };
+    }
+    return { environment: params.environment, host: testHost };
+  }
+  const resolved = resolveEnvironmentHost(params.environment);
+  if (resolved.error) {
+    return { environment: params.environment, error: resolved.error };
+  }
+  return { environment: params.environment, host: resolved.host };
+}
+
 function sendStatusUpdate(service: KichiForwarderService, status: ActionResult): void {
   const actionDefinition = getActionDefinition(status.poseType, status.action);
   service.sendStatus(
@@ -1166,18 +1187,29 @@ const plugin = {
     api.registerTool((ctx) => ({
       name: "kichi_join",
       label: "kichi_join",
-      description: "Join Kichi world with avatarId, the current bot name, a short bio, and personality tags",
+      description:
+        "Join Kichi world in the target environment with avatarId, the current bot name, a short bio, and personality tags. For test, pass host.",
       parameters: {
         type: "object",
         properties: {
           avatarId: { type: "string", description: "Avatar ID to join Kichi world" },
+          environment: {
+            type: "string",
+            enum: VALID_ENVIRONMENTS,
+            description:
+              "Target environment. kichi_join switches to this environment before joining.",
+          },
+          host: {
+            type: "string",
+            description: "Test host, required when environment is test and ignored otherwise",
+          },
           botName: {
             type: "string",
             description: "Current bot name to include in the join message",
           },
           bio: {
             type: "string",
-            description: "Short bio covering OpenClaw personality and role",
+            description: "Short bio extracted from SOUL.md, covering persona and idle plan goals if present",
           },
           tags: {
             type: "array",
@@ -1189,7 +1221,7 @@ const plugin = {
             description: "Optional join source identifier. Defaults to Kichi World join-source.json, then openclaw.",
           },
         },
-        required: ["botName", "bio"],
+        required: ["environment", "avatarId", "botName", "bio"],
       },
       execute: async (_toolCallId, params) => {
         const locator = resolveToolLocator(ctx);
@@ -1198,19 +1230,33 @@ const plugin = {
           return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
         }
         const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
-        let avatarId = (params as { avatarId?: string } | null)?.avatarId;
-        const botName = (params as { botName?: string } | null)?.botName?.trim();
-        const bio = (params as { bio?: string } | null)?.bio?.trim();
-        const rawSource = (params as { source?: unknown } | null)?.source;
-        const { tags, error: tagsError } = normalizeJoinTags(
-          (params as { tags?: unknown } | null)?.tags,
-        );
-        if (!avatarId) {
+        const p = params as {
+          avatarId?: string;
+          environment?: unknown;
+          host?: unknown;
+          botName?: string;
+          bio?: string;
+          source?: unknown;
+          tags?: unknown;
+        } | null;
+        const target = resolveJoinEnvironmentHost({
+          environment: p?.environment,
+          host: p?.host,
+        });
+        if (target.error) {
+          return jsonResult({ success: false, error: target.error });
+        }
+        const currentStatus = service.getConnectionStatus();
+        let avatarId = p?.avatarId;
+        if (!avatarId && currentStatus.host === target.host) {
           avatarId = service.readSavedAvatarId() ?? undefined;
         }
-        if (!avatarId) {
-          return jsonResult({ success: false, error: "No avatarId" });
-        }
+        const botName = p?.botName?.trim();
+        const bio = p?.bio?.trim();
+        const rawSource = p?.source;
+        const { tags, error: tagsError } = normalizeJoinTags(
+          p?.tags,
+        );
         if (!botName) {
           return jsonResult({ success: false, error: "No botName" });
         }
@@ -1231,14 +1277,50 @@ const plugin = {
         if (tagsError) {
           return jsonResult({ success: false, error: tagsError });
         }
+        let leaveStatus;
+        const shouldLeaveCurrentConnection = currentStatus.connected && currentStatus.hasAuthKey && (
+          (!!currentStatus.host && currentStatus.host !== target.host) ||
+          (currentStatus.host === target.host && !!currentStatus.avatarId && !!avatarId && currentStatus.avatarId !== avatarId)
+        );
+        if (shouldLeaveCurrentConnection) {
+          try {
+            leaveStatus = await service.leave();
+          } catch (err) {
+            leaveStatus = {
+              success: false,
+              error: err instanceof Error ? err.message : String(err),
+            };
+          }
+        }
+        let switchStatus;
+        if (target.environment && target.host && service.getCurrentHost() !== target.host) {
+          switchStatus = await service.switchHost(target.host, target.environment);
+        }
+        if (!avatarId) {
+          avatarId = service.readSavedAvatarId() ?? undefined;
+        }
+        if (!avatarId) {
+          return jsonResult({ success: false, error: "No avatarId" });
+        }
         const result = await service.join(avatarId, botName, bio, tags ?? [], source);
         if (result.success) {
-          return jsonResult({ success: true, authKey: result.authKey });
+          return jsonResult({
+            success: true,
+            authKey: result.authKey,
+            ...(target.environment ? { environment: target.environment } : {}),
+            ...(target.host ? { host: target.host } : {}),
+            ...(switchStatus ? { switchStatus } : {}),
+            ...(leaveStatus ? { leaveStatus } : {}),
+          });
         }
         const failure = result as { success: false; error: string; errorCode?: string; errorMessage?: string };
         return jsonResult({
           success: false,
           error: failure.error,
+          ...(target.environment ? { environment: target.environment } : {}),
+          ...(target.host ? { host: target.host } : {}),
+          ...(switchStatus ? { switchStatus } : {}),
+          ...(leaveStatus ? { leaveStatus } : {}),
           ...(failure.errorCode ? { errorCode: failure.errorCode } : {}),
           ...(failure.errorMessage ? { errorMessage: failure.errorMessage } : {}),
         });
@@ -1260,7 +1342,7 @@ const plugin = {
           },
           host: {
             type: "string",
-            description: "Test node host (required for test environment, ignored otherwise)",
+            description: "Test host (required for test environment, ignored otherwise)",
           },
         },
         required: ["environment"],

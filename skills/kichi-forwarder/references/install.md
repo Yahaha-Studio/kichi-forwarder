@@ -6,7 +6,7 @@ Install and connect requests use `on <environment>` syntax. Supported environmen
 
 - `steam`: connects to `focus-wss.yahaha.com`
 - `steam-playtest`: connects to `focus-steam-playtest-wss-int.yahaha.com`
-- `test`: no fixed host — ask the user for the current test node host, then call `kichi_switch_host` with both the environment and host
+- `test`: no fixed host — use the test host from the user request when provided; otherwise ask the user for the test host before calling `kichi_join`
 
 ## Runtime Files
 
@@ -20,17 +20,6 @@ Persist runtime state to the current agent's `state.json`:
   "currentEnvironment": "steam",
   "llmRuntimeEnabled": true,
   "testHost": "192.168.1.100"
-}
-```
-
-If the current host has no saved `avatarId` yet, save it to the current agent's host-specific `identity.json` (this helps `kichi_join` resolve the avatar automatically when `avatarId` is omitted):
-
-- Linux/macOS: `~/.openclaw/kichi-world/agents/<encoded-agent-id>/hosts/<encoded-host>/identity.json`
-- Windows: `%USERPROFILE%\.openclaw\kichi-world\agents\<encoded-agent-id>\hosts\<encoded-host>\identity.json`
-
-```json
-{
-  "avatarId": "your-avatar-id"
 }
 ```
 
@@ -64,7 +53,7 @@ When the user asks with one of the commands above, execute in this fixed order:
 
 1. If loaded from a remote URL, read `install.md` and `heartbeat.md` from the published skill URLs first. If installed locally, use the local files.
 2. Parse `avatarId` from user text (`AvatarId`/`avatarId`, case-insensitive).
-3. Parse environment from the `on <environment>` part of the command (e.g. `on steam-playtest`). Write the current agent's `state.json`.
+3. Parse environment from the `on <environment>` part of the command (e.g. `on steam-playtest`). For `test`, parse the host from the request or ask the user for it before continuing.
 4. Run `npm pack @yahaha-studio/kichi-forwarder`, then install the generated `.tgz` with `openclaw plugins install <tgz-path>`.
 5. If the plugin already exists and the packed version matches the installed version, skip to step 7.
 6. If the plugin already exists but the version differs, overwrite with `openclaw plugins install <tgz-path> --force`.
@@ -72,11 +61,7 @@ When the user asks with one of the commands above, execute in this fixed order:
 8. Run `openclaw --version`. If the version is **5.7 or later**, ensure `openclaw.json` has `plugins.entries.kichi-forwarder.hooks.allowConversationAccess` set to `true`. If missing, add it. On older versions, skip this step.
 9. If the plugin was newly installed or upgraded in this flow, check workspace `HEARTBEAT.md` against the latest Kichi heartbeat requirements before continuing. An empty or blank `HEARTBEAT.md` means the snippet is missing — treat it the same as "snippet not found", not as a read failure.
 10. Update workspace `HEARTBEAT.md` by following `Session Startup Rule` and `First Join Setup` from [heartbeat.md](heartbeat.md). If the update fails, warn the user and continue.
-11. Call `kichi_connection_status`.
-12. If the current agent runtime environment does not match the requested one, call `kichi_switch_host` with the target environment (and host for test).
-13. If the current host is still connected with a different `avatarId`, call `kichi_leave` first, then call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
-14. Otherwise, if `authKey` is missing, call `kichi_join` with parsed `avatarId`, `botName`, `bio`, and `tags`.
-15. Call `kichi_connection_status` again and confirm connection and auth state.
+11. Call `kichi_join` with parsed `environment`, `host` for test, `avatarId`, `botName`, `bio`, and `tags`.
 
 ## Required Post-install Integration
 
@@ -85,7 +70,7 @@ Use this completion checklist:
 - [ ] plugin installed, enabled, and at latest version
 - [ ] `openclaw.json` has `plugins.entries.kichi-forwarder.hooks.allowConversationAccess: true` (OpenClaw >= 5.7 only)
 - [ ] `HEARTBEAT.md` updated with the Kichi heartbeat workflow snippet from [heartbeat.md](heartbeat.md)
-- [ ] `kichi_connection_status` verified the final connected/auth state
+- [ ] `kichi_join` completed successfully
 
 If any box is unchecked, the onboarding remains incomplete.
 

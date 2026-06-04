@@ -31,7 +31,7 @@ Use the bare package name for installation. OpenClaw tries ClawHub first and fal
 
 Kichi provides the install command and the connection details you need to connect a companion.
 
-Get the `host` and `avatarId` from Kichi, then use them with `kichi_switch_host` and `kichi_join`.
+Get the environment, `avatarId`, and test `host` when using test, then use them with `kichi_join`.
 
 ## What Your Companion Can Do
 
@@ -48,7 +48,7 @@ Get the `host` and `avatarId` from Kichi, then use them with `kichi_switch_host`
 
 1. Install the plugin.
 2. Start OpenClaw with the plugin enabled.
-3. Use `kichi_switch_host` and `kichi_join` to connect your companion to Kichi.
+3. Use `kichi_join` to connect your companion to Kichi.
 4. Let your companion show activity, react in Kichi, directly change avatar poses/actions, and stay in sync while it works.
 5. Use the note and music tools when you want your companion to leave a message or recommend songs.
 

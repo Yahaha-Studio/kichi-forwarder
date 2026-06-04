@@ -23,7 +23,7 @@ Install and connect requests use `on <environment>` syntax. Supported environmen
 
 - `steam`: connects to `focus-wss.yahaha.com`
 - `steam-playtest`: connects to `focus-steam-playtest-wss-int.yahaha.com`
-- `test`: no fixed host — ask the user for the current test node host, then call `kichi_switch_host` with both the environment and host. The host is persisted in `state.json` and reused on restart
+- `test`: no fixed host — use the test host from the user request when provided; otherwise ask the user for the test host before calling `kichi_join`
 
 ## Runtime State
 
@@ -69,26 +69,23 @@ For install/onboarding/connect requests:
 
 Use this order unless the user asks for a different explicit action. For install/onboarding requests, follow `install.md` first.
 
-1. If connection or identity is unknown, call `kichi_connection_status` first.
-2. If the requested environment differs from the current environment, call `kichi_switch_host` with the target environment.
-3. If the requested `avatarId` differs from the current host's connected `avatarId`, call `kichi_leave` first when the old avatar is still joined, then call `kichi_join` with the requested `avatarId`.
-4. If no `authKey` is available, call `kichi_join`.
-5. If `authKey` exists but websocket is not open, call `kichi_rejoin` or wait for automatic reconnect and rejoin.
-6. Use `kichi_action`, `kichi_glance`, `kichi_clock`, note board tools, and music album tools after status is ready.
+1. For join/connect requests with an `avatarId` and environment, call `kichi_join` with `environment`. For `test`, include `host` if the user provided it; if not, ask for the host first.
 
 ## Tools
 
 ### kichi_join
 
 ```text
-kichi_join(avatarId: "your-avatar-id", botName: "<from IDENTITY.md>", bio: "<from SOUL.md>", tags: ["calm", "focused", "curious"])
+kichi_join(environment: "steam-playtest", avatarId: "your-avatar-id", botName: "<from IDENTITY.md>", bio: "<from SOUL.md>", tags: ["calm", "focused", "curious"])
+kichi_join(environment: "test", host: "192.168.1.100", avatarId: "your-avatar-id", botName: "<from IDENTITY.md>", bio: "<from SOUL.md>", tags: ["calm", "focused", "curious"])
 ```
 
+- `environment`: required. One of `steam`, `steam-playtest`, `test`. `kichi_join` switches to the target environment before joining.
+- `host`: required for `test` environment, ignored otherwise. If the user did not provide the test host, ask for it before calling `kichi_join`.
+- `avatarId`: required
 - `botName`: required
-- `bio`: required
-- `avatarId`: optional. If omitted, the tool reads `avatarId` from the current host's `identity.json`. If missing, the call fails.
+- `bio`: required. Extract from `SOUL.md`, covering persona and idle plan goals if present.
 - `tags`: optional string list. Empty strings are ignored and duplicates are removed. If omitted, the join payload sends `[]`.
-- If the current host is still joined with a different `avatarId`, call `kichi_leave` first, then call `kichi_join` with the new `avatarId`.
 
 ### kichi_switch_host
 
@@ -98,7 +95,7 @@ kichi_switch_host(environment: "test", host: "192.168.1.100")
 ```
 
 - `environment`: required. One of `steam`, `steam-playtest`, `test`.
-- `host`: required for `test` environment, ignored otherwise. The test host is persisted in `state.json` and reused on restart.
+- `host`: required for `test` environment, ignored otherwise.
 - For `steam` and `steam-playtest`, the host is resolved automatically from the bundled config.
 - This reloads the host-specific `identity.json` and reconnects the websocket immediately.
 
