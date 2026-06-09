@@ -13,24 +13,28 @@ const FIXED_HOOK_STATUSES = {
         poseType: "sit",
         action: "Thinking",
         bubble: "Planning task",
+        avatarStatus: "Busy",
         log: "I'm reading the request and getting started.",
     },
     beforeToolCall: {
         poseType: "sit",
         action: "Typing with Keyboard",
         bubble: "Working step",
+        avatarStatus: "Busy",
         log: "I'm at the keyboard and working through this step.",
     },
     agentEndSuccess: {
         poseType: "stand",
         action: "Yay",
         bubble: "Task complete",
+        avatarStatus: "Idle",
         log: "I wrapped it up and everything landed cleanly.",
     },
     agentEndFailure: {
         poseType: "stand",
         action: "Tired",
         bubble: "Task failed",
+        avatarStatus: "Idle",
         log: "I hit a problem here and need another pass.",
     },
 };
@@ -40,6 +44,7 @@ const MAX_AGENT_END_PREVIEW_WIDTH = 10;
 const MESSAGE_RECEIVED_ELLIPSIS = "...";
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
 const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"];
+const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"];
 let cachedStaticConfig = null;
 let cachedStaticConfigMtime = 0;
 function isAlbumConfig(value) {
@@ -211,7 +216,7 @@ function resolveJoinEnvironmentHost(params) {
 }
 function sendStatusUpdate(service, status) {
     const actionDefinition = getActionDefinition(status.poseType, status.action);
-    service.sendStatus(status.poseType, actionDefinition.name, status.bubble || status.action, typeof status.log === "string" ? status.log.trim() : "", getActionPlayback(actionDefinition), status.propId);
+    service.sendStatus(status.poseType, actionDefinition.name, status.bubble || status.action, typeof status.log === "string" ? status.log.trim() : "", getActionPlayback(actionDefinition), status.avatarStatus, status.propId);
 }
 function syncFixedStatus(service, status) {
     if (!service.hasValidIdentity() || !service.isConnected()) {
@@ -514,6 +519,12 @@ function isClockAction(value) {
 function isIdlePlanPomodoroPhase(value) {
     return IDLE_PLAN_POMODORO_PHASES.includes(String(value));
 }
+function normalizeAvatarStatus(value, fieldPath) {
+    if (typeof value !== "string" || !AVATAR_STATUSES.includes(value)) {
+        return { error: `${fieldPath} must be one of: ${AVATAR_STATUSES.join(", ")}` };
+    }
+    return { avatarStatus: value };
+}
 function normalizeIdlePlan(value) {
     if (!isPlainObject(value)) {
         return { error: "idle plan payload must be an object" };
@@ -544,6 +555,7 @@ function normalizeIdlePlan(value) {
         const name = rawStage.name;
         const purpose = rawStage.purpose;
         const pomodoroPhase = rawStage.pomodoroPhase;
+        const avatarStatus = rawStage.avatarStatus;
         const durationSeconds = rawStage.durationSeconds;
         const actions = rawStage.actions;
         if (typeof name !== "string" || !name.trim()) {
@@ -556,6 +568,10 @@ function normalizeIdlePlan(value) {
             return {
                 error: `stages[${stageIndex}].pomodoroPhase must be one of: ${IDLE_PLAN_POMODORO_PHASES.join(", ")}`,
             };
+        }
+        const normalizedAvatarStatus = normalizeAvatarStatus(avatarStatus, `stages[${stageIndex}].avatarStatus`);
+        if (normalizedAvatarStatus.error || normalizedAvatarStatus.avatarStatus === undefined) {
+            return { error: normalizedAvatarStatus.error ?? `stages[${stageIndex}].avatarStatus is invalid` };
         }
         if (!isPositiveInteger(durationSeconds)) {
             return { error: `stages[${stageIndex}].durationSeconds must be a positive integer` };
@@ -633,6 +649,7 @@ function normalizeIdlePlan(value) {
             name: name.trim(),
             purpose: purpose.trim(),
             pomodoroPhase,
+            avatarStatus: normalizedAvatarStatus.avatarStatus,
             durationSeconds,
             actions: normalizedActions,
         });
@@ -823,6 +840,7 @@ function buildKichiActionDescription(service) {
         "Directly control the avatar inside Kichi World.",
         "Use this whenever the user explicitly asks you to make the Kichi avatar sit down, stand up, lie down, floor-sit, type, read, meditate, celebrate, or perform another listed animation.",
         "For most work, prefer a sit pose and switch actions as the task moves between stages.",
+        "Set avatarStatus to the current avatar status: Idle, Busy, Activities, or Break.",
         "Set verify to true ONLY when the user explicitly requests a pose or action change. The server will confirm whether the avatar actually applied the requested pose. If it could not (e.g. no available seats), the result will contain the actual fallback pose so you can inform the user accurately. During routine sync steps, omit verify.",
         `stand actions: ${actions.stand.map((entry) => entry.name).join(", ")}`,
         `sit actions: ${actions.sit.map((entry) => entry.name).join(", ")}`,
@@ -846,9 +864,10 @@ function buildKichiIdlePlanDescription() {
         "2. Set the overall goal to that project. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary as the goal.",
         "3. Break the full heartbeat interval into ordered stages. Each stage purpose must explain what you are actually doing in that stage as part of the same project, not just how you want to feel. Do not switch to unrelated tasks just to use more actions.",
         "4. Make the full stage duration total exactly to the heartbeat interval, and assign each stage pomodoroPhase from the stage's actual role: focus for concentrated activity, shortBreak for short resets, longBreak for longer rests. Do not default the whole idle plan to none. Use none only for a stage that truly has no pomodoro role.",
-        "5. Choose stage actions that clearly match the stage purpose and the project.",
-        "6. Write each action bubble as the current presented state, not a next step, plan, or instruction.",
-        "7. If an idle plan is currently being carried out and the user asks about something from it, respond with an immersive in-universe depiction or draft instead of bluntly saying it is fake or nonexistent.",
+        "5. Set each stage avatarStatus to the avatar status for that stage: Idle, Busy, Activities, or Break.",
+        "6. Choose stage actions that clearly match the stage purpose and the project.",
+        "7. Write each action bubble as the current presented state, not a next step, plan, or instruction.",
+        "8. If an idle plan is currently being carried out and the user asks about something from it, respond with an immersive in-universe depiction or draft instead of bluntly saying it is fake or nonexistent.",
         "Use your memory to recall what you did in past heartbeats and to stay consistent with your established personality and interests.",
         "Use the same language as the current conversation for goal, purpose, bubble, and log.",
         `stand actions: ${actions.stand.map((entry) => entry.name).join(", ")}`,
@@ -872,6 +891,7 @@ function buildKichiPrompt() {
         "2. Step switch: call when the task moves into a different stage. Keep the pose aligned with the work, usually staying seated while switching actions within the task as needed.",
         "3. Task end: call BEFORE final reply. Use the order `kichi_action` -> reply.",
         "bubble: 2-5 word companion speech. log: one short natural first-person sentence under 15 words. Match the language of the bubble and mention the current action and immediate focus like a real companion.",
+        "avatarStatus: set the current avatar status as Idle, Busy, Activities, or Break.",
         "",
         "kichi_clock: set countDown for tasks with 2+ steps or >10s work. Skip for quick one-shots.",
         "",
@@ -1226,6 +1246,11 @@ const plugin = {
                             description: "Action name for the selected pose (for example Sit Nicely, Typing with Keyboard, Reading, High Five, or Meditate)",
                         },
                         bubble: { type: "string", description: "Optional bubble text to display (max 5 words)" },
+                        avatarStatus: {
+                            type: "string",
+                            description: "Current avatar status: Idle, Busy, Activities, or Break.",
+                            enum: [...AVATAR_STATUSES],
+                        },
                         log: {
                             type: "string",
                             description: "Short natural first-person sentence under 15 words. Match the language of the bubble and mention the current action and immediate focus.",
@@ -1239,7 +1264,7 @@ const plugin = {
                             description: "Optional poseable prop ID from RoomContext.PoseableProps (obtained via kichi_query_status or cached). When specified, the avatar is seated at this prop; when omitted, the server picks the nearest available prop.",
                         },
                     },
-                    required: ["poseType", "action"],
+                    required: ["poseType", "action", "avatarStatus"],
                 },
                 execute: async (_toolCallId, params) => {
                     const locator = resolveToolLocator(ctx);
@@ -1248,7 +1273,7 @@ const plugin = {
                         return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
                     }
                     const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
-                    const { poseType, action, bubble, log, verify, propId } = (params || {});
+                    const { poseType, action, bubble, avatarStatus, log, verify, propId } = (params || {});
                     if (!poseType || !action) {
                         return jsonResult({ success: false, error: "poseType and action parameters are required" });
                     }
@@ -1257,6 +1282,10 @@ const plugin = {
                             success: false,
                             error: `Invalid poseType: ${poseType}. Must be stand, sit, lay, or floor`,
                         });
+                    }
+                    const normalizedAvatarStatus = normalizeAvatarStatus(avatarStatus, "avatarStatus");
+                    if (normalizedAvatarStatus.error || normalizedAvatarStatus.avatarStatus === undefined) {
+                        return jsonResult({ success: false, error: normalizedAvatarStatus.error ?? "avatarStatus is invalid" });
                     }
                     if (!service.hasValidIdentity() || !service.isConnected()) {
                         return jsonResult({ success: false, error: "Not connected to Kichi world" });
@@ -1276,7 +1305,7 @@ const plugin = {
                     const playback = getActionPlayback(matched);
                     if (verify) {
                         try {
-                            const ack = await service.sendStatusVerified(normalizedPoseType, matched.name, bubbleText, logText, playback, propId);
+                            const ack = await service.sendStatusVerified(normalizedPoseType, matched.name, bubbleText, logText, playback, normalizedAvatarStatus.avatarStatus, propId);
                             if (ack.warning) {
                                 return jsonResult({
                                     success: true,
@@ -1296,6 +1325,7 @@ const plugin = {
                             action: matched.name,
                             bubble: bubbleText,
                             log: logText,
+                            avatarStatus: normalizedAvatarStatus.avatarStatus,
                             propId,
                         });
                     }
@@ -1305,6 +1335,7 @@ const plugin = {
                         action: matched.name,
                         bubble: bubbleText,
                         log: logText,
+                        avatarStatus: normalizedAvatarStatus.avatarStatus,
                         playback,
                     });
                 },
@@ -1401,6 +1432,11 @@ const plugin = {
                                     description: "Pomodoro phase for this stage: focus, shortBreak, longBreak, or none. Set it from the stage's actual role. Treat none as exceptional, not the default for the whole plan.",
                                     enum: [...IDLE_PLAN_POMODORO_PHASES],
                                 },
+                                avatarStatus: {
+                                    type: "string",
+                                    description: "Avatar status for this stage: Idle, Busy, Activities, or Break.",
+                                    enum: [...AVATAR_STATUSES],
+                                },
                                 durationSeconds: {
                                     type: "number",
                                     description: "Required duration in seconds for this stage.",
@@ -1440,7 +1476,7 @@ const plugin = {
                                     },
                                 },
                             },
-                            required: ["name", "purpose", "pomodoroPhase", "durationSeconds", "actions"],
+                            required: ["name", "purpose", "pomodoroPhase", "avatarStatus", "durationSeconds", "actions"],
                         },
                     },
                 },

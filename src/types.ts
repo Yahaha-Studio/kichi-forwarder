@@ -2,6 +2,7 @@ export type KichiForwarderConfig = Record<string, never>;
 
 export type PoseType = "stand" | "sit" | "lay" | "floor";
 export type ActionPlaybackMode = "loop" | "once";
+export type AvatarStatus = "Idle" | "Busy" | "Activities" | "Break";
 export type ActionPlayback = {
   mode: ActionPlaybackMode;
   resumeAction?: string;
@@ -16,6 +17,7 @@ export type ActionResult = {
   poseType: PoseType;
   action: string;
   bubble: string;
+  avatarStatus: AvatarStatus;
   log?: string;
   propId?: string;
 };
@@ -120,6 +122,7 @@ export type StatusPayload = {
   bubble: string;
   log: string;
   playback: ActionPlayback;
+  avatarStatus: AvatarStatus;
   propId?: string;
 };
 
@@ -173,6 +176,7 @@ export type IdlePlanStage = {
   name: string;
   purpose: string;
   pomodoroPhase: IdlePlanPhase;
+  avatarStatus: AvatarStatus;
   durationSeconds: number;
   actions: IdlePlanStageAction[];
 };

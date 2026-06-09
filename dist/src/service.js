@@ -98,7 +98,7 @@ export class KichiForwarderService {
             }, 10000);
         });
     }
-    sendStatus(poseType, action, bubble, log, playback, propId) {
+    sendStatus(poseType, action, bubble, log, playback, avatarStatus, propId) {
         if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN)
             return;
         const payload = {
@@ -110,11 +110,12 @@ export class KichiForwarderService {
             bubble,
             log,
             playback,
+            avatarStatus,
             ...(propId ? { propId } : {}),
         };
         this.ws.send(JSON.stringify(payload));
     }
-    async sendStatusVerified(poseType, action, bubble, log, playback, propId) {
+    async sendStatusVerified(poseType, action, bubble, log, playback, avatarStatus, propId) {
         if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) {
             throw new Error("Kichi websocket is not connected");
         }
@@ -128,6 +129,7 @@ export class KichiForwarderService {
             bubble,
             log,
             playback,
+            avatarStatus,
             ...(propId ? { propId } : {}),
         };
         return this.sendRequest(payload, "status_ack", 5000);

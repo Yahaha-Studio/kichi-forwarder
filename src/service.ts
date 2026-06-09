@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import type { PluginLogger } from "openclaw/plugin-sdk";
 import type {
   ActionPlayback,
+  AvatarStatus,
   BotMessageHistoryEntry,
   BotMessagePayload,
   BotMessageReceivedPayload,
@@ -189,7 +190,15 @@ export class KichiForwarderService {
     });
   }
 
-  sendStatus(poseType: PoseType | "", action: string, bubble: string, log: string, playback: ActionPlayback, propId?: string): void {
+  sendStatus(
+    poseType: PoseType | "",
+    action: string,
+    bubble: string,
+    log: string,
+    playback: ActionPlayback,
+    avatarStatus: AvatarStatus,
+    propId?: string,
+  ): void {
     if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) return;
     const payload: StatusPayload = {
       type: "status",
@@ -200,6 +209,7 @@ export class KichiForwarderService {
       bubble,
       log,
       playback,
+      avatarStatus,
       ...(propId ? { propId } : {}),
     };
     this.ws.send(JSON.stringify(payload));
@@ -211,6 +221,7 @@ export class KichiForwarderService {
     bubble: string,
     log: string,
     playback: ActionPlayback,
+    avatarStatus: AvatarStatus,
     propId?: string,
   ): Promise<StatusAckPayload> {
     if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) {
@@ -226,6 +237,7 @@ export class KichiForwarderService {
       bubble,
       log,
       playback,
+      avatarStatus,
       ...(propId ? { propId } : {}),
     };
     return this.sendRequest<StatusAckPayload>(payload, "status_ack", 5000);
