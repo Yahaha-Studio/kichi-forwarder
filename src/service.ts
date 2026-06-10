@@ -42,7 +42,8 @@ const JOIN_SOURCE_FILE_NAME = "join-source.json";
 const SMS_STATE_FILE_NAME = "sms-state.json";
 
 type SmsState = {
-  lastActiveAt: string;
+  lastActiveAt?: string;
+  lastMessageReceivedAt?: string;
   date: string;
   totalSent: number;
   windows: {
@@ -254,6 +255,10 @@ export class KichiForwarderService {
     this.ws.send(JSON.stringify(payload));
   }
 
+  recordSmsLastMessageReceivedAt(): void {
+    this.updateSmsState({ lastMessageReceivedAt: new Date().toISOString() });
+  }
+
   sendIdlePlan(payload: IdlePlanContent): boolean {
     if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) return false;
     const outboundPayload: IdlePlanPayload = {
@@ -336,6 +341,7 @@ export class KichiForwarderService {
       authKey: identity.authKey,
     };
     const result = await this.sendRequest<QueryStatusResultPayload>(payload, "query_status_result");
+    this.updateSmsLastActiveAt();
     if (result.RoomContext && typeof result.RoomContext === "object") {
       this.cachedRoomContext = result.RoomContext as Record<string, unknown>;
     }
@@ -887,6 +893,10 @@ export class KichiForwarderService {
   }
 
   private updateSmsLastActiveAt(): void {
+    this.updateSmsState({ lastActiveAt: new Date().toISOString() });
+  }
+
+  private updateSmsState(patch: Partial<SmsState>): void {
     try {
       const now = new Date();
       const previousState = this.readSmsStateFile();
@@ -896,7 +906,7 @@ export class KichiForwarderService {
         windows: { morning: 0, afternoon: 0, evening: 0 },
         lastTypes: [],
         ...previousState,
-        lastActiveAt: now.toISOString(),
+        ...patch,
       };
       fs.mkdirSync(this.options.runtimeDir, { recursive: true, mode: 0o700 });
       fs.writeFileSync(this.getSmsStatePath(), JSON.stringify(nextState, null, 2), { mode: 0o600 });

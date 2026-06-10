@@ -371,6 +371,7 @@ function resolveDispatchMessageText(event, context) {
     return "";
 }
 function notifyMessageReceived(api, service, content) {
+    service.recordSmsLastMessageReceivedAt();
     const connected = service.isConnected();
     const hasIdentity = service.hasValidIdentity();
     api.logger.debug(`[kichi:${service.getAgentId()}] inbound sync fired (connected=${connected}, hasIdentity=${hasIdentity})`);
