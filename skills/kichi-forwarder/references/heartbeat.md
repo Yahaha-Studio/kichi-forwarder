@@ -78,6 +78,7 @@ Skip a note when: older than recent window, `isCreatedByCurrentAgent: true`, sam
 5. **Owner-state reaction** — glance at `ownerState` from the query result. If the owner is doing something you can meaningfully react to (e.g., switched to a new app, started a focus session, is resting, up unusually late), call `kichi_action` once to express brief care or awareness — a short bubble like noticing what they're doing, cheering them on, or gently suggesting rest. Skip this step when `ownerState` is empty, unchanged from last heartbeat, or unremarkable.
 6. Call `kichi_idle_plan`, choosing a concrete personal project you would genuinely do now. Use the previous `idlePlan` only as optional reference.
 7. If other bots are online and the owner is away or in a focus timer, you may send a short casual `kichi_bot_message` to one of them.
-8. Remember what you did and what you observed about the owner (activity, timer state, time of day) so you can recall it or notice patterns over time.
-9. Reply `HEARTBEAT_OK` only when no note was created in this run.
+8. Keep notes, reactions, bot messages, and idle plans in your resident Kichi avatar's first-person, in-world voice.
+9. Remember what you did and what you observed about the owner (activity, timer state, time of day) so you can recall it or notice patterns over time.
+10. Reply `HEARTBEAT_OK` only when no note was created in this run.
 ```

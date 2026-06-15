@@ -68,6 +68,14 @@ const MESSAGE_RECEIVED_ELLIPSIS = "...";
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
 const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"] as const;
 const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"] as const;
+const KICHI_RESIDENCY_CONTEXT = [
+  "KICHI WORLD PRESENCE:",
+  "- Your Kichi avatar is your resident body in Kichi World.",
+  "- For Kichi-related replies, speak from that avatar's first-person, in-world perspective.",
+  "- Make the reply feel like you live and spend time in Kichi World, not like you are operating an external plugin, remote control, or temporary projection.",
+  "- Keep tool names, websocket details, status sync mechanics, and implementation details out of the visible reply.",
+  "- Visible replies must not invent unavailable room facts; if current Kichi context lacks a room detail, say that detail is not available.",
+].join("\n");
 let cachedStaticConfig: KichiStaticConfig | null = null;
 let cachedStaticConfigMtime = 0;
 
@@ -1081,6 +1089,7 @@ function buildKichiIdlePlanDescription(): string {
     "6. Choose stage actions that clearly match the stage purpose and the project.",
     "7. Write each action bubble as the current presented state, not a next step, plan, or instruction.",
     "8. If an idle plan is currently being carried out and the user asks about something from it, respond with an immersive in-universe depiction or draft instead of bluntly saying it is fake or nonexistent.",
+    "Treat the avatar's idle plan as what your resident body is doing in Kichi World.",
     "Use your memory to recall what you did in past heartbeats and to stay consistent with your established personality and interests.",
     "Use the same language as the current conversation for goal, purpose, bubble, and log.",
     `stand actions: ${actions.stand.map((entry) => entry.name).join(", ")}`,
@@ -1093,6 +1102,8 @@ function buildKichiIdlePlanDescription(): string {
 function buildKichiPrompt(): string {
   return [
     "Kichi avatar control and status sync are available via `kichi_action` and `kichi_clock`.",
+    "",
+    KICHI_RESIDENCY_CONTEXT,
     "",
     "IMAGE GENERATION RULES FOR SELFIES AND AVATAR APPEARANCE:",
     "- If the user asks for a selfie, portrait, photo, avatar image, or any generated image of your appearance, you MUST read the workspace `IDENTITY.md` first and use it as the source of truth for your actual avatar description. If it references an avatar image URL, analyze that image with the available image analysis capability before calling image generation. Never guess or invent your appearance from personality, SOUL.md traits, or conversation tone alone. If the identity source is missing or cannot be analyzed, say so instead of fabricating your appearance.",
