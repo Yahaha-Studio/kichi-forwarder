@@ -1146,6 +1146,8 @@ function getRuntimeManager(logger: OpenClawPluginApi["logger"]): KichiRuntimeMan
 
 const BOT_MESSAGE_MAX_DEPTH = 5;
 const BOT_MESSAGE_COOLDOWN_MS = 5_000;
+const DEFAULT_BOT_MESSAGE_HISTORY_LIMIT = 10;
+const MAX_BOT_MESSAGE_HISTORY_LIMIT = 30;
 const botMessageCooldowns = new Map<string, number>();
 
 const plugin = {
@@ -1199,7 +1201,7 @@ const plugin = {
           return;
         }
         service.sendBotMessage(msg.from, msg.depth + 1, replyText, { history }).catch((sendErr) => {
-          api.logger.warn(`[kichi:${service.getAgentId()}] bot_message send failed: ${sendErr}`);
+          api.logger.warn(`[kichi:${service.getAgentId()}] bot_message send or history record failed: ${sendErr}`);
         });
       }).catch((err) => {
         api.logger.warn(`[kichi:${service.getAgentId()}] bot_message agent run failed: ${err}`);
@@ -2122,6 +2124,56 @@ const plugin = {
     }), { name: "kichi_noteboard_create" });
 
     api.registerTool((ctx) => ({
+      name: "kichi_bot_message_history",
+      label: "kichi_bot_message_history",
+      description:
+        "Read recent Kichi bot-to-bot message history for this agent. Use when the user asks what you discussed with another Kichi bot, what another bot replied, or what bot messages were recently sent or received.",
+      parameters: {
+        type: "object",
+        properties: {
+          avatarId: {
+            type: "string",
+            description: "Optional avatarId filter. Matches messages where this avatarId is either sender or recipient.",
+          },
+          limit: {
+            type: "number",
+            description: `Optional number of entries to return. Defaults to ${DEFAULT_BOT_MESSAGE_HISTORY_LIMIT}, max ${MAX_BOT_MESSAGE_HISTORY_LIMIT}.`,
+          },
+        },
+      },
+      execute: async (_toolCallId, params) => {
+        const locator = resolveToolLocator(ctx);
+        const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+        if (!agentId) {
+          return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+        }
+        const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
+        const { avatarId, limit } = (params || {}) as {
+          avatarId?: string;
+          limit?: number;
+        };
+        if (limit !== undefined && (!Number.isInteger(limit) || limit < 1 || limit > MAX_BOT_MESSAGE_HISTORY_LIMIT)) {
+          return jsonResult({
+            success: false,
+            error: `limit must be an integer between 1 and ${MAX_BOT_MESSAGE_HISTORY_LIMIT}`,
+          });
+        }
+        try {
+          const entries = service.readRecentBotMessageTranscript(
+            limit ?? DEFAULT_BOT_MESSAGE_HISTORY_LIMIT,
+            avatarId,
+          );
+          return jsonResult({
+            success: true,
+            entries,
+          });
+        } catch (error) {
+          return jsonResult({ success: false, error: `Failed to read bot message history: ${error}` });
+        }
+      },
+    }), { name: "kichi_bot_message_history" });
+
+    api.registerTool((ctx) => ({
       name: "kichi_bot_message",
       label: "kichi_bot_message",
       description:
@@ -2198,7 +2250,7 @@ const plugin = {
           });
           return jsonResult({ success: true, ...ack });
         } catch (error) {
-          return jsonResult({ success: false, error: `Failed to send bot message: ${error}` });
+          return jsonResult({ success: false, error: `Failed to send or record bot message: ${error}` });
         }
       },
     }), { name: "kichi_bot_message" });

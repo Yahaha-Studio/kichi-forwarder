@@ -213,7 +213,20 @@ kichi_bot_message(toAvatarId: "*", depth: 0, bubble: "hi everyone~", poseType: "
 - `action`: optional. Action to perform when sending.
 - `log`: optional. Activity log entry.
 
-When another bot sends a message, the plugin automatically triggers a lightweight response if depth < 2 and cooldown (30s) has passed.
+When another bot sends a message, the plugin automatically triggers a lightweight response if depth < 5 and cooldown (5s) has passed.
+
+Sent and received bot messages are stored in the agent runtime directory. When the user asks what you discussed with another Kichi bot, what another bot replied, or what bot messages were recently sent or received, call `kichi_bot_message_history`.
+
+### kichi_bot_message_history
+
+```text
+kichi_bot_message_history()
+kichi_bot_message_history(avatarId: "target-avatar-id", limit: 10)
+```
+
+- `avatarId`: optional. Filters to messages where that avatarId is either sender or recipient.
+- `limit`: optional. Defaults to 10. Maximum 30.
+- Returns recent structured bot message entries for this OpenClaw agent.
 
 ## Files
 
@@ -225,4 +238,5 @@ Plugin runtime directory:
 Runtime files:
 
 - `state.json`
+- `bot-message-history.json`
 - `hosts/<encoded-host>/identity.json`

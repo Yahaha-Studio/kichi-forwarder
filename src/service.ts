@@ -9,6 +9,8 @@ import type {
   BotMessageHistoryEntry,
   BotMessagePayload,
   BotMessageReceivedPayload,
+  BotMessageTranscriptEntry,
+  BotMessageTranscriptStore,
   ClockAction,
   ClockConfig,
   ClockPayload,
@@ -40,6 +42,8 @@ const DEFAULT_LLM_RUNTIME_ENABLED = true;
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
 const JOIN_SOURCE_FILE_NAME = "join-source.json";
 const SMS_STATE_FILE_NAME = "sms-state.json";
+const BOT_MESSAGE_HISTORY_FILE_NAME = "bot-message-history.json";
+const MAX_BOT_MESSAGE_HISTORY_ENTRIES = 30;
 
 type SmsState = {
   lastActiveAt?: string;
@@ -409,6 +413,7 @@ export class KichiForwarderService {
     if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN) {
       throw new Error("Kichi websocket is not connected");
     }
+    const requestId = randomUUID();
     const payload: BotMessagePayload = {
       type: "bot_message",
       avatarId: this.identity.avatarId,
@@ -416,14 +421,25 @@ export class KichiForwarderService {
       toAvatarId,
       depth,
       bubble,
-      requestId: randomUUID(),
+      requestId,
       ...(options?.poseType ? { poseType: options.poseType } : {}),
       ...(options?.action ? { action: options.action } : {}),
       ...(options?.playback ? { playback: options.playback } : {}),
       ...(options?.log ? { log: options.log } : {}),
       ...(options?.history?.length ? { history: options.history } : {}),
     };
-    return this.sendRequest<Record<string, unknown>>(payload, "bot_message_ack", 5000);
+    const ack = await this.sendRequest<Record<string, unknown>>(payload, "bot_message_ack", 5000);
+    this.appendBotMessageTranscript({
+      id: randomUUID(),
+      requestId,
+      at: new Date().toISOString(),
+      direction: "sent",
+      from: this.identity.avatarId,
+      to: toAvatarId,
+      depth,
+      bubble,
+    });
+    return ack;
   }
 
   isConnected(): boolean { return this.ws?.readyState === WebSocket.OPEN && !!this.identity?.authKey; }
@@ -473,6 +489,22 @@ export class KichiForwarderService {
 
   getStatePath(): string {
     return path.join(this.options.runtimeDir, "state.json");
+  }
+
+  getBotMessageHistoryPath(): string {
+    return path.join(this.options.runtimeDir, BOT_MESSAGE_HISTORY_FILE_NAME);
+  }
+
+  readRecentBotMessageTranscript(limit = 10, avatarId?: string): BotMessageTranscriptEntry[] {
+    if (!Number.isInteger(limit) || limit < 1) {
+      throw new Error("limit must be a positive integer");
+    }
+    const normalizedAvatarId = typeof avatarId === "string" && avatarId.trim() ? avatarId.trim() : undefined;
+    const entries = this.readBotMessageTranscriptStore().entries;
+    const filtered = normalizedAvatarId
+      ? entries.filter((entry) => entry.from === normalizedAvatarId || entry.to === normalizedAvatarId)
+      : entries;
+    return filtered.slice(-limit);
   }
 
   getIdentityPath(): string {
@@ -676,10 +708,20 @@ export class KichiForwarderService {
       } else if (msg.type === "bot_message_received") {
         const payload = msg as BotMessageReceivedPayload;
         this.log("info", `bot_message_received from=${payload.from} depth=${payload.depth} bubble="${payload.bubble}"`);
+        this.appendBotMessageTranscript({
+          id: randomUUID(),
+          at: new Date().toISOString(),
+          direction: "received",
+          from: payload.from,
+          fromName: payload.fromName,
+          to: this.identity?.avatarId,
+          depth: payload.depth,
+          bubble: payload.bubble,
+        });
         this.onBotMessageReceived?.(this, payload);
       }
     } catch (e) {
-      this.log("warn", `failed to parse message: ${e}`);
+      this.log("warn", `failed to handle websocket message: ${e}`);
     }
   }
 
@@ -915,6 +957,16 @@ export class KichiForwarderService {
     }
   }
 
+  private appendBotMessageTranscript(entry: BotMessageTranscriptEntry): void {
+    const previousStore = this.readBotMessageTranscriptStore();
+    const nextStore: BotMessageTranscriptStore = {
+      version: 1,
+      entries: [...previousStore.entries, entry].slice(-MAX_BOT_MESSAGE_HISTORY_ENTRIES),
+    };
+    fs.mkdirSync(this.options.runtimeDir, { recursive: true, mode: 0o700 });
+    fs.writeFileSync(this.getBotMessageHistoryPath(), JSON.stringify(nextStore, null, 2), { mode: 0o600 });
+  }
+
   private readStateFile(): Partial<KichiState> | null {
     const statePath = this.getStatePath();
     if (!fs.existsSync(statePath)) {
@@ -937,6 +989,49 @@ export class KichiForwarderService {
       throw new Error(`Invalid SMS state payload in ${smsStatePath}`);
     }
     return data as Partial<SmsState>;
+  }
+
+  private readBotMessageTranscriptStore(): BotMessageTranscriptStore {
+    const historyPath = this.getBotMessageHistoryPath();
+    if (!fs.existsSync(historyPath)) {
+      return { version: 1, entries: [] };
+    }
+    const data = JSON.parse(fs.readFileSync(historyPath, "utf-8")) as unknown;
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error(`Invalid bot message history payload in ${historyPath}`);
+    }
+    const store = data as Partial<BotMessageTranscriptStore>;
+    if (store.version !== 1 || !Array.isArray(store.entries)) {
+      throw new Error(`Invalid bot message history payload in ${historyPath}`);
+    }
+    for (const entry of store.entries) {
+      if (!this.isValidBotMessageTranscriptEntry(entry)) {
+        throw new Error(`Invalid bot message history entry in ${historyPath}`);
+      }
+    }
+    return {
+      version: 1,
+      entries: store.entries,
+    };
+  }
+
+  private isValidBotMessageTranscriptEntry(value: unknown): value is BotMessageTranscriptEntry {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return false;
+    }
+    const entry = value as Partial<BotMessageTranscriptEntry>;
+    return typeof entry.id === "string"
+      && (entry.requestId === undefined || typeof entry.requestId === "string")
+      && typeof entry.at === "string"
+      && (entry.direction === "sent" || entry.direction === "received")
+      && typeof entry.from === "string"
+      && (entry.fromName === undefined || typeof entry.fromName === "string")
+      && (entry.to === undefined || typeof entry.to === "string")
+      && (entry.toName === undefined || typeof entry.toName === "string")
+      && typeof entry.depth === "number"
+      && Number.isInteger(entry.depth)
+      && entry.depth >= 0
+      && typeof entry.bubble === "string";
   }
 
   private clearReconnectTimeout(): void {

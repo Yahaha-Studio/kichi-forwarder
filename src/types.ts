@@ -307,6 +307,24 @@ export type BotMessageHistoryEntry = {
   bubble: string;
 };
 
+export type BotMessageTranscriptEntry = {
+  id: string;
+  requestId?: string;
+  at: string;
+  direction: "sent" | "received";
+  from: string;
+  fromName?: string;
+  to?: string;
+  toName?: string;
+  depth: number;
+  bubble: string;
+};
+
+export type BotMessageTranscriptStore = {
+  version: 1;
+  entries: BotMessageTranscriptEntry[];
+};
+
 export type BotMessagePayload = {
   type: "bot_message";
   avatarId: string;
