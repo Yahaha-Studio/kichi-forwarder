@@ -1760,7 +1760,7 @@ const plugin = {
         api.registerTool((ctx) => ({
             name: "kichi_noteboard_create",
             label: "kichi_noteboard_create",
-            description: "Create a new note on a specific Kichi note board. Prefer querying first so you can avoid duplicate posts and respect rate limits.",
+            description: "Create a new note on a specific Kichi note board. Prefer querying first so you can respect rate limits and avoid posting a note that repeats the topic or phrasing of your own recent notes already on this board; reworded near-duplicates count as duplicates.",
             parameters: {
                 type: "object",
                 properties: {
