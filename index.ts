@@ -86,7 +86,7 @@ type IdlePlanAction = {
   action: string;
   durationSeconds: number;
   bubble: string;
-  log?: string;
+  log: string;
 };
 type IdlePlan = {
   requestId?: string;
@@ -782,8 +782,8 @@ function normalizeIdlePlan(value: unknown): { idlePlan?: IdlePlan; error?: strin
       if (typeof bubble !== "string" || !bubble.trim()) {
         return { error: `stages[${stageIndex}].actions[${actionIndex}].bubble is required` };
       }
-      if (log !== undefined && typeof log !== "string") {
-        return { error: `stages[${stageIndex}].actions[${actionIndex}].log must be a string when provided` };
+      if (typeof log !== "string" || !log.trim()) {
+        return { error: `stages[${stageIndex}].actions[${actionIndex}].log is required` };
       }
 
       const normalizedPoseType = poseType as PoseType;
@@ -811,7 +811,7 @@ function normalizeIdlePlan(value: unknown): { idlePlan?: IdlePlan; error?: strin
         action: actionDefinition.name,
         durationSeconds: actionDurationSeconds,
         bubble: bubble.trim(),
-        ...(typeof log === "string" && log.trim() ? { log: log.trim() } : {}),
+        log: log.trim(),
         ...(typeof propId === "string" && propId.trim() ? { propId: propId.trim() } : {}),
       });
     }
@@ -1079,7 +1079,7 @@ function buildKichiIdlePlanDescription(): string {
   const actions = loadStaticConfig().actions;
   return [
     "Send a complete heartbeat idle plan for the avatar.",
-    "The payload must include the overall goal, heartbeat interval, stage breakdown, each stage's purpose, each stage's pomodoroPhase, action list, and bubble content.",
+    "The payload must include the overall goal, heartbeat interval, stage breakdown, each stage's purpose, each stage's pomodoroPhase, action list, and each action's bubble and log content.",
     "Build the plan in this order.",
     "1. Pick one concrete, time-bounded fun personal project you would genuinely choose to do on your own when nobody needs you. It must fit your personality, tastes, and established character, stay rooted in your personal interests or hobbies, and be something the available Kichi actions can express clearly.",
     "2. Set the overall goal to that project. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary as the goal.",
@@ -1758,14 +1758,14 @@ const plugin = {
                       },
                       log: {
                         type: "string",
-                        description: "Optional log content for this action. Use the same language as the current conversation.",
+                        description: "Required log content for this action. Use the same language as the current conversation.",
                       },
                       propId: {
                         type: "string",
                         description: "Optional poseable prop ID from RoomContext.PoseableProps. When specified, the avatar is seated at this prop.",
                       },
                     },
-                    required: ["poseType", "action", "durationSeconds", "bubble"],
+                    required: ["poseType", "action", "durationSeconds", "bubble", "log"],
                   },
                 },
               },

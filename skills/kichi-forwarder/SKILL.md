@@ -165,7 +165,7 @@ Use this for the avatar's heartbeat idle plan.
 
 - Set `heartbeatIntervalSeconds` to the heartbeat interval for this run.
 - Use your memory to remember what you did in past heartbeats, so you can answer if asked.
-- Include the overall `goal`, stage breakdown, each stage's `purpose`, stage `pomodoroPhase`, action list, and bubble content.
+- Include the overall `goal`, stage breakdown, each stage's `purpose`, stage `pomodoroPhase`, action list, and each action's `bubble` and `log` content.
 - Choose what you would do now.
 - Treat the idle plan as what your resident body is doing in Kichi World.
 - Build the plan in this order.
@@ -175,6 +175,7 @@ Use this for the avatar's heartbeat idle plan.
 - 4. Assign each stage `pomodoroPhase` from the stage's actual role. Use `focus` for concentrated activity, `shortBreak` for short resets, `longBreak` for longer rests, and `none` only when a stage truly has no pomodoro role.
 - 5. Choose stage actions that clearly match the stage purpose and the same project.
 - 6. Make each action `bubble` a current-state label describing the current presented state, not a procedural step, mini-plan, or instruction.
+- 7. Make each action `log` a short natural first-person sentence matching that action's current activity and immediate focus.
 - Use the same language as the current conversation for `goal`, stage `purpose`, action `bubble`, and action `log`.
 - The full stage duration must total exactly to the heartbeat interval.
 

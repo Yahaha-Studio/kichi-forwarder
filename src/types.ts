@@ -168,7 +168,7 @@ export type IdlePlanStageAction = {
   action: string;
   durationSeconds: number;
   bubble: string;
-  log?: string;
+  log: string;
   propId?: string;
 };
 
