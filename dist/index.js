@@ -905,7 +905,8 @@ function buildKichiPrompt() {
         "bubble: 2-5 word companion speech. log: one short natural first-person sentence under 15 words. Match the language of the bubble and mention the current action and immediate focus like a real companion.",
         "avatarStatus: set the current avatar status as Idle, Busy, Activities, or Break.",
         "",
-        "kichi_clock: set countDown for tasks with 2+ steps or >10s work. Skip for quick one-shots.",
+        "kichi_clock: set countDown for tasks with 2+ steps or >10s work, sized to your estimated duration so the player sees how long you'll be busy. Skip for quick one-shots.",
+        "kichi_clock only shows a clock; it never fires a reminder or notification. When the user asks to be reminded or alerted at a future time (e.g. \"remind me in 2 minutes\"), schedule a cron job to actually notify them, and also set a kichi_clock countDown to show the wait. Do both.",
         "",
         "When sending a bot message, do NOT call kichi_action separately.",
         "",
@@ -1532,7 +1533,7 @@ const plugin = {
         api.registerTool((ctx) => ({
             name: "kichi_clock",
             label: "kichi_clock",
-            description: "Send clock commands to Kichi world. Supported actions are set and stop.",
+            description: "Send clock commands to Kichi world. Supported actions are set and stop. It only draws the visual clock and does NOT fire any reminder or notification. To actually alert the user at a future time, schedule a cron job separately.",
             parameters: {
                 type: "object",
                 properties: {
