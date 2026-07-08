@@ -2215,6 +2215,15 @@ const plugin = {
         if (!agentId) {
           return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
         }
+        // Auto bot-reply runs already send the reply from the agent's plain text
+        // output (see the bot_message handler), with a deterministic depth. Refuse
+        // the tool in that session so the same bubble is not sent/recorded twice.
+        if (locator.sessionKey === `agent:${agentId}:bot_message`) {
+          return jsonResult({
+            success: false,
+            error: "Do not call kichi_bot_message here. Reply by outputting the bubble text directly; it is sent automatically.",
+          });
+        }
         const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
         const { toAvatarId, depth, bubble, poseType, action, log } = (params || {}) as {
           toAvatarId?: string;
