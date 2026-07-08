@@ -952,7 +952,7 @@ const plugin = {
             if (now - lastReply < BOT_MESSAGE_COOLDOWN_MS)
                 return;
             botMessageCooldowns.set(cooldownKey, now);
-            const sessionKey = `agent:${service.getAgentId()}:default`;
+            const sessionKey = `agent:${service.getAgentId()}:bot_message`;
             const history = [
                 ...(msg.history ?? []),
                 { from: msg.from, fromName: msg.fromName, bubble: msg.bubble },
