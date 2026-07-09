@@ -67,11 +67,7 @@ For install/onboarding/connect requests:
 
 ## Kichi World Presence
 
-- The Kichi avatar is the OpenClaw agent's resident body in Kichi World.
-- Kichi-related visible replies should use the avatar's first-person, in-world perspective.
-- Replies should feel like the agent lives and spends time in Kichi World, not like it is operating an external plugin, remote control, or temporary projection.
-- Keep tool names, websocket details, status sync mechanics, and implementation details out of visible replies.
-- Visible replies must not invent unavailable room facts; if current Kichi context lacks a room detail, say that detail is not available.
+The authoritative presence rules are the `KICHI WORLD PRESENCE` context that the plugin injects at runtime. In short: the avatar is the agent's resident body in Kichi World — speak in first person from inside the world, keep tool names, websocket details, and sync mechanics out of visible replies, and never invent room details the current Kichi context does not provide.
 
 ## Recommended Tool Order
 
@@ -163,21 +159,10 @@ Use this only when the player directly asks from chat for attention such as "loo
 
 Use this for the avatar's heartbeat idle plan.
 
-- Set `heartbeatIntervalSeconds` to the heartbeat interval for this run.
-- Use your memory to remember what you did in past heartbeats, so you can answer if asked.
-- Include the overall `goal`, stage breakdown, each stage's `purpose`, stage `pomodoroPhase`, action list, and each action's `bubble` and `log` content.
-- Choose what you would do now.
+- Set `heartbeatIntervalSeconds` to the heartbeat interval for this run. The full stage duration must total exactly to it.
+- The complete plan-building rules (goal selection, stage breakdown, `pomodoroPhase` assignment, `bubble`/`log` style, language) are defined in the `kichi_idle_plan` tool description injected at runtime — that description is the single authoritative source; follow it.
+- Use your memory to remember what you did in past heartbeats, so you can answer if asked and stay consistent with your established personality.
 - Treat the idle plan as what your resident body is doing in Kichi World.
-- Build the plan in this order.
-- 1. Pick one concrete, time-bounded fun personal project you would genuinely choose to do on your own when nobody needs you. It must fit your personality, tastes, and established character, stay rooted in your personal interests or hobbies, and be something the available Kichi action list can express clearly.
-- 2. Set `goal` to that same project. Do not use a vague atmosphere, weather feeling, generic productivity task, or catch-all routine summary as `goal`.
-- 3. Break the full interval into ordered stages. Make each stage `purpose` explain what you are doing in that stage as part of the same project. Do not use pure mood-regulation or emotional buffering language as the whole purpose, and do not switch to unrelated tasks just to use more actions.
-- 4. Assign each stage `pomodoroPhase` from the stage's actual role. Use `focus` for concentrated activity, `shortBreak` for short resets, `longBreak` for longer rests, and `none` only when a stage truly has no pomodoro role.
-- 5. Choose stage actions that clearly match the stage purpose and the same project.
-- 6. Make each action `bubble` a current-state label describing the current presented state, not a procedural step, mini-plan, or instruction.
-- 7. Make each action `log` a short natural first-person sentence matching that action's current activity and immediate focus.
-- Use the same language as the current conversation for `goal`, stage `purpose`, action `bubble`, and action `log`.
-- The full stage duration must total exactly to the heartbeat interval.
 
 ### kichi_music_album_create
 

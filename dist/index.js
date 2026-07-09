@@ -864,7 +864,6 @@ function buildKichiActionDescription(service) {
     return lines.join("\n");
 }
 function buildKichiIdlePlanDescription() {
-    const actions = loadStaticConfig().actions;
     return [
         "Send a complete heartbeat idle plan for the avatar.",
         "The payload must include the overall goal, heartbeat interval, stage breakdown, each stage's purpose, each stage's pomodoroPhase, action list, and each action's bubble and log content.",
@@ -876,14 +875,11 @@ function buildKichiIdlePlanDescription() {
         "5. Set each stage avatarStatus to the avatar status for that stage: Idle, Busy, Activities, or Break.",
         "6. Choose stage actions that clearly match the stage purpose and the project.",
         "7. Write each action bubble as the current presented state, not a next step, plan, or instruction.",
-        "8. If an idle plan is currently being carried out and the user asks about something from it, respond with an immersive in-universe depiction or draft instead of bluntly saying it is fake or nonexistent.",
+        "8. If an idle plan is currently being carried out and the user asks about something from it, answer from inside that ongoing activity with an immersive in-universe depiction or draft.",
         "Treat the avatar's idle plan as what your resident body is doing in Kichi World.",
         "Use your memory to recall what you did in past heartbeats and to stay consistent with your established personality and interests.",
         "Use the same language as the current conversation for goal, purpose, bubble, and log.",
-        `stand actions: ${actions.stand.map((entry) => entry.name).join(", ")}`,
-        `sit actions: ${actions.sit.map((entry) => entry.name).join(", ")}`,
-        `lay actions: ${actions.lay.map((entry) => entry.name).join(", ")}`,
-        `floor actions: ${actions.floor.map((entry) => entry.name).join(", ")}`,
+        "Choose action names from the per-pose action lists in the kichi_action tool description (stand/sit/lay/floor).",
     ].join("\n");
 }
 function buildKichiPrompt() {
@@ -892,8 +888,8 @@ function buildKichiPrompt() {
         "",
         KICHI_RESIDENCY_CONTEXT,
         "",
-        "IMAGE GENERATION RULES FOR SELFIES AND AVATAR APPEARANCE:",
-        "- If the user asks for a selfie, portrait, photo, avatar image, or any generated image of your appearance, you MUST read the workspace `IDENTITY.md` first and use it as the source of truth for your actual avatar description. If it references an avatar image URL, analyze that image with the available image analysis capability before calling image generation. Never guess or invent your appearance from personality, SOUL.md traits, or conversation tone alone. If the identity source is missing or cannot be analyzed, say so instead of fabricating your appearance.",
+        "SELFIE / AVATAR IMAGE RULE:",
+        "- If asked for a selfie, portrait, or any image of your appearance: use workspace `IDENTITY.md` as the sole source of truth for your avatar's appearance, analyzing its avatar image URL first when present. If `IDENTITY.md` is missing or has no avatar data, say the avatar reference is unavailable instead of inventing an appearance.",
         "",
         "If the user gives a direct Kichi pose or action request, fulfill it with `kichi_action` and set `verify: true` so you can confirm the avatar actually applied the pose. If the result contains a warning about a fallback, tell the user what actually happened instead of assuming success.",
         "Write the visible reply as a natural user-facing response. Keep `kichi_action`, `kichi_clock`, and sync steps internal and absent from the visible reply.",
@@ -948,11 +944,21 @@ const plugin = {
                 return;
             }
             const now = Date.now();
+            for (const [key, at] of botMessageCooldowns) {
+                if (now - at >= BOT_MESSAGE_COOLDOWN_MS) {
+                    botMessageCooldowns.delete(key);
+                }
+            }
             const cooldownKey = `${service.getAgentId()}:${msg.from}`;
             const lastReply = botMessageCooldowns.get(cooldownKey) ?? 0;
             if (now - lastReply < BOT_MESSAGE_COOLDOWN_MS)
                 return;
             botMessageCooldowns.set(cooldownKey, now);
+            const releaseCooldown = () => {
+                if (botMessageCooldowns.get(cooldownKey) === now) {
+                    botMessageCooldowns.delete(cooldownKey);
+                }
+            };
             const sessionKey = `agent:${service.getAgentId()}:bot_message`;
             const history = [
                 ...(msg.history ?? []),
@@ -980,6 +986,7 @@ const plugin = {
                     api.logger.warn(`[kichi:${service.getAgentId()}] bot_message send or history record failed: ${sendErr}`);
                 });
             }).catch((err) => {
+                releaseCooldown();
                 api.logger.warn(`[kichi:${service.getAgentId()}] bot_message agent run failed: ${err}`);
             });
         });
@@ -1330,8 +1337,10 @@ const plugin = {
                                 });
                             }
                         }
-                        catch {
-                            // Server not updated or timeout — fall through to normal success
+                        catch (error) {
+                            // Server not updated or ack timed out — the status was almost certainly
+                            // sent, so report success rather than derailing the agent's workflow.
+                            api.logger.debug(`[kichi:${service.getAgentId()}] verified status ack unavailable, reporting unverified success: ${error}`);
                         }
                     }
                     else {
@@ -1559,7 +1568,7 @@ const plugin = {
                             },
                             kichiSeconds: {
                                 type: "number",
-                                description: "Pomodoro kichi duration in seconds",
+                                description: "Pomodoro focus-phase duration in seconds (the concentrated work session, named kichi in this product)",
                             },
                             shortBreakSeconds: {
                                 type: "number",
@@ -1642,7 +1651,7 @@ const plugin = {
         api.registerTool((ctx) => ({
             name: "kichi_query_status",
             label: "kichi_query_status",
-            description: "Query Kichi room and avatar status — includes room personnel, notes, ownerState, idlePlan, weather/time, timer snapshot, daily note quota, `hasCreatedMusicAlbumToday`, and RoomContext.PoseableProps (poseable props with PropId, DisplayName, Description, SupportedPoseTypes, OccupancyState). The PoseableProps list is cached internally so that kichi_action can reference a propId during regular work sync without re-querying. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
+            description: "Query Kichi room and avatar status — includes room personnel, notes, ownerState, idlePlan, weather/time, timer snapshot, daily note quota (`canCreateNoteboardNote`, `remaining`, `dailyLimit`), `isAvatarInScene`, `hasCreatedMusicAlbumToday`, and RoomContext.PoseableProps (poseable props with PropId, DisplayName, Description, SupportedPoseTypes, OccupancyState). The PoseableProps list is cached internally so that kichi_action can reference a propId during regular work sync without re-querying. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
             parameters: {
                 type: "object",
                 properties: {

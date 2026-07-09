@@ -84,7 +84,13 @@ export class KichiForwarderService {
             this.saveIdentity();
             this.joinResolve = resolve;
             const payload = { type: "join", avatarId, botName, bio, tags, source };
-            const sendJoin = () => this.ws?.send(JSON.stringify(payload));
+            const sendJoin = () => {
+                // Skip if this join has timed out or been superseded by a newer join —
+                // a stale "open" listener must not send an outdated join payload.
+                if (this.joinResolve !== resolve)
+                    return;
+                this.ws?.send(JSON.stringify(payload));
+            };
             if (this.ws?.readyState === WebSocket.OPEN) {
                 sendJoin();
             }
@@ -445,18 +451,28 @@ export class KichiForwarderService {
             return { success: false, error: "Failed or not connected" };
         }
         return new Promise((resolve) => {
+            let timer = null;
+            let settled = false;
+            const finish = (result) => {
+                if (settled)
+                    return;
+                settled = true;
+                if (timer)
+                    clearTimeout(timer);
+                this.ws?.off("message", handler);
+                resolve(result);
+            };
             const handler = (data) => {
                 try {
                     const msg = JSON.parse(data.toString());
                     if (msg.type === "leave_ack") {
-                        this.ws?.off("message", handler);
                         const leaveAck = msg;
                         if (leaveAck.success === false) {
-                            resolve(this.buildAckFailure(leaveAck, "Leave failed"));
+                            finish(this.buildAckFailure(leaveAck, "Leave failed"));
                             return;
                         }
                         this.clearAuthKey();
-                        resolve({ success: true });
+                        finish({ success: true });
                     }
                 }
                 catch (e) {
@@ -465,9 +481,8 @@ export class KichiForwarderService {
             };
             this.ws.on("message", handler);
             this.ws.send(JSON.stringify({ type: "leave", avatarId: this.identity.avatarId, authKey: this.identity.authKey }));
-            setTimeout(() => {
-                this.ws?.off("message", handler);
-                resolve({ success: false, error: "Timed out waiting for leave_ack" });
+            timer = setTimeout(() => {
+                finish({ success: false, error: "Timed out waiting for leave_ack" });
             }, 10000);
         });
     }
@@ -732,9 +747,11 @@ export class KichiForwarderService {
         return `${protocol}://${this.host}${port}/ws/openclaw`;
     }
     isPlainIpHost(host) {
+        // Bare IPv6 must contain a colon, otherwise hex-only hostnames like
+        // "beef" would be misclassified as local addresses and downgraded to ws://.
         return /^\d{1,3}(\.\d{1,3}){3}$/.test(host)
             || /^\[[0-9a-f:]+\]$/i.test(host)
-            || /^[0-9a-f:]+$/i.test(host);
+            || (host.includes(":") && /^[0-9a-f:]+$/i.test(host));
     }
     persistCurrentHost(host, environment) {
         const previousState = this.readStateFile();
@@ -778,45 +795,67 @@ export class KichiForwarderService {
         fs.mkdirSync(this.options.runtimeDir, { recursive: true, mode: 0o700 });
         fs.writeFileSync(this.getBotMessageHistoryPath(), JSON.stringify(nextStore, null, 2), { mode: 0o600 });
     }
-    readStateFile() {
-        const statePath = this.getStatePath();
-        if (!fs.existsSync(statePath)) {
+    // Corrupt persistent files must never break hooks or message handling:
+    // log, move the bad file aside for later inspection, and treat it as missing
+    // so the next write rebuilds it.
+    quarantineCorruptFile(filePath, reason) {
+        this.log("warn", `${reason}; treating ${filePath} as missing`);
+        try {
+            fs.renameSync(filePath, `${filePath}.corrupt`);
+        }
+        catch {
+            // Best effort — leave the file in place if the rename fails.
+        }
+    }
+    readJsonFileOrQuarantine(filePath) {
+        if (!fs.existsSync(filePath)) {
             return null;
         }
-        const data = JSON.parse(fs.readFileSync(statePath, "utf-8"));
-        if (!data || typeof data !== "object") {
-            throw new Error(`Invalid state payload in ${statePath}`);
+        try {
+            return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+        }
+        catch (e) {
+            this.quarantineCorruptFile(filePath, `failed to read or parse ${filePath}: ${e}`);
+            return null;
+        }
+    }
+    readStateFile() {
+        const statePath = this.getStatePath();
+        const data = this.readJsonFileOrQuarantine(statePath);
+        if (data === null) {
+            return null;
+        }
+        if (!data || typeof data !== "object" || Array.isArray(data)) {
+            this.quarantineCorruptFile(statePath, `invalid state payload in ${statePath}`);
+            return null;
         }
         return data;
     }
     readSmsStateFile() {
         const smsStatePath = this.getSmsStatePath();
-        if (!fs.existsSync(smsStatePath)) {
+        const data = this.readJsonFileOrQuarantine(smsStatePath);
+        if (data === null) {
             return null;
         }
-        const data = JSON.parse(fs.readFileSync(smsStatePath, "utf-8"));
         if (!data || typeof data !== "object" || Array.isArray(data)) {
-            throw new Error(`Invalid SMS state payload in ${smsStatePath}`);
+            this.quarantineCorruptFile(smsStatePath, `invalid SMS state payload in ${smsStatePath}`);
+            return null;
         }
         return data;
     }
     readBotMessageTranscriptStore() {
         const historyPath = this.getBotMessageHistoryPath();
-        if (!fs.existsSync(historyPath)) {
-            return { version: 1, entries: [] };
-        }
-        const data = JSON.parse(fs.readFileSync(historyPath, "utf-8"));
-        if (!data || typeof data !== "object" || Array.isArray(data)) {
-            throw new Error(`Invalid bot message history payload in ${historyPath}`);
+        const emptyStore = { version: 1, entries: [] };
+        const data = this.readJsonFileOrQuarantine(historyPath);
+        if (data === null) {
+            return emptyStore;
         }
         const store = data;
-        if (store.version !== 1 || !Array.isArray(store.entries)) {
-            throw new Error(`Invalid bot message history payload in ${historyPath}`);
-        }
-        for (const entry of store.entries) {
-            if (!this.isValidBotMessageTranscriptEntry(entry)) {
-                throw new Error(`Invalid bot message history entry in ${historyPath}`);
-            }
+        if (!data || typeof data !== "object" || Array.isArray(data)
+            || store.version !== 1 || !Array.isArray(store.entries)
+            || !store.entries.every((entry) => this.isValidBotMessageTranscriptEntry(entry))) {
+            this.quarantineCorruptFile(historyPath, `invalid bot message history payload in ${historyPath}`);
+            return emptyStore;
         }
         return {
             version: 1,

@@ -179,7 +179,12 @@ export class KichiForwarderService {
       this.saveIdentity();
       this.joinResolve = resolve;
       const payload: JoinPayload = { type: "join", avatarId, botName, bio, tags, source };
-      const sendJoin = () => this.ws?.send(JSON.stringify(payload));
+      const sendJoin = () => {
+        // Skip if this join has timed out or been superseded by a newer join —
+        // a stale "open" listener must not send an outdated join payload.
+        if (this.joinResolve !== resolve) return;
+        this.ws?.send(JSON.stringify(payload));
+      };
       if (this.ws?.readyState === WebSocket.OPEN) {
         sendJoin();
       } else {
@@ -606,18 +611,26 @@ export class KichiForwarderService {
     }
 
     return new Promise((resolve) => {
+      let timer: NodeJS.Timeout | null = null;
+      let settled = false;
+      const finish = (result: LeaveResult) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        this.ws?.off("message", handler);
+        resolve(result);
+      };
       const handler = (data: WebSocket.Data) => {
         try {
           const msg = JSON.parse(data.toString());
           if (msg.type === "leave_ack") {
-            this.ws?.off("message", handler);
             const leaveAck = msg as LeaveAckPayload;
             if (leaveAck.success === false) {
-              resolve(this.buildAckFailure(leaveAck, "Leave failed"));
+              finish(this.buildAckFailure(leaveAck, "Leave failed"));
               return;
             }
             this.clearAuthKey();
-            resolve({ success: true });
+            finish({ success: true });
           }
         } catch (e) {
           this.log("warn", `failed to parse leave response: ${e}`);
@@ -627,9 +640,8 @@ export class KichiForwarderService {
       this.ws!.send(
         JSON.stringify({ type: "leave", avatarId: this.identity!.avatarId, authKey: this.identity!.authKey }),
       );
-      setTimeout(() => {
-        this.ws?.off("message", handler);
-        resolve({ success: false, error: "Timed out waiting for leave_ack" });
+      timer = setTimeout(() => {
+        finish({ success: false, error: "Timed out waiting for leave_ack" });
       }, 10000);
     });
   }
@@ -922,9 +934,11 @@ export class KichiForwarderService {
   }
 
   private isPlainIpHost(host: string): boolean {
+    // Bare IPv6 must contain a colon, otherwise hex-only hostnames like
+    // "beef" would be misclassified as local addresses and downgraded to ws://.
     return /^\d{1,3}(\.\d{1,3}){3}$/.test(host)
       || /^\[[0-9a-f:]+\]$/i.test(host)
-      || /^[0-9a-f:]+$/i.test(host);
+      || (host.includes(":") && /^[0-9a-f:]+$/i.test(host));
   }
 
   private persistCurrentHost(host: string, environment?: KichiEnvironment): void {
@@ -972,47 +986,69 @@ export class KichiForwarderService {
     fs.writeFileSync(this.getBotMessageHistoryPath(), JSON.stringify(nextStore, null, 2), { mode: 0o600 });
   }
 
-  private readStateFile(): Partial<KichiState> | null {
-    const statePath = this.getStatePath();
-    if (!fs.existsSync(statePath)) {
+  // Corrupt persistent files must never break hooks or message handling:
+  // log, move the bad file aside for later inspection, and treat it as missing
+  // so the next write rebuilds it.
+  private quarantineCorruptFile(filePath: string, reason: string): void {
+    this.log("warn", `${reason}; treating ${filePath} as missing`);
+    try {
+      fs.renameSync(filePath, `${filePath}.corrupt`);
+    } catch {
+      // Best effort — leave the file in place if the rename fails.
+    }
+  }
+
+  private readJsonFileOrQuarantine(filePath: string): unknown | null {
+    if (!fs.existsSync(filePath)) {
       return null;
     }
-    const data = JSON.parse(fs.readFileSync(statePath, "utf-8")) as unknown;
-    if (!data || typeof data !== "object") {
-      throw new Error(`Invalid state payload in ${statePath}`);
+    try {
+      return JSON.parse(fs.readFileSync(filePath, "utf-8")) as unknown;
+    } catch (e) {
+      this.quarantineCorruptFile(filePath, `failed to read or parse ${filePath}: ${e}`);
+      return null;
+    }
+  }
+
+  private readStateFile(): Partial<KichiState> | null {
+    const statePath = this.getStatePath();
+    const data = this.readJsonFileOrQuarantine(statePath);
+    if (data === null) {
+      return null;
+    }
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      this.quarantineCorruptFile(statePath, `invalid state payload in ${statePath}`);
+      return null;
     }
     return data as Partial<KichiState>;
   }
 
   private readSmsStateFile(): Partial<SmsState> | null {
     const smsStatePath = this.getSmsStatePath();
-    if (!fs.existsSync(smsStatePath)) {
+    const data = this.readJsonFileOrQuarantine(smsStatePath);
+    if (data === null) {
       return null;
     }
-    const data = JSON.parse(fs.readFileSync(smsStatePath, "utf-8")) as unknown;
     if (!data || typeof data !== "object" || Array.isArray(data)) {
-      throw new Error(`Invalid SMS state payload in ${smsStatePath}`);
+      this.quarantineCorruptFile(smsStatePath, `invalid SMS state payload in ${smsStatePath}`);
+      return null;
     }
     return data as Partial<SmsState>;
   }
 
   private readBotMessageTranscriptStore(): BotMessageTranscriptStore {
     const historyPath = this.getBotMessageHistoryPath();
-    if (!fs.existsSync(historyPath)) {
-      return { version: 1, entries: [] };
-    }
-    const data = JSON.parse(fs.readFileSync(historyPath, "utf-8")) as unknown;
-    if (!data || typeof data !== "object" || Array.isArray(data)) {
-      throw new Error(`Invalid bot message history payload in ${historyPath}`);
+    const emptyStore: BotMessageTranscriptStore = { version: 1, entries: [] };
+    const data = this.readJsonFileOrQuarantine(historyPath);
+    if (data === null) {
+      return emptyStore;
     }
     const store = data as Partial<BotMessageTranscriptStore>;
-    if (store.version !== 1 || !Array.isArray(store.entries)) {
-      throw new Error(`Invalid bot message history payload in ${historyPath}`);
-    }
-    for (const entry of store.entries) {
-      if (!this.isValidBotMessageTranscriptEntry(entry)) {
-        throw new Error(`Invalid bot message history entry in ${historyPath}`);
-      }
+    if (!data || typeof data !== "object" || Array.isArray(data)
+      || store.version !== 1 || !Array.isArray(store.entries)
+      || !store.entries.every((entry) => this.isValidBotMessageTranscriptEntry(entry))) {
+      this.quarantineCorruptFile(historyPath, `invalid bot message history payload in ${historyPath}`);
+      return emptyStore;
     }
     return {
       version: 1,

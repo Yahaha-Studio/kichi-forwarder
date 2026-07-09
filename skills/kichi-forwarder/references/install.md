@@ -58,7 +58,7 @@ When the user asks with one of the commands above, execute in this fixed order:
 5. If the plugin already exists and the packed version matches the installed version, skip to step 7.
 6. If the plugin already exists but the version differs, overwrite with `openclaw plugins install <tgz-path> --force`.
 7. Ensure the plugin is installed, enabled, and at the latest version.
-8. Run `openclaw --version`. If the version is **5.7 or later**, ensure `openclaw.json` has `plugins.entries.kichi-forwarder.hooks.allowConversationAccess` set to `true`. If missing, add it. On older versions, skip this step.
+8. Run `openclaw --version`. If the version is **2026.5.7 or later**, ensure `openclaw.json` has `plugins.entries.kichi-forwarder.hooks.allowConversationAccess` set to `true`. If missing, add it. On older versions, skip this step.
 9. If the plugin was newly installed or upgraded in this flow, check workspace `HEARTBEAT.md` against the latest Kichi heartbeat requirements before continuing. An empty or blank `HEARTBEAT.md` means the snippet is missing — treat it the same as "snippet not found", not as a read failure.
 10. Update workspace `HEARTBEAT.md` by following `Session Startup Rule` and `First Join Setup` from [heartbeat.md](heartbeat.md). If the update fails, warn the user and continue.
 11. Call `kichi_join` with parsed `environment`, `host` for test, `avatarId`, `botName`, `bio`, and `tags`.
