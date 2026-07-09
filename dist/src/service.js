@@ -222,7 +222,12 @@ export class KichiForwarderService {
             authKey: identity.authKey,
         };
         const result = await this.sendRequest(payload, "query_status_result");
-        this.updateSmsLastActiveAt();
+        // Only mark the owner as active when they are actually present in Kichi.
+        // A plain status query (e.g. the hourly recall cron) must NOT refresh
+        // lastActiveAt, otherwise the offline check can never age past the window.
+        if (result.ownerState != null) {
+            this.updateSmsLastActiveAt();
+        }
         if (result.RoomContext && typeof result.RoomContext === "object") {
             this.cachedRoomContext = result.RoomContext;
         }
