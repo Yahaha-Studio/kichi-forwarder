@@ -6,6 +6,7 @@ const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
 const JOIN_SOURCE_FILE_NAME = "join-source.json";
+const OFFICIAL_OPENCLAW_JOIN_SOURCE = "kichiclaw";
 const SMS_STATE_FILE_NAME = "sms-state.json";
 const BOT_MESSAGE_HISTORY_FILE_NAME = "bot-message-history.json";
 const MAX_BOT_MESSAGE_HISTORY_ENTRIES = 30;
@@ -349,6 +350,9 @@ export class KichiForwarderService {
             throw new Error(`${JOIN_SOURCE_FILE_NAME} must contain a non-empty string source`);
         }
         return source.trim();
+    }
+    isOfficialOpenClawSource() {
+        return this.readConfiguredJoinSource() === OFFICIAL_OPENCLAW_JOIN_SOURCE;
     }
     getStatePath() {
         return path.join(this.options.runtimeDir, "state.json");
