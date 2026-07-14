@@ -194,6 +194,33 @@ export type IdlePlanPayload = IdlePlanContent & {
   authKey: string;
 };
 
+export type MateDailySchedulePlace =
+  | { type: "home" }
+  | { type: "kichi_room" }
+  | { type: "real_world"; name: string };
+
+export type MateDailyScheduleSlot = {
+  h: number;
+  place: MateDailySchedulePlace;
+  act: string;
+  mood: string;
+  sleep: boolean;
+};
+
+export type MateDailySchedule = {
+  date: string;
+  timezone: string;
+  activeArcs: string[];
+  slots: MateDailyScheduleSlot[];
+};
+
+export type SyncMateDailySchedulePayload = {
+  type: "kichi_sync_mate_daily_schedule";
+  avatarId: string;
+  authKey: string;
+  schedule: MateDailySchedule;
+};
+
 export type ClockAction = "set" | "stop";
 
 export type ClockMode = "pomodoro" | "countDown" | "countUp";

@@ -169,6 +169,22 @@ export class KichiForwarderService {
         this.ws.send(JSON.stringify(outboundPayload));
         return true;
     }
+    syncMateDailySchedule(schedule) {
+        const identity = this.requireIdentity();
+        if (!identity) {
+            throw new Error("Missing Kichi identity");
+        }
+        if (this.ws?.readyState !== WebSocket.OPEN) {
+            throw new Error("Kichi websocket is not connected");
+        }
+        const payload = {
+            type: "kichi_sync_mate_daily_schedule",
+            avatarId: identity.avatarId,
+            authKey: identity.authKey,
+            schedule,
+        };
+        this.ws.send(JSON.stringify(payload));
+    }
     sendClock(action, clock, requestId) {
         if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN)
             return false;

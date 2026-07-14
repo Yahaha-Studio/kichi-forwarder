@@ -1,9 +1,12 @@
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { agentCommandFromIngress } from "openclaw/plugin-sdk/agent-runtime";
 import { parse } from "./src/config.js";
 import { KichiRuntimeManager } from "./src/runtime-manager.js";
 const BUNDLED_STATIC_CONFIG_PATH = new URL("./config/kichi-config.json", import.meta.url);
+const MATE_DAILY_SCHEDULE_PATH = path.join(os.homedir(), ".openclaw", "kichi-world", "agents", "main", "daily-schedule.json");
 function jsonResult(payload) {
     return { content: [{ type: "text", text: JSON.stringify(payload) }], details: payload };
 }
@@ -489,6 +492,99 @@ function registerPluginHooks(api, runtimeManager) {
 }
 function isPlainObject(value) {
     return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function parseMateDailySchedulePlace(value, slotIndex) {
+    if (!isPlainObject(value)) {
+        throw new Error(`slots[${slotIndex}].place must be an object`);
+    }
+    const type = value.type;
+    if (type === "home" || type === "kichi_room") {
+        return { type };
+    }
+    if (type === "real_world") {
+        if (typeof value.name !== "string" || !value.name.trim()) {
+            throw new Error(`slots[${slotIndex}].place.name must be a non-empty string for real_world`);
+        }
+        return { type, name: value.name };
+    }
+    throw new Error(`slots[${slotIndex}].place.type must be one of: home, kichi_room, real_world`);
+}
+function parseMateDailyScheduleSlot(value, index) {
+    if (!isPlainObject(value)) {
+        throw new Error(`slots[${index}] must be an object`);
+    }
+    const hour = value.h;
+    if (typeof hour !== "number" || !Number.isInteger(hour) || hour < 0 || hour > 23) {
+        throw new Error(`slots[${index}].h must be an integer between 0 and 23`);
+    }
+    if (typeof value.act !== "string") {
+        throw new Error(`slots[${index}].act must be a string`);
+    }
+    if (typeof value.mood !== "string") {
+        throw new Error(`slots[${index}].mood must be a string`);
+    }
+    if (typeof value.sleep !== "boolean") {
+        throw new Error(`slots[${index}].sleep must be a boolean`);
+    }
+    return {
+        h: hour,
+        place: parseMateDailySchedulePlace(value.place, index),
+        act: value.act,
+        mood: value.mood,
+        sleep: value.sleep,
+    };
+}
+function parseMateDailySchedule(value) {
+    if (!isPlainObject(value)) {
+        throw new Error("daily-schedule.json must contain a JSON object");
+    }
+    if (typeof value.date !== "string" || !value.date.trim()) {
+        throw new Error("date must be a non-empty string");
+    }
+    if (typeof value.timezone !== "string" || !value.timezone.trim()) {
+        throw new Error("timezone must be a non-empty string");
+    }
+    if (!Array.isArray(value.activeArcs) || !value.activeArcs.every((item) => typeof item === "string")) {
+        throw new Error("activeArcs must be an array of strings");
+    }
+    if (!Array.isArray(value.slots)) {
+        throw new Error("slots must be an array");
+    }
+    return {
+        date: value.date,
+        timezone: value.timezone,
+        activeArcs: value.activeArcs,
+        slots: value.slots.map(parseMateDailyScheduleSlot),
+    };
+}
+function readMateDailySchedule() {
+    const raw = fs.readFileSync(MATE_DAILY_SCHEDULE_PATH, "utf8");
+    return parseMateDailySchedule(JSON.parse(raw));
+}
+function createMateDailyScheduleSyncTool(service) {
+    return {
+        name: "kichi_sync_mate_daily_schedule",
+        label: "kichi_sync_mate_daily_schedule",
+        description: "Read today's mate daily schedule from the canonical Kichi World file and sync it to Kichi server.",
+        parameters: { type: "object", properties: {} },
+        execute: async (_toolCallId, _params) => {
+            try {
+                const schedule = readMateDailySchedule();
+                service.syncMateDailySchedule(schedule);
+                return jsonResult({
+                    success: true,
+                    date: schedule.date,
+                    slotCount: schedule.slots.length,
+                });
+            }
+            catch (error) {
+                return jsonResult({
+                    success: false,
+                    error: `Failed to sync mate daily schedule from ${MATE_DAILY_SCHEDULE_PATH}: ${error instanceof Error ? error.message : String(error)}`,
+                });
+            }
+        },
+    };
 }
 function isNonNegativeInteger(value) {
     return typeof value === "number" && Number.isInteger(value) && value >= 0;
@@ -1019,6 +1115,18 @@ const plugin = {
                 }
             },
         });
+        api.registerTool((ctx) => {
+            const locator = resolveToolLocator(ctx);
+            const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+            if (!agentId) {
+                return null;
+            }
+            const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
+            if (!service.isOfficialOpenClawSource()) {
+                return null;
+            }
+            return createMateDailyScheduleSyncTool(service);
+        }, { name: "kichi_sync_mate_daily_schedule" });
         api.registerTool((ctx) => ({
             name: "kichi_join",
             label: "kichi_join",

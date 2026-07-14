@@ -30,11 +30,13 @@ import type {
   KichiIdentity,
   KichiState,
   LeaveAckPayload,
+  MateDailySchedule,
   PoseType,
   QueryStatusPayload,
   QueryStatusResultPayload,
   StatusAckPayload,
   StatusPayload,
+  SyncMateDailySchedulePayload,
 } from "./types.js";
 
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
@@ -279,6 +281,24 @@ export class KichiForwarderService {
     };
     this.ws.send(JSON.stringify(outboundPayload));
     return true;
+  }
+
+  syncMateDailySchedule(schedule: MateDailySchedule): void {
+    const identity = this.requireIdentity();
+    if (!identity) {
+      throw new Error("Missing Kichi identity");
+    }
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      throw new Error("Kichi websocket is not connected");
+    }
+
+    const payload: SyncMateDailySchedulePayload = {
+      type: "kichi_sync_mate_daily_schedule",
+      avatarId: identity.avatarId,
+      authKey: identity.authKey,
+      schedule,
+    };
+    this.ws.send(JSON.stringify(payload));
   }
 
   sendClock(action: ClockAction, clock?: ClockConfig, requestId?: string): boolean {
