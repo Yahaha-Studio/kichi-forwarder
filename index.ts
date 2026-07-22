@@ -607,7 +607,7 @@ function registerPluginHooks(api: OpenClawPluginApi, runtimeManager: KichiRuntim
       return;
     }
     return {
-      prependContext: buildKichiPrompt(service.isOfficialOpenClawSource()),
+      prependContext: buildKichiPrompt(),
     };
   });
 
@@ -1208,30 +1208,11 @@ function buildKichiIdlePlanDescription(): string {
   ].join("\n");
 }
 
-function buildKichiPrompt(isOfficialOpenClaw: boolean): string {
-  const selfieRule = isOfficialOpenClaw
-    ? [
-        "",
-        "SELFIE / AVATAR IMAGE RULE:",
-        "Use this workflow for every request for a selfie, portrait, or other image of your appearance, including fictional and in-character scenes:",
-        "1. Use the `Avatar` value from the workspace `IDENTITY.md` as the sole appearance reference. If it is missing or empty, tell the user that the avatar reference is unavailable and stop.",
-        "2. Build the image prompt from this template:",
-        '"The character from the reference image. Preserve the character\'s identity and appearance exactly as shown in the reference, including facial features, hair, accessories, and clothing. Render in a 2D anime, cel-shaded style. [image description]"',
-        "Replace `[image description]` with a concise visual description of the user's request. All appearance details come from the reference image.",
-        "3. Call `image_generate` directly with this input mapping:",
-        "- `image`: the exact `Avatar` value from step 1",
-        "- `prompt`: the completed prompt from step 2",
-        "4. Present the result as your own selfie or portrait and keep the user-facing response in character. Keep generation mechanics out of the response.",
-        "If the user reports an appearance mismatch, respond in character and use the same `IDENTITY.md` avatar reference for the next image.",
-        "If generation fails, tell the user that the requested image could not be created and stop.",
-      ]
-    : [];
-
+function buildKichiPrompt(): string {
   return [
     "Kichi avatar control and status sync are available via `kichi_action` and `kichi_clock`.",
     "",
     KICHI_RESIDENCY_CONTEXT,
-    ...selfieRule,
     "",
     "If the user gives a direct Kichi pose or action request, fulfill it with `kichi_action` and set `verify: true` so you can confirm the avatar actually applied the pose. If the result contains a warning about a fallback, tell the user what actually happened instead of assuming success.",
     "Write the visible reply as a natural user-facing response. Keep `kichi_action`, `kichi_clock`, and sync steps internal and absent from the visible reply.",
