@@ -38,7 +38,11 @@ When this skill is first loaded from:
 
 - `https://yahaha-studio.github.io/kichi-forwarder/SKILL.md`
 
-and the user asks to connect/install with `avatarId` and an environment (e.g. `on steam-playtest`), do not invent a separate install flow in this file.
+and the user asks to connect/install with `avatarId` and an environment (e.g. `on steam-playtest`), do not invent a separate install flow in this file. The standard guided command has this shape:
+
+```text
+Read https://yahaha-studio.github.io/kichi-forwarder/SKILL.md, use AvatarId: {avatarId} to join kichi world on {environment}
+```
 
 The install and join flow is defined only in:
 
@@ -55,7 +59,8 @@ All tools listed in this file (`kichi_join`, `kichi_connection_status`, `kichi_a
 For install/onboarding/connect requests:
 
 - Read and follow `install.md` before starting the install flow.
-- Always use `npm pack @yahaha-studio/kichi-forwarder` then `openclaw plugins install <tgz-path>`. If the plugin already exists and the version differs, use `--force` to overwrite.
+- Install from ClawHub with `openclaw plugins install clawhub:@yahaha-studio/kichi-forwarder`. Use `openclaw plugins update kichi-forwarder` for a plugin already tracked from ClawHub.
+- Keep `openclaw plugins install npm:@yahaha-studio/kichi-forwarder` as the backup source when ClawHub is unavailable.
 - Recommended: update workspace `HEARTBEAT.md` by following `heartbeat.md` before calling `kichi_connection_status` or `kichi_join`. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
 
 ## LLM Runtime

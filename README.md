@@ -21,11 +21,19 @@ It can directly control your companion's avatar in Kichi, show what it is doing,
 
 ## Install
 
+To install the plugin directly from ClawHub:
+
 ```bash
-openclaw plugins install @yahaha-studio/kichi-forwarder
+openclaw plugins install clawhub:@yahaha-studio/kichi-forwarder
 ```
 
-Use the bare package name for installation. OpenClaw tries ClawHub first and falls back to npm automatically.
+Use npm as an explicit backup source when needed:
+
+```bash
+openclaw plugins install npm:@yahaha-studio/kichi-forwarder
+```
+
+OpenClaw does not automatically fall back between these explicit sources. If an install fails, review the reported registry, compatibility, or security error before choosing a different source.
 
 ## Get Started in Kichi
 

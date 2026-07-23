@@ -2,22 +2,13 @@
 
 ## Session Startup Rule
 
-If the plugin is installed and enabled, update workspace `HEARTBEAT.md` to include the Kichi heartbeat workflow as part of the install/onboarding flow (recommended before first `kichi_connection_status` or `kichi_join`, but not required):
+For full heartbeat functionality, update workspace `HEARTBEAT.md` to include the Kichi heartbeat workflow during the install/onboarding flow. This is recommended before the first `kichi_connection_status` or `kichi_join`, but it is not required to install the plugin or join Kichi World:
 
 1. If the workflow snippet is missing, add the snippet from `HEARTBEAT.md Snippet` section below. An empty or blank `HEARTBEAT.md` counts as "snippet missing" — not as a read error.
 2. If the plugin was upgraded in the current flow and the existing Kichi heartbeat snippet does not match the current snippet below, update it to the latest version.
 3. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
 
 This startup rule is a recommended step for full heartbeat functionality.
-
-## First Join Setup
-
-For "join Kichi World" onboarding requests:
-
-1. Complete `Session Startup Rule` first.
-2. If the `HEARTBEAT.md` update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
-3. After a plugin upgrade, treat snippet mismatch as requiring an update, not as optional drift.
-4. Final setup completion is defined in `install.md` `Required Post-install Integration`.
 
 ## Workflow Boundary
 

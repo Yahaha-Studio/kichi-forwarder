@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
   OpenClawPluginApi,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/plugin-entry";
 import type { OpenClawPluginToolContext } from "openclaw/plugin-sdk/core";
 import { agentCommandFromIngress } from "openclaw/plugin-sdk/agent-runtime";
 import { parse } from "./src/config.js";

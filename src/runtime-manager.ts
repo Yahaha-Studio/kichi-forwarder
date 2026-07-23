@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { PluginLogger } from "openclaw/plugin-sdk";
+import type { PluginLogger } from "openclaw/plugin-sdk/plugin-entry";
 import { KichiForwarderService } from "./service.js";
 import type { BotMessageReceivedHandler } from "./service.js";
 import type { KichiEnvironment } from "./types.js";

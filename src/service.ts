@@ -2,7 +2,7 @@ import WebSocket from "ws";
 import * as fs from "fs";
 import * as path from "path";
 import { randomUUID } from "node:crypto";
-import type { PluginLogger } from "openclaw/plugin-sdk";
+import type { PluginLogger } from "openclaw/plugin-sdk/plugin-entry";
 import type {
   ActionPlayback,
   AvatarStatus,
