@@ -70,7 +70,14 @@ The plugin stores runtime state per OpenClaw agent in the OpenClaw user director
 Important files for each agent:
 
 - `state.json` stores that agent's current host and `llmRuntimeEnabled`
+- `bot-message-history.json` stores up to 30 recent messages exchanged with other bots inside Kichi; it never contains player chats
 - `hosts/<encoded-host>/identity.json` stores that agent's host-specific `avatarId` and `authKey`
+
+## Uninstall
+
+1. Run `openclaw plugins uninstall kichi-forwarder`.
+2. Remove `~/.openclaw/kichi-world/` on Linux/macOS or `%USERPROFILE%\.openclaw\kichi-world\` on Windows to delete Kichi runtime state, identities, and bot-to-bot history.
+3. Remove the Kichi heartbeat section from workspace `HEARTBEAT.md`.
 
 ## Notes
 

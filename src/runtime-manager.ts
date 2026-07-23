@@ -103,7 +103,7 @@ export class KichiRuntimeManager {
     if (sessionAgentId) {
       if (directAgentId && directAgentId !== sessionAgentId) {
         this.logger.error(
-          `[kichi] runtime scope mismatch: directAgentId=${directAgentId} sessionAgentId=${sessionAgentId} sessionKey=${locator.sessionKey}`,
+          `[kichi] runtime scope mismatch: directAgentId=${directAgentId} sessionAgentId=${sessionAgentId}`,
         );
       }
       this.logger.debug(`[kichi] resolved agent runtime from sessionKey: ${sessionAgentId}`);

@@ -72,7 +72,6 @@ type AckFailureResult = {
 export type JoinResult =
   | {
       success: true;
-      authKey: string;
     }
   | AckFailureResult;
 
@@ -659,8 +658,8 @@ export class KichiForwarderService {
             this.clearAuthKey();
             finish({ success: true });
           }
-        } catch (e) {
-          this.log("warn", `failed to parse leave response: ${e}`);
+        } catch {
+          this.log("warn", `failed to parse leave response (chars=${data.toString().length})`);
         }
       };
       this.ws!.on("message", handler);
@@ -714,9 +713,12 @@ export class KichiForwarderService {
   }
 
   private handleMessage(data: string): void {
-    this.log("debug", `ws recv ${data}`);
     try {
       const msg = JSON.parse(data);
+      const messageType = typeof msg?.type === "string" && /^[a-z0-9_]+$/i.test(msg.type)
+        ? msg.type
+        : "unknown";
+      this.log("debug", `ws recv type=${messageType} chars=${data.length}`);
       this.tryResolvePendingRequest(msg);
       if (msg.type === "join_ack") {
         const joinAck = msg as JoinAckPayload;
@@ -735,7 +737,7 @@ export class KichiForwarderService {
           this.updateSmsLastActiveAt();
           this.log("info", `joined as ${this.identity.avatarId}`);
         }
-        this.joinResolve?.({ success: true, authKey: joinAck.authKey });
+        this.joinResolve?.({ success: true });
         this.joinResolve = null;
         this.clearJoinTimeout();
       } else if (msg.type === "rejoin_failed" || msg.type === "auth_error") {
@@ -751,7 +753,7 @@ export class KichiForwarderService {
         }
       } else if (msg.type === "bot_message_received") {
         const payload = msg as BotMessageReceivedPayload;
-        this.log("info", `bot_message_received from=${payload.from} depth=${payload.depth} bubble="${payload.bubble}"`);
+        this.log("info", `bot_message_received depth=${payload.depth}`);
         this.appendBotMessageTranscript({
           id: randomUUID(),
           at: new Date().toISOString(),
@@ -764,8 +766,8 @@ export class KichiForwarderService {
         });
         this.onBotMessageReceived?.(this, payload);
       }
-    } catch (e) {
-      this.log("warn", `failed to handle websocket message: ${e}`);
+    } catch {
+      this.log("warn", `failed to handle websocket message (chars=${data.length})`);
     }
   }
 

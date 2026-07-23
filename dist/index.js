@@ -402,7 +402,7 @@ function notifyMessageReceived(api, service, content) {
         return;
     }
     const trimmed = truncateByDisplayWidth(content, MAX_MESSAGE_RECEIVED_PREVIEW_WIDTH);
-    api.logger.debug(`[kichi:${service.getAgentId()}] sending message_received notify with preview: ${trimmed || "(empty)"}`);
+    api.logger.debug(`[kichi:${service.getAgentId()}] sending message_received notify (chars=${trimmed.length})`);
     service.sendHookNotify("message_received", `"${trimmed}"`);
 }
 function trimOptionalString(value) {
@@ -487,12 +487,12 @@ function registerPluginHooks(api, runtimeManager) {
         const locator = resolveAgentHookLocator(ctx);
         const service = runtimeManager.getRuntime(locator);
         const preview = getLastAssistantPreview(event.messages, MAX_AGENT_END_PREVIEW_WIDTH);
-        api.logger.debug(`[kichi:${service?.getAgentId() ?? "unknown"}] agent_end fired (trigger=${ctx.trigger ?? "unknown"}, success=${event.success}, durationMs=${event.durationMs ?? 0}, error=${event.error ?? ""}, preview=${preview || "(empty)"})`);
+        api.logger.debug(`[kichi:${service?.getAgentId() ?? "unknown"}] agent_end fired (trigger=${ctx.trigger ?? "unknown"}, success=${event.success}, durationMs=${event.durationMs ?? 0})`);
         if (ctx.trigger === "heartbeat") {
             return;
         }
         if (service && event.success && preview) {
-            api.logger.debug(`[kichi:${service.getAgentId()}] sending before_send_message notify with bubble: ${preview}`);
+            api.logger.debug(`[kichi:${service.getAgentId()}] sending before_send_message notify (chars=${preview.length})`);
             service.sendHookNotify("before_send_message", preview);
         }
         if (!service || service.isLlmRuntimeEnabled()) {
@@ -994,7 +994,9 @@ function buildKichiResidencyContext(includeDailySchedule) {
         "KICHI WORLD PRESENCE:",
         ...KICHI_RESIDENCY_RULES,
         ...(includeDailySchedule ? [
-            `- When asked about today's plans or activities, use ${MATE_DAILY_SCHEDULE_PATH} as your own schedule and answer in character. If the file is missing, invent a plausible plan consistent with your persona.`,
+            "- When asked about your current location, what you're doing, today's plans, or activities, check Kichi room status first. If isAvatarInScene is true, answer from it in character.",
+            `- If Kichi room status is unavailable or isAvatarInScene is false, read ${MATE_DAILY_SCHEDULE_PATH}, use it as your own status, and answer in character.`,
+            `- If ${MATE_DAILY_SCHEDULE_PATH} is missing or unreadable, improvise an in-character answer.`,
         ] : []),
     ].join("\n");
 }
@@ -1241,7 +1243,6 @@ const plugin = {
                 if (result.success) {
                     return jsonResult({
                         success: true,
-                        authKey: result.authKey,
                         ...(target.environment ? { environment: target.environment } : {}),
                         ...(target.host ? { host: target.host } : {}),
                         ...(switchStatus ? { switchStatus } : {}),
@@ -1455,9 +1456,13 @@ const plugin = {
                             }
                         }
                         catch (error) {
-                            // Server not updated or ack timed out — the status was almost certainly
-                            // sent, so report success rather than derailing the agent's workflow.
-                            api.logger.debug(`[kichi:${service.getAgentId()}] verified status ack unavailable, reporting unverified success: ${error}`);
+                            const message = error instanceof Error ? error.message : String(error);
+                            api.logger.debug(`[kichi:${service.getAgentId()}] verified status ack unavailable: ${message}`);
+                            return jsonResult({
+                                success: false,
+                                verified: false,
+                                error: `Kichi action could not be verified: ${message}`,
+                            });
                         }
                     }
                     else {
@@ -1940,7 +1945,7 @@ const plugin = {
         api.registerTool((ctx) => ({
             name: "kichi_bot_message_history",
             label: "kichi_bot_message_history",
-            description: "Read recent Kichi bot-to-bot message history for this agent. Use when the user asks what you discussed with another Kichi bot, what another bot replied, or what bot messages were recently sent or received.",
+            description: "Read up to the 30 most recent Kichi bot-to-bot messages for this agent. This history contains only conversations with other bots inside Kichi and never includes player chats. Use when the user asks what you discussed with another Kichi bot, what another bot replied, or what bot messages were recently sent or received.",
             parameters: {
                 type: "object",
                 properties: {
