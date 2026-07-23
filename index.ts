@@ -2083,7 +2083,7 @@ const plugin = {
       name: "kichi_query_status",
       label: "kichi_query_status",
       description:
-        "Query Kichi room and avatar status — includes room personnel, notes, ownerState, idlePlan, weather/time, timer snapshot, daily note quota (`canCreateNoteboardNote`, `remaining`, `dailyLimit`), `isAvatarInScene`, `hasCreatedMusicAlbumToday`, and RoomContext.PoseableProps (poseable props with PropId, DisplayName, Description, SupportedPoseTypes, OccupancyState). The PoseableProps list is cached internally so that kichi_action can reference a propId during regular work sync without re-querying. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
+        "Query Kichi room and avatar status — includes room personnel, notes, currentUserActivity, idlePlan, weather/time, timer snapshot, daily note quota (`canCreateNoteboardNote`, `remaining`, `dailyLimit`), `isAvatarInScene`, `hasCreatedMusicAlbumToday`, and RoomContext.PoseableProps (poseable props with PropId, DisplayName, Description, SupportedPoseTypes, OccupancyState). The PoseableProps list is cached internally so that kichi_action can reference a propId during regular work sync without re-querying. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
       parameters: {
         type: "object",
         properties: {

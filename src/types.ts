@@ -288,14 +288,14 @@ export type QueryStatusResultPayload = {
   errorCode: string;
   errorMessage: string;
   notes: QueryStatusNote[];
-  ownerState?: QueryStatusOwnerState | null;
+  currentUserActivity?: QueryStatusCurrentUserActivity | null;
   timer?: Record<string, unknown> | null;
   idlePlan?: IdlePlanContent | null;
   /** All other server fields (timer, environmentWeather, etc.) are passed through to the LLM as-is. */
   [key: string]: unknown;
 };
 
-export type QueryStatusOwnerState = {
+export type QueryStatusCurrentUserActivity = {
   poseType?: string;
   action?: string;
   interactingItemName?: string;
@@ -306,7 +306,7 @@ export type QueryStatusNote = {
   propId: string;
   authorName: string;
   isCreatedByCurrentAgent: boolean;
-  isFromOwner: boolean;
+  isFromCurrentUser: boolean;
   createdAtUtc: string;
   content: string;
 };
