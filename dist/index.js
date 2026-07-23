@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { agentCommandFromIngress } from "openclaw/plugin-sdk/agent-runtime";
 import { parse } from "./src/config.js";
+import { normalizeKichiHost } from "./src/host.js";
 import { KichiRuntimeManager } from "./src/runtime-manager.js";
 const BUNDLED_STATIC_CONFIG_PATH = new URL("./config/kichi-config.json", import.meta.url);
 const MATE_DAILY_SCHEDULE_PATH = path.join(os.homedir(), ".openclaw", "kichi-world", "agents", "main", "daily-schedule.json");
@@ -48,14 +49,11 @@ const MESSAGE_RECEIVED_ELLIPSIS = "...";
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
 const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"];
 const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"];
-const KICHI_RESIDENCY_CONTEXT = [
-    "KICHI WORLD PRESENCE:",
-    "- Your Kichi avatar is your resident body in Kichi World.",
-    "- For Kichi-related replies, speak from that avatar's first-person, in-world perspective.",
-    "- Make the reply feel like you live and spend time in Kichi World, not like you are operating an external plugin, remote control, or temporary projection.",
-    "- Keep tool names, websocket details, status sync mechanics, and implementation details out of the visible reply.",
-    "- Visible replies must not invent unavailable room facts; if current Kichi context lacks a room detail, say that detail is not available.",
-].join("\n");
+const KICHI_RESIDENCY_RULES = [
+    "- Your Kichi avatar is your resident body in Kichi World. Speak about Kichi in first person, as someone who lives there.",
+    "- Keep tool names, websocket and status-sync mechanics, and other implementation details out of visible replies.",
+    "- Do not invent room details missing from the current Kichi context; say they are unavailable.",
+];
 let cachedStaticConfig = null;
 let cachedStaticConfigMtime = 0;
 function isAlbumConfig(value) {
@@ -204,7 +202,14 @@ function resolveEnvironmentHost(environment) {
     const config = loadEnvironmentsConfig();
     const configuredHost = config[environment];
     if (typeof configuredHost === "string" && configuredHost.trim()) {
-        return { host: configuredHost };
+        const host = configuredHost.trim();
+        try {
+            normalizeKichiHost(host);
+            return { host };
+        }
+        catch (error) {
+            return { error: `environment "${environment}" has an invalid host: ${error instanceof Error ? error.message : String(error)}` };
+        }
     }
     return { error: `environment "${environment}" has no configured host — update config/environments.json first` };
 }
@@ -217,7 +222,13 @@ function resolveJoinEnvironmentHost(params) {
         if (!testHost) {
             return { error: "host is required for the test environment" };
         }
-        return { environment: params.environment, host: testHost };
+        try {
+            normalizeKichiHost(testHost);
+            return { environment: params.environment, host: testHost };
+        }
+        catch (error) {
+            return { environment: params.environment, error: error instanceof Error ? error.message : String(error) };
+        }
     }
     const resolved = resolveEnvironmentHost(params.environment);
     if (resolved.error) {
@@ -459,7 +470,7 @@ function registerPluginHooks(api, runtimeManager) {
             return;
         }
         return {
-            prependContext: buildKichiPrompt(),
+            prependContext: buildKichiPrompt(service.isOfficialOpenClawSource()),
         };
     });
     api.on("before_tool_call", (_event, ctx) => {
@@ -978,11 +989,20 @@ function buildKichiIdlePlanDescription() {
         "Choose action names from the per-pose action lists in the kichi_action tool description (stand/sit/lay/floor).",
     ].join("\n");
 }
-function buildKichiPrompt() {
+function buildKichiResidencyContext(includeDailySchedule) {
+    return [
+        "KICHI WORLD PRESENCE:",
+        ...KICHI_RESIDENCY_RULES,
+        ...(includeDailySchedule ? [
+            `- When asked about today's plans or activities, use ${MATE_DAILY_SCHEDULE_PATH} as your own schedule and answer in character. If the file is missing, invent a plausible plan consistent with your persona.`,
+        ] : []),
+    ].join("\n");
+}
+function buildKichiPrompt(includeDailySchedule) {
     return [
         "Kichi avatar control and status sync are available via `kichi_action` and `kichi_clock`.",
         "",
-        KICHI_RESIDENCY_CONTEXT,
+        buildKichiResidencyContext(includeDailySchedule),
         "",
         "If the user gives a direct Kichi pose or action request, fulfill it with `kichi_action` and set `verify: true` so you can confirm the avatar actually applied the pose. If the result contains a warning about a fallback, tell the user what actually happened instead of assuming success.",
         "Write the visible reply as a natural user-facing response. Keep `kichi_action`, `kichi_clock`, and sync steps internal and absent from the visible reply.",
@@ -1158,12 +1178,14 @@ const plugin = {
                     environment: p?.environment,
                     host: p?.host,
                 });
-                if (target.error) {
-                    return jsonResult({ success: false, error: target.error });
+                if (target.error || !target.host) {
+                    return jsonResult({ success: false, error: target.error ?? "Failed to resolve target host" });
                 }
                 const currentStatus = service.getConnectionStatus();
+                const currentHost = currentStatus.host ? normalizeKichiHost(currentStatus.host) : undefined;
+                const targetHost = normalizeKichiHost(target.host);
                 let avatarId = p?.avatarId;
-                if (!avatarId && currentStatus.host === target.host) {
+                if (!avatarId && currentHost === targetHost) {
                     avatarId = service.readSavedAvatarId() ?? undefined;
                 }
                 const botName = p?.botName?.trim();
@@ -1192,8 +1214,8 @@ const plugin = {
                     return jsonResult({ success: false, error: tagsError });
                 }
                 let leaveStatus;
-                const shouldLeaveCurrentConnection = currentStatus.connected && currentStatus.hasAuthKey && ((!!currentStatus.host && currentStatus.host !== target.host) ||
-                    (currentStatus.host === target.host && !!currentStatus.avatarId && !!avatarId && currentStatus.avatarId !== avatarId));
+                const shouldLeaveCurrentConnection = currentStatus.connected && currentStatus.hasAuthKey && ((!!currentHost && currentHost !== targetHost) ||
+                    (currentHost === targetHost && !!currentStatus.avatarId && !!avatarId && currentStatus.avatarId !== avatarId));
                 if (shouldLeaveCurrentConnection) {
                     try {
                         leaveStatus = await service.leave();
@@ -1206,7 +1228,7 @@ const plugin = {
                     }
                 }
                 let switchStatus;
-                if (target.environment && target.host && service.getCurrentHost() !== target.host) {
+                if (target.environment && target.host && currentHost !== targetHost) {
                     switchStatus = await service.switchHost(target.host, target.environment);
                 }
                 if (!avatarId) {
@@ -1270,21 +1292,11 @@ const plugin = {
                 if (!isKichiEnvironment(environment)) {
                     return jsonResult({ success: false, error: `environment must be one of: ${VALID_ENVIRONMENTS.join(", ")}` });
                 }
-                let targetHost;
-                if (environment === "test") {
-                    const testHost = typeof p?.host === "string" ? p.host.trim() : "";
-                    if (!testHost) {
-                        return jsonResult({ success: false, error: "host is required for the test environment" });
-                    }
-                    targetHost = testHost;
+                const target = resolveJoinEnvironmentHost({ environment, host: p?.host });
+                if (target.error || !target.host) {
+                    return jsonResult({ success: false, error: target.error ?? "Failed to resolve target host" });
                 }
-                else {
-                    const resolved = resolveEnvironmentHost(environment);
-                    if (resolved.error) {
-                        return jsonResult({ success: false, error: resolved.error });
-                    }
-                    targetHost = resolved.host;
-                }
+                const targetHost = target.host;
                 const status = await service.switchHost(targetHost, environment);
                 return jsonResult({
                     success: true,

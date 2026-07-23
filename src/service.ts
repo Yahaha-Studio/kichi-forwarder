@@ -38,6 +38,7 @@ import type {
   StatusPayload,
   SyncMateDailySchedulePayload,
 } from "./types.js";
+import { buildKichiWebSocketUrl, normalizeKichiHost } from "./host.js";
 
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
@@ -146,6 +147,7 @@ export class KichiForwarderService {
   }
 
   async switchHost(host: string, environment?: KichiEnvironment): Promise<KichiConnectionStatus> {
+    normalizeKichiHost(host);
     this.persistCurrentHost(host, environment);
     this.host = host;
     this.environment = environment ?? null;
@@ -952,18 +954,7 @@ export class KichiForwarderService {
     if (!this.host) {
       throw new Error("No Kichi host configured");
     }
-    const isLocal = this.isPlainIpHost(this.host) || this.host === "localhost";
-    const protocol = isLocal ? "ws" : "wss";
-    const port = isLocal ? ":48870" : "";
-    return `${protocol}://${this.host}${port}/ws/openclaw`;
-  }
-
-  private isPlainIpHost(host: string): boolean {
-    // Bare IPv6 must contain a colon, otherwise hex-only hostnames like
-    // "beef" would be misclassified as local addresses and downgraded to ws://.
-    return /^\d{1,3}(\.\d{1,3}){3}$/.test(host)
-      || /^\[[0-9a-f:]+\]$/i.test(host)
-      || (host.includes(":") && /^[0-9a-f:]+$/i.test(host));
+    return buildKichiWebSocketUrl(this.host);
   }
 
   private persistCurrentHost(host: string, environment?: KichiEnvironment): void {
