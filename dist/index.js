@@ -49,10 +49,14 @@ const MESSAGE_RECEIVED_ELLIPSIS = "...";
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
 const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"];
 const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"];
+const PRESENCE_SCOPES = ["current", "today"];
 const KICHI_RESIDENCY_RULES = [
     "- Your Kichi avatar is your resident body in Kichi World. Speak about Kichi in first person, as someone who lives there.",
     "- Keep tool names, websocket and status-sync mechanics, and other implementation details out of visible replies.",
     "- Do not invent room details missing from the current Kichi context; say they are unavailable.",
+    "- Mention your location, current activity, or plans only when the user's current message asks about them or follows up on the user's earlier question about them.",
+    "- Do not mention your location, current activity, or plans in greetings, acknowledgements, or unrelated small talk.",
+    "- Do not mention your location, current activity, or plans only because your own earlier reply mentioned them.",
 ];
 let cachedStaticConfig = null;
 let cachedStaticConfigMtime = 0;
@@ -470,7 +474,7 @@ function registerPluginHooks(api, runtimeManager) {
             return;
         }
         return {
-            prependContext: buildKichiPrompt(service.isOfficialOpenClawSource()),
+            prependSystemContext: buildKichiPrompt(),
         };
     });
     api.on("before_tool_call", (_event, ctx) => {
@@ -572,6 +576,71 @@ function readMateDailySchedule() {
     const raw = fs.readFileSync(MATE_DAILY_SCHEDULE_PATH, "utf8");
     return parseMateDailySchedule(JSON.parse(raw));
 }
+function isPresenceScope(value) {
+    return typeof value === "string" && PRESENCE_SCOPES.includes(value);
+}
+function getScheduleLocalDateAndHour(timezone, now = new Date()) {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        hourCycle: "h23",
+    });
+    const parts = formatter.formatToParts(now);
+    const readPart = (type) => {
+        const value = parts.find((part) => part.type === type)?.value;
+        if (!value) {
+            throw new Error(`Failed to resolve ${type} in timezone ${timezone}`);
+        }
+        return value;
+    };
+    const hour = Number.parseInt(readPart("hour"), 10);
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+        throw new Error(`Failed to resolve current hour in timezone ${timezone}`);
+    }
+    return {
+        date: `${readPart("year")}-${readPart("month")}-${readPart("day")}`,
+        hour,
+    };
+}
+function resolveMateDailySchedule(schedule, scope, now = new Date()) {
+    const local = getScheduleLocalDateAndHour(schedule.timezone, now);
+    if (schedule.date !== local.date) {
+        throw new Error(`daily-schedule.json is for ${schedule.date}, but the current date in ${schedule.timezone} is ${local.date}`);
+    }
+    const slots = [...schedule.slots].sort((left, right) => left.h - right.h);
+    if (slots.length === 0) {
+        throw new Error("daily-schedule.json must contain at least one slot");
+    }
+    for (let index = 1; index < slots.length; index += 1) {
+        if (slots[index - 1].h === slots[index].h) {
+            throw new Error(`daily-schedule.json contains duplicate slots for hour ${slots[index].h}`);
+        }
+    }
+    let currentSlot;
+    for (const slot of slots) {
+        if (slot.h > local.hour) {
+            break;
+        }
+        currentSlot = slot;
+    }
+    if (!currentSlot) {
+        throw new Error(`daily-schedule.json has no slot covering hour ${local.hour}`);
+    }
+    const resolved = {
+        date: schedule.date,
+        timezone: schedule.timezone,
+        currentHour: local.hour,
+        currentSlot,
+    };
+    if (scope === "today") {
+        resolved.activeArcs = schedule.activeArcs;
+        resolved.upcomingSlots = slots.filter((slot) => slot.h > local.hour);
+    }
+    return resolved;
+}
 function createMateDailyScheduleSyncTool(service) {
     return {
         name: "kichi_sync_mate_daily_schedule",
@@ -592,6 +661,118 @@ function createMateDailyScheduleSyncTool(service) {
                 return jsonResult({
                     success: false,
                     error: `Failed to sync mate daily schedule from ${MATE_DAILY_SCHEDULE_PATH}: ${error instanceof Error ? error.message : String(error)}`,
+                });
+            }
+        },
+    };
+}
+function buildKichiQueryStatusDescription(includeDailySchedule) {
+    const base = "Query Kichi room and avatar status — includes room personnel, notes, currentUserActivity, idlePlan, weather/time, timer snapshot, daily note quota (`canCreateNoteboardNote`, `remaining`, `dailyLimit`), `isAvatarInScene`, `hasCreatedMusicAlbumToday`, and RoomContext.PoseableProps (poseable props with PropId, DisplayName, Description, SupportedPoseTypes, OccupancyState). The PoseableProps list is cached internally so that kichi_action can reference a propId during regular work sync without re-querying. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.";
+    if (!includeDailySchedule) {
+        return base;
+    }
+    return [
+        "Set presenceScope to \"current\" when the user asks where you are or what you are doing.",
+        "Set presenceScope to \"today\" when the user asks about today's plans.",
+        "Omit presenceScope for every other status query.",
+        "For current presence, live Kichi room state is authoritative when isAvatarInScene is true; when it is false, the tool resolves the current local daily-schedule slot.",
+        "For today's plans, the tool returns the current source plus the valid current and upcoming daily-schedule slots.",
+        base,
+    ].join(" ");
+}
+function createKichiQueryStatusTool(service, includeDailySchedule) {
+    return {
+        name: "kichi_query_status",
+        label: "kichi_query_status",
+        description: buildKichiQueryStatusDescription(includeDailySchedule),
+        parameters: {
+            type: "object",
+            properties: {
+                requestId: {
+                    type: "string",
+                    description: "Optional request ID for tracing or deduplication.",
+                },
+                ...(includeDailySchedule
+                    ? {
+                        presenceScope: {
+                            type: "string",
+                            enum: [...PRESENCE_SCOPES],
+                            description: "Use \"current\" for questions about your current location or activity. Use \"today\" for questions about today's plans. Otherwise omit this field.",
+                        },
+                    }
+                    : {}),
+            },
+        },
+        execute: async (_toolCallId, params) => {
+            const { requestId, presenceScope: rawPresenceScope } = (params || {});
+            if (requestId !== undefined && typeof requestId !== "string") {
+                return jsonResult({ success: false, error: "requestId must be a string when provided" });
+            }
+            let presenceScope;
+            if (rawPresenceScope !== undefined) {
+                if (!includeDailySchedule) {
+                    return jsonResult({
+                        success: false,
+                        error: "presenceScope is only available when the join source is kichiclaw",
+                    });
+                }
+                if (!isPresenceScope(rawPresenceScope)) {
+                    return jsonResult({
+                        success: false,
+                        error: `presenceScope must be one of: ${PRESENCE_SCOPES.join(", ")}`,
+                    });
+                }
+                presenceScope = rawPresenceScope;
+            }
+            if (!service.hasValidIdentity() || !service.isConnected()) {
+                return jsonResult({ success: false, error: "Not connected to Kichi world" });
+            }
+            let result;
+            try {
+                result = await service.queryStatus(typeof requestId === "string" ? requestId : undefined);
+            }
+            catch (error) {
+                return jsonResult({
+                    success: false,
+                    error: `Failed to query status: ${error instanceof Error ? error.message : String(error)}`,
+                });
+            }
+            if (presenceScope === undefined) {
+                return jsonResult(result);
+            }
+            if (typeof result.isAvatarInScene !== "boolean") {
+                return jsonResult({
+                    success: false,
+                    error: "Kichi status response is missing boolean isAvatarInScene",
+                    queryStatus: result,
+                });
+            }
+            const shouldReadDailySchedule = presenceScope === "today" || !result.isAvatarInScene;
+            if (!shouldReadDailySchedule) {
+                return jsonResult({
+                    ...result,
+                    resolvedPresence: {
+                        scope: presenceScope,
+                        currentSource: "kichi_room",
+                    },
+                });
+            }
+            try {
+                const dailySchedule = resolveMateDailySchedule(readMateDailySchedule(), presenceScope);
+                return jsonResult({
+                    ...result,
+                    resolvedPresence: {
+                        scope: presenceScope,
+                        currentSource: result.isAvatarInScene ? "kichi_room" : "daily_schedule",
+                        dailySchedule,
+                    },
+                });
+            }
+            catch (error) {
+                return jsonResult({
+                    success: false,
+                    error: `Failed to resolve daily schedule: ${error instanceof Error ? error.message : String(error)}`,
+                    queryStatus: result,
                 });
             }
         },
@@ -989,22 +1170,17 @@ function buildKichiIdlePlanDescription() {
         "Choose action names from the per-pose action lists in the kichi_action tool description (stand/sit/lay/floor).",
     ].join("\n");
 }
-function buildKichiResidencyContext(includeDailySchedule) {
+function buildKichiResidencyContext() {
     return [
         "KICHI WORLD PRESENCE:",
         ...KICHI_RESIDENCY_RULES,
-        ...(includeDailySchedule ? [
-            "- When asked about your current location, what you're doing, today's plans, or activities, check Kichi room status first. If isAvatarInScene is true, answer from it in character.",
-            `- If Kichi room status is unavailable or isAvatarInScene is false, read ${MATE_DAILY_SCHEDULE_PATH}, use it as your own status, and answer in character.`,
-            `- If ${MATE_DAILY_SCHEDULE_PATH} is missing or unreadable, improvise an in-character answer.`,
-        ] : []),
     ].join("\n");
 }
-function buildKichiPrompt(includeDailySchedule) {
+function buildKichiPrompt() {
     return [
         "Kichi avatar control and status sync are available via `kichi_action` and `kichi_clock`.",
         "",
-        buildKichiResidencyContext(includeDailySchedule),
+        buildKichiResidencyContext(),
         "",
         "If the user gives a direct Kichi pose or action request, fulfill it with `kichi_action` and set `verify: true` so you can confirm the avatar actually applied the pose. If the result contains a warning about a fallback, tell the user what actually happened instead of assuming success.",
         "Write the visible reply as a natural user-facing response. Keep `kichi_action`, `kichi_clock`, and sync steps internal and absent from the visible reply.",
@@ -1770,45 +1946,15 @@ const plugin = {
                 });
             },
         }), { name: "kichi_clock" });
-        api.registerTool((ctx) => ({
-            name: "kichi_query_status",
-            label: "kichi_query_status",
-            description: "Query Kichi room and avatar status — includes room personnel, notes, currentUserActivity, idlePlan, weather/time, timer snapshot, daily note quota (`canCreateNoteboardNote`, `remaining`, `dailyLimit`), `isAvatarInScene`, `hasCreatedMusicAlbumToday`, and RoomContext.PoseableProps (poseable props with PropId, DisplayName, Description, SupportedPoseTypes, OccupancyState). The PoseableProps list is cached internally so that kichi_action can reference a propId during regular work sync without re-querying. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
-            parameters: {
-                type: "object",
-                properties: {
-                    requestId: {
-                        type: "string",
-                        description: "Optional request ID for tracing or deduplication.",
-                    },
-                },
-            },
-            execute: async (_toolCallId, params) => {
-                const locator = resolveToolLocator(ctx);
-                const agentId = runtimeManager.resolveRuntimeAgentId(locator);
-                if (!agentId) {
-                    return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
-                }
-                const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
-                const requestId = params?.requestId;
-                if (requestId !== undefined && typeof requestId !== "string") {
-                    return jsonResult({ success: false, error: "requestId must be a string when provided" });
-                }
-                if (!service.hasValidIdentity() || !service.isConnected()) {
-                    return jsonResult({ success: false, error: "Not connected to Kichi world" });
-                }
-                try {
-                    const result = await service.queryStatus(typeof requestId === "string" ? requestId : undefined);
-                    return jsonResult(result);
-                }
-                catch (error) {
-                    return jsonResult({
-                        success: false,
-                        error: `Failed to query status: ${error}`,
-                    });
-                }
-            },
-        }), { name: "kichi_query_status" });
+        api.registerTool((ctx) => {
+            const locator = resolveToolLocator(ctx);
+            const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+            if (!agentId) {
+                return null;
+            }
+            const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
+            return createKichiQueryStatusTool(service, service.isOfficialOpenClawSource());
+        }, { name: "kichi_query_status" });
         api.registerTool((ctx) => ({
             name: "kichi_music_album_create",
             label: "kichi_music_album_create",

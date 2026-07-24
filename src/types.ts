@@ -282,6 +282,7 @@ export type QueryStatusPayload = {
 export type QueryStatusResultPayload = {
   type: "query_status_result";
   requestId: string;
+  isAvatarInScene: boolean;
   dailyLimit: number;
   remaining: number;
   hasCreatedMusicAlbumToday?: boolean;

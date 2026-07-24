@@ -93,19 +93,7 @@
 				"playback": "loop"
 			},
 			{
-				"name": "Dance with Joy",
-				"playback": "loop"
-			},
-			{
-				"name": "Float",
-				"playback": "loop"
-			},
-			{
 				"name": "Hand on Chest",
-				"playback": "loop"
-			},
-			{
-				"name": "Horse Stance",
 				"playback": "loop"
 			},
 			{
@@ -134,15 +122,6 @@
 				"name": "Run Jump",
 				"playback": "once",
 				"resumeAction": "Idle Backup Hands"
-			},
-			{
-				"name": "Star Showing",
-				"playback": "once",
-				"resumeAction": "Idle Backup Hands"
-			},
-			{
-				"name": "Goofy Moves",
-				"playback": "loop"
 			},
 			{
 				"name": "Reading",
