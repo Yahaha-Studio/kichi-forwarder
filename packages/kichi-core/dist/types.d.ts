@@ -1,0 +1,335 @@
+export type KichiLogger = {
+    debug?(message: string): void;
+    info(message: string): void;
+    warn(message: string): void;
+    error(message: string): void;
+};
+export type PoseType = "stand" | "sit" | "lay" | "floor";
+export type ActionPlaybackMode = "loop" | "once";
+export type AvatarStatus = "Idle" | "Busy" | "Activities" | "Break";
+export type ActionPlayback = {
+    mode: ActionPlaybackMode;
+    resumeAction?: string;
+};
+export type ActionDefinition = {
+    name: string;
+    playback: ActionPlaybackMode;
+    resumeAction?: string;
+};
+export type ActionResult = {
+    poseType: PoseType;
+    action: string;
+    bubble: string;
+    avatarStatus: AvatarStatus;
+    log?: string;
+    propId?: string;
+};
+export type KichiStaticConfig = {
+    actions: Record<PoseType, ActionDefinition[]>;
+    album: Album;
+};
+export type Track = {
+    album: string;
+    name: string;
+    tags: string[];
+};
+export type Album = {
+    albumCount: number;
+    trackCount: number;
+    track: Track[];
+};
+export type KichiEnvironment = "steam" | "steam-playtest" | "test";
+export type KichiEnvironmentsConfig = Record<KichiEnvironment, string | null>;
+export type KichiState = {
+    currentEnvironment?: KichiEnvironment;
+    llmRuntimeEnabled: boolean;
+    testHost?: string;
+};
+export type KichiIdentity = {
+    avatarId: string;
+    authKey?: string;
+};
+export type KichiConnectionStatus = {
+    agentId?: string;
+    runtimeDir?: string;
+    statePath?: string;
+    host?: string;
+    environment?: KichiEnvironment;
+    wsUrl?: string;
+    identityPath?: string;
+    hostConfigured: boolean;
+    connected: boolean;
+    websocketState: "idle" | "connecting" | "open" | "closing" | "closed";
+    hasIdentity: boolean;
+    avatarId?: string;
+    hasAuthKey: boolean;
+    pendingRequestCount: number;
+    reconnectScheduled: boolean;
+};
+export type KichiErrorResult = {
+    success: false;
+    errorCode?: string;
+    error?: string;
+    message?: string;
+    dailyLimit?: number;
+    remaining?: number;
+    resetAtUtc?: string;
+};
+export type JoinPayload = {
+    type: "join";
+    avatarId: string;
+    botName: string;
+    bio: string;
+    tags: string[];
+    source: string;
+};
+export type JoinAckPayload = {
+    type: "join_ack";
+    authKey?: string;
+    success?: boolean;
+    errorCode?: string;
+    errorMessage?: string;
+};
+export type LeaveAckPayload = {
+    type: "leave_ack";
+    success?: boolean;
+    errorCode?: string;
+    errorMessage?: string;
+};
+export type LeavePayload = {
+    type: "leave";
+    avatarId: string;
+    authKey: string;
+};
+export type StatusPayload = {
+    type: "status";
+    requestId?: string;
+    avatarId: string;
+    authKey: string;
+    poseType: PoseType | "";
+    action: string;
+    bubble: string;
+    log: string;
+    playback: ActionPlayback;
+    avatarStatus: AvatarStatus;
+    propId?: string;
+};
+export type StatusAckPayload = {
+    type: "status_ack";
+    requestId: string;
+    poseType: PoseType | "";
+    action: string;
+    requestedPropId?: string;
+    warning?: string;
+};
+export type GlanceTarget = "camera";
+export type GlancePayload = {
+    type: "kichi_glance";
+    requestId: string;
+    avatarId: string;
+    authKey: string;
+    target: GlanceTarget;
+    duration: number;
+};
+export type GlanceAckPayload = {
+    type: "kichi_glance_ack";
+    requestId: string;
+    target: GlanceTarget;
+};
+export type HookNotifyType = "message_received" | "before_send_message";
+export type HookNotifyPayload = {
+    type: HookNotifyType;
+    avatarId: string;
+    authKey: string;
+    bubble: string;
+};
+export type IdlePlanPhase = "focus" | "shortBreak" | "longBreak" | "none";
+export type IdlePlanStageAction = {
+    poseType: PoseType;
+    action: string;
+    durationSeconds: number;
+    bubble: string;
+    log: string;
+    propId?: string;
+};
+export type IdlePlanStage = {
+    name: string;
+    purpose: string;
+    pomodoroPhase: IdlePlanPhase;
+    avatarStatus: AvatarStatus;
+    durationSeconds: number;
+    actions: IdlePlanStageAction[];
+};
+export type IdlePlanContent = {
+    requestId?: string;
+    heartbeatIntervalSeconds: number;
+    goal: string;
+    stages: IdlePlanStage[];
+};
+export type IdlePlanPayload = IdlePlanContent & {
+    type: "kichi_idle_plan";
+    avatarId: string;
+    authKey: string;
+};
+export type MateDailySchedulePlace = {
+    type: "home";
+} | {
+    type: "kichi_room";
+} | {
+    type: "real_world";
+    name: string;
+};
+export type MateDailyScheduleSlot = {
+    h: number;
+    place: MateDailySchedulePlace;
+    act: string;
+    mood: string;
+    sleep: boolean;
+};
+export type MateDailySchedule = {
+    date: string;
+    timezone: string;
+    activeArcs: string[];
+    slots: MateDailyScheduleSlot[];
+};
+export type SyncMateDailySchedulePayload = {
+    type: "kichi_sync_mate_daily_schedule";
+    avatarId: string;
+    authKey: string;
+    schedule: MateDailySchedule;
+};
+export type ClockAction = "set" | "stop";
+export type ClockMode = "pomodoro" | "countDown" | "countUp";
+export type PomodoroPhase = "focus" | "shortBreak" | "longBreak";
+export type PomodoroClock = {
+    mode: "pomodoro";
+    running: boolean;
+    kichiSeconds: number;
+    shortBreakSeconds: number;
+    longBreakSeconds: number;
+    sessionCount: number;
+    currentSession: number;
+    phase: PomodoroPhase;
+    remainingSeconds: number;
+};
+export type CountDownClock = {
+    mode: "countDown";
+    running: boolean;
+    durationSeconds: number;
+    remainingSeconds: number;
+};
+export type CountUpClock = {
+    mode: "countUp";
+    running: boolean;
+    elapsedSeconds: number;
+};
+export type ClockConfig = PomodoroClock | CountDownClock | CountUpClock;
+type ClockPayloadBase = {
+    type: "clock";
+    avatarId: string;
+    authKey: string;
+    requestId?: string;
+};
+export type ClockSetPayload = ClockPayloadBase & {
+    action: "set";
+    clock: ClockConfig;
+};
+export type ClockControlPayload = ClockPayloadBase & {
+    action: Exclude<ClockAction, "set">;
+};
+export type ClockPayload = ClockSetPayload | ClockControlPayload;
+export type QueryStatusPayload = {
+    type: "query_status";
+    requestId: string;
+    avatarId: string;
+    authKey: string;
+};
+export type QueryStatusResultPayload = {
+    type: "query_status_result";
+    requestId: string;
+    isAvatarInScene: boolean;
+    dailyLimit: number;
+    remaining: number;
+    hasCreatedMusicAlbumToday?: boolean;
+    errorCode: string;
+    errorMessage: string;
+    notes: QueryStatusNote[];
+    currentUserActivity?: QueryStatusCurrentUserActivity | null;
+    timer?: Record<string, unknown> | null;
+    idlePlan?: IdlePlanContent | null;
+    /** All other server fields (timer, environmentWeather, etc.) are passed through to the LLM as-is. */
+    [key: string]: unknown;
+};
+export type QueryStatusCurrentUserActivity = {
+    poseType?: string;
+    action?: string;
+    interactingItemName?: string;
+    desktopAppName?: string;
+};
+export type QueryStatusNote = {
+    propId: string;
+    authorName: string;
+    isCreatedByCurrentAgent: boolean;
+    isFromCurrentUser: boolean;
+    createdAtUtc: string;
+    content: string;
+};
+export type CreateNotesBoardNotePayload = {
+    type: "create_notes_board_note";
+    avatarId: string;
+    authKey: string;
+    propId: string;
+    data: string;
+};
+export type CreateMusicAlbumPayload = {
+    type: "create_music_album";
+    requestId: string;
+    avatarId: string;
+    authKey: string;
+    albumTitle: string;
+    musicTitles: string[];
+};
+export type BotMessageHistoryEntry = {
+    from: string;
+    fromName: string;
+    bubble: string;
+};
+export type BotMessageTranscriptEntry = {
+    id: string;
+    requestId?: string;
+    at: string;
+    direction: "sent" | "received";
+    from: string;
+    fromName?: string;
+    to?: string;
+    toName?: string;
+    depth: number;
+    bubble: string;
+};
+export type BotMessageTranscriptStore = {
+    version: 1;
+    entries: BotMessageTranscriptEntry[];
+};
+export type BotMessagePayload = {
+    type: "bot_message";
+    avatarId: string;
+    authKey: string;
+    requestId: string;
+    toAvatarId: string;
+    depth: number;
+    poseType?: PoseType;
+    action?: string;
+    playback?: ActionPlayback;
+    bubble: string;
+    log?: string;
+    history?: BotMessageHistoryEntry[];
+};
+export type BotMessageReceivedPayload = {
+    type: "bot_message_received";
+    from: string;
+    fromName: string;
+    depth: number;
+    bubble: string;
+    history?: BotMessageHistoryEntry[];
+};
+export {};

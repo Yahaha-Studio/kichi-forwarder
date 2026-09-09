@@ -28,7 +28,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "skills/kichi-forwarder"
+          path: "packages/kichi-openclaw/skills/kichi-forwarder"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

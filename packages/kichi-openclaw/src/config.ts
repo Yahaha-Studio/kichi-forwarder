@@ -1,4 +1,4 @@
-import type { KichiForwarderConfig } from "./types.js";
+type KichiForwarderConfig = Record<string, never>;
 
 const FIXED_CONFIG: KichiForwarderConfig = {};
 

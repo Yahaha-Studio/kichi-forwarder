@@ -1,4 +1,9 @@
-export type KichiForwarderConfig = Record<string, never>;
+export type KichiLogger = {
+  debug?(message: string): void;
+  info(message: string): void;
+  warn(message: string): void;
+  error(message: string): void;
+};
 
 export type PoseType = "stand" | "sit" | "lay" | "floor";
 export type ActionPlaybackMode = "loop" | "once";

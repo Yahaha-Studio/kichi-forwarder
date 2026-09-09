@@ -2,9 +2,9 @@ import WebSocket from "ws";
 import * as fs from "fs";
 import * as path from "path";
 import { randomUUID } from "node:crypto";
-import type { PluginLogger } from "openclaw/plugin-sdk/plugin-entry";
 import type {
   ActionPlayback,
+  ActionResult,
   AvatarStatus,
   BotMessageHistoryEntry,
   BotMessagePayload,
@@ -28,6 +28,7 @@ import type {
   KichiConnectionStatus,
   KichiEnvironment,
   KichiIdentity,
+  KichiLogger,
   KichiState,
   LeaveAckPayload,
   MateDailySchedule,
@@ -39,12 +40,11 @@ import type {
   SyncMateDailySchedulePayload,
 } from "./types.js";
 import { buildKichiWebSocketUrl, normalizeKichiHost } from "./host.js";
+import { getActionDefinition, getActionPlayback } from "./catalog.js";
 
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
-const JOIN_SOURCE_FILE_NAME = "join-source.json";
-const OFFICIAL_OPENCLAW_JOIN_SOURCE = "kichiclaw";
 const SMS_STATE_FILE_NAME = "sms-state.json";
 const BOT_MESSAGE_HISTORY_FILE_NAME = "bot-message-history.json";
 const MAX_BOT_MESSAGE_HISTORY_ENTRIES = 30;
@@ -81,7 +81,7 @@ export type LeaveResult =
     }
   | AckFailureResult;
 
-type KichiForwarderServiceOptions = {
+export type KichiForwarderServiceOptions = {
   agentId: string;
   runtimeDir: string;
   resolveEnvironmentHost: (environment: KichiEnvironment) => string | null;
@@ -113,7 +113,7 @@ export class KichiForwarderService {
   private cachedRoomContext: Record<string, unknown> | null = null;
 
   constructor(
-    private logger: PluginLogger,
+    private logger: KichiLogger,
     private options: KichiForwarderServiceOptions,
   ) {}
 
@@ -202,6 +202,19 @@ export class KichiForwarderService {
         }
       }, 10000);
     });
+  }
+
+  sendAction(status: ActionResult): void {
+    const actionDefinition = getActionDefinition(status.poseType, status.action);
+    this.sendStatus(
+      status.poseType,
+      actionDefinition.name,
+      status.bubble || status.action,
+      typeof status.log === "string" ? status.log.trim() : "",
+      getActionPlayback(actionDefinition),
+      status.avatarStatus,
+      status.propId,
+    );
   }
 
   sendStatus(
@@ -494,33 +507,6 @@ export class KichiForwarderService {
 
   getRuntimeDir(): string {
     return this.options.runtimeDir;
-  }
-
-  getJoinSourcePath(): string {
-    return path.join(this.getKichiWorldRootDir(), JOIN_SOURCE_FILE_NAME);
-  }
-
-  readConfiguredJoinSource(): string | null {
-    const sourcePath = this.getJoinSourcePath();
-    if (!fs.existsSync(sourcePath)) {
-      return null;
-    }
-
-    const data = JSON.parse(fs.readFileSync(sourcePath, "utf-8")) as unknown;
-    if (!data || typeof data !== "object" || Array.isArray(data)) {
-      throw new Error(`${JOIN_SOURCE_FILE_NAME} must contain a JSON object`);
-    }
-
-    const source = (data as { source?: unknown }).source;
-    if (typeof source !== "string" || !source.trim()) {
-      throw new Error(`${JOIN_SOURCE_FILE_NAME} must contain a non-empty string source`);
-    }
-
-    return source.trim();
-  }
-
-  isOfficialOpenClawSource(): boolean {
-    return this.readConfiguredJoinSource() === OFFICIAL_OPENCLAW_JOIN_SOURCE;
   }
 
   getStatePath(): string {
@@ -946,10 +932,6 @@ export class KichiForwarderService {
 
   private getSmsStatePath(): string {
     return path.join(this.options.runtimeDir, SMS_STATE_FILE_NAME);
-  }
-
-  private getKichiWorldRootDir(): string {
-    return path.dirname(path.dirname(this.options.runtimeDir));
   }
 
   private getWsUrl(): string {
