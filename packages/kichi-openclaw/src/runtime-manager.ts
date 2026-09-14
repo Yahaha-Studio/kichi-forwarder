@@ -1,13 +1,14 @@
+import type { OpenClawPluginToolContext } from "openclaw/plugin-sdk/core";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { PluginLogger } from "openclaw/plugin-sdk/plugin-entry";
-import { KichiForwarderService } from "./service.js";
-import type { BotMessageReceivedHandler } from "./service.js";
-import type { KichiEnvironment } from "./types.js";
+import { KichiForwarderService, isPlainObject } from "@yahaha-studio/kichi-core";
+import type { BotMessageReceivedHandler } from "@yahaha-studio/kichi-core";
+import type { KichiEnvironment } from "@yahaha-studio/kichi-core";
 
 const OPENCLAW_HOME_DIR = path.join(os.homedir(), ".openclaw");
-const KICHI_WORLD_ROOT_DIR = path.join(OPENCLAW_HOME_DIR, "kichi-world");
+export const KICHI_WORLD_ROOT_DIR = path.join(OPENCLAW_HOME_DIR, "kichi-world");
 const CANONICAL_AGENT_ROOT_DIR = path.join(KICHI_WORLD_ROOT_DIR, "agents");
 
 type AgentLocator = {
@@ -151,4 +152,60 @@ export class KichiRuntimeManager {
   private getRuntimeDir(agentId: string): string {
     return path.join(CANONICAL_AGENT_ROOT_DIR, encodeURIComponent(agentId));
   }
+}
+
+export function trimOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function readExtraStringField(source: unknown, key: string): string | undefined {
+  if (!isPlainObject(source)) {
+    return undefined;
+  }
+  return trimOptionalString(source[key]);
+}
+
+export function resolveBeforeDispatchLocator(
+  event: { sessionKey?: string },
+  ctx: { sessionKey?: string },
+): {
+  ctxAgentId?: string;
+  sessionKey?: string;
+} {
+  const ctxAgentId = readExtraStringField(ctx, "ctxAgentId");
+  const sessionKey = trimOptionalString(ctx.sessionKey) ?? trimOptionalString(event.sessionKey);
+  return {
+    ...(ctxAgentId ? { ctxAgentId } : {}),
+    ...(sessionKey ? { sessionKey } : {}),
+  };
+}
+
+export function resolveAgentHookLocator(ctx: {
+  agentId?: string;
+  sessionKey?: string;
+}): {
+  agentId?: string;
+  ctxAgentId?: string;
+  sessionKey?: string;
+} {
+  const agentId = trimOptionalString(ctx.agentId);
+  const ctxAgentId = readExtraStringField(ctx, "ctxAgentId");
+  const sessionKey = trimOptionalString(ctx.sessionKey);
+  return {
+    ...(agentId ? { agentId } : {}),
+    ...(ctxAgentId ? { ctxAgentId } : {}),
+    ...(sessionKey ? { sessionKey } : {}),
+  };
+}
+
+export function resolveToolLocator(ctx: OpenClawPluginToolContext): {
+  agentId?: string;
+  sessionKey?: string;
+} {
+  const agentId = trimOptionalString(ctx.agentId);
+  const sessionKey = trimOptionalString(ctx.sessionKey);
+  return {
+    ...(agentId ? { agentId } : {}),
+    ...(sessionKey ? { sessionKey } : {}),
+  };
 }

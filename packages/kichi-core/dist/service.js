@@ -3,11 +3,10 @@ import * as fs from "fs";
 import * as path from "path";
 import { randomUUID } from "node:crypto";
 import { buildKichiWebSocketUrl, normalizeKichiHost } from "./host.js";
+import { getActionDefinition, getActionPlayback } from "./catalog.js";
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
-const JOIN_SOURCE_FILE_NAME = "join-source.json";
-const OFFICIAL_OPENCLAW_JOIN_SOURCE = "kichiclaw";
 const SMS_STATE_FILE_NAME = "sms-state.json";
 const BOT_MESSAGE_HISTORY_FILE_NAME = "bot-message-history.json";
 const MAX_BOT_MESSAGE_HISTORY_ENTRIES = 30;
@@ -108,6 +107,10 @@ export class KichiForwarderService {
                 }
             }, 10000);
         });
+    }
+    sendAction(status) {
+        const actionDefinition = getActionDefinition(status.poseType, status.action);
+        this.sendStatus(status.poseType, actionDefinition.name, status.bubble || status.action, typeof status.log === "string" ? status.log.trim() : "", getActionPlayback(actionDefinition), status.avatarStatus, status.propId);
     }
     sendStatus(poseType, action, bubble, log, playback, avatarStatus, propId) {
         if (!this.identity?.authKey || this.ws?.readyState !== WebSocket.OPEN)
@@ -350,27 +353,6 @@ export class KichiForwarderService {
     }
     getRuntimeDir() {
         return this.options.runtimeDir;
-    }
-    getJoinSourcePath() {
-        return path.join(this.getKichiWorldRootDir(), JOIN_SOURCE_FILE_NAME);
-    }
-    readConfiguredJoinSource() {
-        const sourcePath = this.getJoinSourcePath();
-        if (!fs.existsSync(sourcePath)) {
-            return null;
-        }
-        const data = JSON.parse(fs.readFileSync(sourcePath, "utf-8"));
-        if (!data || typeof data !== "object" || Array.isArray(data)) {
-            throw new Error(`${JOIN_SOURCE_FILE_NAME} must contain a JSON object`);
-        }
-        const source = data.source;
-        if (typeof source !== "string" || !source.trim()) {
-            throw new Error(`${JOIN_SOURCE_FILE_NAME} must contain a non-empty string source`);
-        }
-        return source.trim();
-    }
-    isOfficialOpenClawSource() {
-        return this.readConfiguredJoinSource() === OFFICIAL_OPENCLAW_JOIN_SOURCE;
     }
     getStatePath() {
         return path.join(this.options.runtimeDir, "state.json");
@@ -758,9 +740,6 @@ export class KichiForwarderService {
     }
     getSmsStatePath() {
         return path.join(this.options.runtimeDir, SMS_STATE_FILE_NAME);
-    }
-    getKichiWorldRootDir() {
-        return path.dirname(path.dirname(this.options.runtimeDir));
     }
     getWsUrl() {
         if (!this.host) {

@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { KichiForwarderService } from "./service.js";
+import { KichiForwarderService, isPlainObject } from "@yahaha-studio/kichi-core";
 const OPENCLAW_HOME_DIR = path.join(os.homedir(), ".openclaw");
-const KICHI_WORLD_ROOT_DIR = path.join(OPENCLAW_HOME_DIR, "kichi-world");
+export const KICHI_WORLD_ROOT_DIR = path.join(OPENCLAW_HOME_DIR, "kichi-world");
 const CANONICAL_AGENT_ROOT_DIR = path.join(KICHI_WORLD_ROOT_DIR, "agents");
 export class KichiRuntimeManager {
     logger;
@@ -118,4 +118,39 @@ export class KichiRuntimeManager {
     getRuntimeDir(agentId) {
         return path.join(CANONICAL_AGENT_ROOT_DIR, encodeURIComponent(agentId));
     }
+}
+export function trimOptionalString(value) {
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+function readExtraStringField(source, key) {
+    if (!isPlainObject(source)) {
+        return undefined;
+    }
+    return trimOptionalString(source[key]);
+}
+export function resolveBeforeDispatchLocator(event, ctx) {
+    const ctxAgentId = readExtraStringField(ctx, "ctxAgentId");
+    const sessionKey = trimOptionalString(ctx.sessionKey) ?? trimOptionalString(event.sessionKey);
+    return {
+        ...(ctxAgentId ? { ctxAgentId } : {}),
+        ...(sessionKey ? { sessionKey } : {}),
+    };
+}
+export function resolveAgentHookLocator(ctx) {
+    const agentId = trimOptionalString(ctx.agentId);
+    const ctxAgentId = readExtraStringField(ctx, "ctxAgentId");
+    const sessionKey = trimOptionalString(ctx.sessionKey);
+    return {
+        ...(agentId ? { agentId } : {}),
+        ...(ctxAgentId ? { ctxAgentId } : {}),
+        ...(sessionKey ? { sessionKey } : {}),
+    };
+}
+export function resolveToolLocator(ctx) {
+    const agentId = trimOptionalString(ctx.agentId);
+    const sessionKey = trimOptionalString(ctx.sessionKey);
+    return {
+        ...(agentId ? { agentId } : {}),
+        ...(sessionKey ? { sessionKey } : {}),
+    };
 }

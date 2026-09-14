@@ -1,0 +1,132 @@
+{
+  "tools": [
+    {
+      "name": "kichi_sync_mate_daily_schedule",
+      "label": "kichi_sync_mate_daily_schedule",
+      "description": "Read today's mate daily schedule from the canonical Kichi World file and sync it to Kichi server.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Failed to sync mate daily schedule from <HOME>/.openclaw/kichi-world/agents/main/daily-schedule.json: ENOENT: no such file or directory, open '<HOME>/.openclaw/kichi-world/agents/main/daily-schedule.json'\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Failed to sync mate daily schedule from <HOME>/.openclaw/kichi-world/agents/main/daily-schedule.json: ENOENT: no such file or directory, open '<HOME>/.openclaw/kichi-world/agents/main/daily-schedule.json'"
+        }
+      }
+    },
+    {
+      "name": "kichi_query_status",
+      "label": "kichi_query_status",
+      "description": "Set presenceScope to \"current\" when the user asks where you are or what you are doing. Set presenceScope to \"today\" when the user asks about today's plans. Omit presenceScope for every other status query. For current presence, live Kichi room state is authoritative when isAvatarInScene is true; when it is false, the tool resolves the current local daily-schedule slot. For today's plans, the tool returns the current source plus the valid current and upcoming daily-schedule slots. Query Kichi room and avatar status — includes room personnel, notes, currentUserActivity, idlePlan, weather/time, timer snapshot, daily note quota (`canCreateNoteboardNote`, `remaining`, `dailyLimit`), `isAvatarInScene`, `hasCreatedMusicAlbumToday`, and RoomContext.PoseableProps (poseable props with PropId, DisplayName, Description, SupportedPoseTypes, OccupancyState). The PoseableProps list is cached internally so that kichi_action can reference a propId during regular work sync without re-querying. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "description": "Optional request ID for tracing or deduplication."
+          },
+          "presenceScope": {
+            "type": "string",
+            "enum": [
+              "current",
+              "today"
+            ],
+            "description": "Use \"current\" for questions about your current location or activity. Use \"today\" for questions about today's plans. Otherwise omit this field."
+          }
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    }
+  ],
+  "hookTrace": [
+    {
+      "operation": "sendHookNotify",
+      "args": [
+        "message_received",
+        "\"Hello there\""
+      ]
+    },
+    {
+      "operation": "sendStatus",
+      "args": [
+        "sit",
+        "Thinking",
+        "Planning task",
+        "I'm reading the request and getting started.",
+        {
+          "mode": "loop"
+        },
+        "Busy",
+        null
+      ]
+    },
+    {
+      "operation": "sendStatus",
+      "args": [
+        "sit",
+        "Typing with Keyboard",
+        "Working step",
+        "I'm at the keyboard and working through this step.",
+        {
+          "mode": "loop"
+        },
+        "Busy",
+        null
+      ]
+    },
+    {
+      "operation": "sendHookNotify",
+      "args": [
+        "before_send_message",
+        "Done"
+      ]
+    },
+    {
+      "operation": "sendStatus",
+      "args": [
+        "stand",
+        "Yay",
+        "Task complete",
+        "I wrapped it up and everything landed cleanly.",
+        {
+          "mode": "once",
+          "resumeAction": "Idle Backup Hands"
+        },
+        "Idle",
+        null
+      ]
+    },
+    {
+      "operation": "sendStatus",
+      "args": [
+        "stand",
+        "Tired",
+        "Task failed",
+        "I hit a problem here and need another pass.",
+        {
+          "mode": "loop"
+        },
+        "Idle",
+        null
+      ]
+    }
+  ]
+}

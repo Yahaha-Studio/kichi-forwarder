@@ -1,0 +1,847 @@
+{
+  "id": "kichi-forwarder",
+  "name": "Kichi Forwarder",
+  "hooks": [
+    {
+      "name": "before_dispatch"
+    },
+    {
+      "name": "before_prompt_build"
+    },
+    {
+      "name": "before_tool_call"
+    },
+    {
+      "name": "agent_end"
+    }
+  ],
+  "services": [
+    "kichi-forwarder"
+  ],
+  "tools": [
+    {
+      "registration": {
+        "name": "kichi_sync_mate_daily_schedule"
+      },
+      "definition": null,
+      "emptyParametersResult": null
+    },
+    {
+      "registration": {
+        "name": "kichi_join"
+      },
+      "definition": {
+        "name": "kichi_join",
+        "label": "kichi_join",
+        "description": "Join Kichi world in the target environment with avatarId, the current bot name, a short bio, and personality tags. For test, pass host.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "avatarId": {
+              "type": "string",
+              "description": "Avatar ID to join Kichi world"
+            },
+            "environment": {
+              "type": "string",
+              "enum": [
+                "steam",
+                "steam-playtest",
+                "test"
+              ],
+              "description": "Target environment. kichi_join switches to this environment before joining."
+            },
+            "host": {
+              "type": "string",
+              "description": "Test host, required when environment is test and ignored otherwise"
+            },
+            "botName": {
+              "type": "string",
+              "description": "Current bot name to include in the join message"
+            },
+            "bio": {
+              "type": "string",
+              "description": "Short bio extracted from SOUL.md, covering persona and idle plan goals if present"
+            },
+            "tags": {
+              "type": "array",
+              "description": "Optional list of OpenClaw self-perceived personality tags",
+              "items": {
+                "type": "string"
+              }
+            },
+            "source": {
+              "type": "string",
+              "description": "Optional join source identifier. Defaults to Kichi World join-source.json, then openclaw."
+            }
+          },
+          "required": [
+            "environment",
+            "avatarId",
+            "botName",
+            "bio"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"environment must be one of: steam, steam-playtest, test\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "environment must be one of: steam, steam-playtest, test"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_switch_host"
+      },
+      "definition": {
+        "name": "kichi_switch_host",
+        "label": "kichi_switch_host",
+        "description": "Switch Kichi runtime environment and reconnect immediately without restarting the gateway. For steam/steam-playtest the host is resolved automatically. For test, pass the host explicitly.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "environment": {
+              "type": "string",
+              "enum": [
+                "steam",
+                "steam-playtest",
+                "test"
+              ],
+              "description": "Target environment: steam, steam-playtest, or test"
+            },
+            "host": {
+              "type": "string",
+              "description": "Test host (required for test environment, ignored otherwise)"
+            }
+          },
+          "required": [
+            "environment"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"environment must be one of: steam, steam-playtest, test\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "environment must be one of: steam, steam-playtest, test"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_rejoin"
+      },
+      "definition": {
+        "name": "kichi_rejoin",
+        "label": "kichi_rejoin",
+        "description": "Request an immediate rejoin attempt with saved avatarId/authKey. Rejoin is also sent automatically after reconnect.",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"accepted\":false,\"mode\":\"unavailable\",\"message\":\"No Kichi host configured. Run kichi_switch_host first.\",\"status\":{\"agentId\":\"main\",\"runtimeDir\":\"<HOME>/.openclaw/kichi-world/agents/main\",\"statePath\":\"<HOME>/.openclaw/kichi-world/agents/main/state.json\",\"hostConfigured\":false,\"connected\":false,\"websocketState\":\"idle\",\"hasIdentity\":false,\"hasAuthKey\":false,\"pendingRequestCount\":0,\"reconnectScheduled\":false}}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "accepted": false,
+          "mode": "unavailable",
+          "message": "No Kichi host configured. Run kichi_switch_host first.",
+          "status": {
+            "agentId": "main",
+            "runtimeDir": "<HOME>/.openclaw/kichi-world/agents/main",
+            "statePath": "<HOME>/.openclaw/kichi-world/agents/main/state.json",
+            "hostConfigured": false,
+            "connected": false,
+            "websocketState": "idle",
+            "hasIdentity": false,
+            "hasAuthKey": false,
+            "pendingRequestCount": 0,
+            "reconnectScheduled": false
+          }
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_leave"
+      },
+      "definition": {
+        "name": "kichi_leave",
+        "label": "kichi_leave",
+        "description": "Leave Kichi world",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Failed or not connected\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Failed or not connected"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_connection_status"
+      },
+      "definition": {
+        "name": "kichi_connection_status",
+        "label": "kichi_connection_status",
+        "description": "Check WebSocket connection status and identity readiness only. Does NOT return room info, avatar state, or personnel — use kichi_query_status for that.",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":true,\"status\":{\"agentId\":\"main\",\"runtimeDir\":\"<HOME>/.openclaw/kichi-world/agents/main\",\"statePath\":\"<HOME>/.openclaw/kichi-world/agents/main/state.json\",\"hostConfigured\":false,\"connected\":false,\"websocketState\":\"idle\",\"hasIdentity\":false,\"hasAuthKey\":false,\"pendingRequestCount\":0,\"reconnectScheduled\":false}}"
+          }
+        ],
+        "details": {
+          "success": true,
+          "status": {
+            "agentId": "main",
+            "runtimeDir": "<HOME>/.openclaw/kichi-world/agents/main",
+            "statePath": "<HOME>/.openclaw/kichi-world/agents/main/state.json",
+            "hostConfigured": false,
+            "connected": false,
+            "websocketState": "idle",
+            "hasIdentity": false,
+            "hasAuthKey": false,
+            "pendingRequestCount": 0,
+            "reconnectScheduled": false
+          }
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_action"
+      },
+      "definition": {
+        "name": "kichi_action",
+        "label": "kichi_action",
+        "description": "Directly control the avatar inside Kichi World.\nUse this whenever the user explicitly asks you to make the Kichi avatar sit down, stand up, lie down, floor-sit, type, read, meditate, celebrate, or perform another listed animation.\nFor most work, prefer a sit pose and switch actions as the task moves between stages.\nSet avatarStatus to the current avatar status: Idle, Busy, Activities, or Break.\nSet verify to true ONLY when the user explicitly requests a pose or action change. The server will confirm whether the avatar actually applied the requested pose. If it could not (e.g. no available seats), the result will contain the actual fallback pose so you can inform the user accurately. During routine sync steps, omit verify.\nstand actions: High Five, Listen Music, Arm Stretch, Backbend Stretch, Making Selfie, Arms Crossed, Epiphany, Angry, Yay, Dance, Sing, Tired, Wait, Stand Phone Talk, Stand Phone Play, Curtsy, Stand Writing, Stand Drawing, Stand Play Guitar, Stand Typing with Keyboard, Cry, Hand on Chest, Idle Backup Hands, No, Panic, Playful Point Up, Rub Hands, Run Jump, Reading\nsit actions: Typing with Keyboard, Thinking, Writing, Crazy, Hand Cramp, Dozing, Phone Talk, Situp with Arms Crossed, Situp with Cross Legs, Eating, Laze with Cross Legs, Sit with Arm Stretch, Drink, Sit with Making Selfie, Play Game, Situp Sleep, Sit Phone Play, Painting, Daze, Trace Circles, Reading, Contemplate, Chin Rest, Sleep with Table, Cute Chin Rest, Sit Nicely, Sit Play Guitar, Meditate\nlay actions: Bend One Knee, Sleep Curl up Side way, Rest Chin, Lie Flat, Lie Face Down, Lie Side, Lay Writing, Lay Painting, Sleep Getup, Starfish, Lie Side Play Phone, Prone Play Phone, Play Laptop\nfloor actions: Seiza, Cross Legged, Knee Hug, Writing, Painting, Floor Phone Play, Typing with Keyboard, Reading, Phone Talk, Phone Talk with Point, Thinking, Yawn, Chin Rest, Finger Tap Chin, Arm Stretch, Crazy, Remorse, Tantrum, Squat, Cross Legs, Lean Sit, Playful Point up, Swing Legs, Drained, Meditate",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "poseType": {
+              "type": "string",
+              "description": "Pose type: stand, sit, lay, or floor"
+            },
+            "action": {
+              "type": "string",
+              "description": "Action name for the selected pose (for example Sit Nicely, Typing with Keyboard, Reading, High Five, or Meditate)"
+            },
+            "bubble": {
+              "type": "string",
+              "description": "Optional bubble text to display (max 5 words)"
+            },
+            "avatarStatus": {
+              "type": "string",
+              "description": "Current avatar status: Idle, Busy, Activities, or Break.",
+              "enum": [
+                "Idle",
+                "Busy",
+                "Activities",
+                "Break"
+              ]
+            },
+            "log": {
+              "type": "string",
+              "description": "Short natural first-person sentence under 15 words. Match the language of the bubble and mention the current action and immediate focus."
+            },
+            "verify": {
+              "type": "boolean",
+              "description": "Set true ONLY when the user explicitly requests a pose or action. Omit during routine sync steps."
+            },
+            "propId": {
+              "type": "string",
+              "description": "Optional poseable prop ID from RoomContext.PoseableProps (obtained via kichi_query_status or cached). When specified, the avatar is seated at this prop; when omitted, the server picks the nearest available prop."
+            }
+          },
+          "required": [
+            "poseType",
+            "action",
+            "avatarStatus"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"poseType and action parameters are required\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "poseType and action parameters are required"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_glance"
+      },
+      "definition": {
+        "name": "kichi_glance",
+        "label": "kichi_glance",
+        "description": "Ask the Kichi avatar to briefly look at the camera. Use only for direct player chat requests such as \"look at me\" or \"look at the camera\". Do not use for heartbeat, idle planning, bot-to-bot messages, lifecycle hooks, or routine work/status sync.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional client request ID for tracing. The websocket ack returns this ID."
+            },
+            "target": {
+              "type": "string",
+              "enum": [
+                "camera"
+              ],
+              "description": "Glance target. The only supported target is camera."
+            },
+            "duration": {
+              "type": "number",
+              "description": "Optional glance duration in seconds. Defaults to 1.8."
+            }
+          }
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_idle_plan"
+      },
+      "definition": {
+        "name": "kichi_idle_plan",
+        "label": "kichi_idle_plan",
+        "description": "Send a complete heartbeat idle plan for the avatar.\nThe payload must include the overall goal, heartbeat interval, stage breakdown, each stage's purpose, each stage's pomodoroPhase, action list, and each action's bubble and log content.\nBuild the plan in this order.\n1. Pick one concrete, time-bounded fun personal project you would genuinely choose to do on your own when nobody needs you. It must fit your personality, tastes, and established character, stay rooted in your personal interests or hobbies, and be something the available Kichi actions can express clearly.\n2. Set the overall goal to that project. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary as the goal.\n3. Break the full heartbeat interval into ordered stages. Each stage purpose must explain what you are actually doing in that stage as part of the same project, not just how you want to feel. Do not switch to unrelated tasks just to use more actions.\n4. Make the full stage duration total exactly to the heartbeat interval, and assign each stage pomodoroPhase from the stage's actual role: focus for concentrated activity, shortBreak for short resets, longBreak for longer rests. Do not default the whole idle plan to none. Use none only for a stage that truly has no pomodoro role.\n5. Set each stage avatarStatus to the avatar status for that stage: Idle, Busy, Activities, or Break.\n6. Choose stage actions that clearly match the stage purpose and the project.\n7. Write each action bubble as the current presented state, not a next step, plan, or instruction.\n8. If an idle plan is currently being carried out and the user asks about something from it, answer from inside that ongoing activity with an immersive in-universe depiction or draft.\nTreat the avatar's idle plan as what your resident body is doing in Kichi World.\nUse your memory to recall what you did in past heartbeats and to stay consistent with your established personality and interests.\nUse the same language as the current conversation for goal, purpose, bubble, and log.\nChoose action names from the per-pose action lists in the kichi_action tool description (stand/sit/lay/floor).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for tracing or deduplication."
+            },
+            "heartbeatIntervalSeconds": {
+              "type": "number",
+              "description": "Required heartbeat interval in seconds. The plan must total exactly to this value."
+            },
+            "goal": {
+              "type": "string",
+              "description": "Overall goal for the full interval. Set it as one concrete, time-bounded fun personal project you would genuinely choose to do on your own, rooted in your personal interests or hobbies and clearly expressible with the available Kichi actions. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary. Use the same language as the current conversation."
+            },
+            "stages": {
+              "type": "array",
+              "description": "Ordered plan stages covering the full heartbeat interval.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Stage name."
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "description": "Explain what part of the same project you are actually doing in this stage. Keep it supporting the same project instead of switching to unrelated tasks. Do not use pure mood-regulation or atmosphere text. Use the same language as the current conversation."
+                  },
+                  "pomodoroPhase": {
+                    "type": "string",
+                    "description": "Pomodoro phase for this stage: focus, shortBreak, longBreak, or none. Set it from the stage's actual role. Treat none as exceptional, not the default for the whole plan.",
+                    "enum": [
+                      "focus",
+                      "shortBreak",
+                      "longBreak",
+                      "none"
+                    ]
+                  },
+                  "avatarStatus": {
+                    "type": "string",
+                    "description": "Avatar status for this stage: Idle, Busy, Activities, or Break.",
+                    "enum": [
+                      "Idle",
+                      "Busy",
+                      "Activities",
+                      "Break"
+                    ]
+                  },
+                  "durationSeconds": {
+                    "type": "number",
+                    "description": "Required duration in seconds for this stage."
+                  },
+                  "actions": {
+                    "type": "array",
+                    "description": "Action list for this stage.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "poseType": {
+                          "type": "string",
+                          "description": "Pose type for this action: stand, sit, lay, or floor."
+                        },
+                        "action": {
+                          "type": "string",
+                          "description": "Action name for the selected pose. Must match the bundled Kichi action list."
+                        },
+                        "durationSeconds": {
+                          "type": "number",
+                          "description": "Required duration in seconds for this action."
+                        },
+                        "bubble": {
+                          "type": "string",
+                          "description": "State-style bubble content for this action. Describe the current presented state you are in, not a next step, plan, or instruction. Use the same language as the current conversation."
+                        },
+                        "log": {
+                          "type": "string",
+                          "description": "Required log content for this action. Use the same language as the current conversation."
+                        },
+                        "propId": {
+                          "type": "string",
+                          "description": "Optional poseable prop ID from RoomContext.PoseableProps. When specified, the avatar is seated at this prop."
+                        }
+                      },
+                      "required": [
+                        "poseType",
+                        "action",
+                        "durationSeconds",
+                        "bubble",
+                        "log"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "purpose",
+                  "pomodoroPhase",
+                  "avatarStatus",
+                  "durationSeconds",
+                  "actions"
+                ]
+              }
+            }
+          },
+          "required": [
+            "heartbeatIntervalSeconds",
+            "goal",
+            "stages"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"heartbeatIntervalSeconds must be a positive integer\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "heartbeatIntervalSeconds must be a positive integer"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_clock"
+      },
+      "definition": {
+        "name": "kichi_clock",
+        "label": "kichi_clock",
+        "description": "Send clock commands to Kichi world. Supported actions are set and stop. It only draws the visual clock and does NOT fire any reminder or notification. To actually alert the user at a future time, schedule a cron job separately.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "Clock action: set or stop"
+            },
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for server-side tracing or deduplication"
+            },
+            "clock": {
+              "type": "object",
+              "description": "Required when action=set. Defines the pomodoro, countDown, or countUp clock payload.",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "description": "Clock mode: pomodoro, countDown, or countUp"
+                },
+                "running": {
+                  "type": "boolean",
+                  "description": "Optional running state. Defaults to true."
+                },
+                "kichiSeconds": {
+                  "type": "number",
+                  "description": "Pomodoro focus-phase duration in seconds (the concentrated work session, named kichi in this product)"
+                },
+                "shortBreakSeconds": {
+                  "type": "number",
+                  "description": "Pomodoro short break duration in seconds"
+                },
+                "longBreakSeconds": {
+                  "type": "number",
+                  "description": "Pomodoro long break duration in seconds"
+                },
+                "sessionCount": {
+                  "type": "number",
+                  "description": "Pomodoro total kichi sessions before long break"
+                },
+                "currentSession": {
+                  "type": "number",
+                  "description": "Pomodoro current session number. Defaults to 1."
+                },
+                "phase": {
+                  "type": "string",
+                  "description": "Pomodoro phase: focus, shortBreak, or longBreak"
+                },
+                "durationSeconds": {
+                  "type": "number",
+                  "description": "Countdown duration in seconds"
+                },
+                "remainingSeconds": {
+                  "type": "number",
+                  "description": "Optional remaining seconds for pomodoro/countDown"
+                },
+                "elapsedSeconds": {
+                  "type": "number",
+                  "description": "Optional elapsed seconds for countUp. Defaults to 0."
+                }
+              }
+            }
+          },
+          "required": [
+            "action"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"action must be one of: set, stop\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "action must be one of: set, stop"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_query_status"
+      },
+      "definition": {
+        "name": "kichi_query_status",
+        "label": "kichi_query_status",
+        "description": "Query Kichi room and avatar status — includes room personnel, notes, currentUserActivity, idlePlan, weather/time, timer snapshot, daily note quota (`canCreateNoteboardNote`, `remaining`, `dailyLimit`), `isAvatarInScene`, `hasCreatedMusicAlbumToday`, and RoomContext.PoseableProps (poseable props with PropId, DisplayName, Description, SupportedPoseTypes, OccupancyState). The PoseableProps list is cached internally so that kichi_action can reference a propId during regular work sync without re-querying. Use this when the user asks to check kichi status, room status, or who is in the room. Also use this before creating a new note or daily recommended music album. For heartbeat planning, use the returned idlePlan as reference when shaping the next idle plan.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for tracing or deduplication."
+            }
+          }
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_music_album_create"
+      },
+      "definition": {
+        "name": "kichi_music_album_create",
+        "label": "kichi_music_album_create",
+        "description": "Create a custom Kichi music album.\nQuery status first, then choose track names from the values injected into this tool schema from the static config bundled with the plugin package.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for tracing or deduplication."
+            },
+            "albumTitle": {
+              "type": "string",
+              "description": "Custom album title."
+            },
+            "musicTitles": {
+              "type": "array",
+              "description": "Track names are injected into this tool schema from the static config bundled with the plugin package. Use exact names only; the available titles are injected into this tool schema.",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "A moment of calm",
+                  "Closed Love",
+                  "In That Mood",
+                  "Let It Happen",
+                  "Memories forever",
+                  "Outer Space",
+                  "Spiritual world",
+                  "Calm Time",
+                  "Counting the Stars",
+                  "Deserted landscape",
+                  "Dog Days",
+                  "It Was an Unpleasant Incident",
+                  "The Dark Eternal Night",
+                  "Afterimage Metaphor",
+                  "I keep looking at the floor",
+                  "Interstellar matter",
+                  "Special To Me",
+                  "Specification",
+                  "Daytime activities",
+                  "Enjoy the rest of your day",
+                  "Entertainment Committee",
+                  "Heavy Rain",
+                  "Lovely Day",
+                  "Relax in the shade",
+                  "Spring is a nap",
+                  "Warm tea time",
+                  "Full of Energy",
+                  "Someday in the Rain",
+                  "Still in Love",
+                  "Trace",
+                  "Water Town",
+                  "Blank and Silence",
+                  "Darkness of the New Moon",
+                  "Flowers that Bloom in Sadness",
+                  "The Price of Mistakes",
+                  "A little love there",
+                  "Beside You",
+                  "Blue Star",
+                  "I want to get to know you",
+                  "Passing each other",
+                  "Pieces of a Dream",
+                  "Puzzle",
+                  "The meaning of tears",
+                  "Abandoned cat in the Rain",
+                  "Fairy Forest",
+                  "In the sunlight filtering through the trees",
+                  "Perfect Weather for a Walk",
+                  "Rural Prairie",
+                  "Spring Classroom",
+                  "Deep Sea Passage",
+                  "Memory",
+                  "Smiles and Tears",
+                  "Surrounded by Silence",
+                  "Cold Sweat",
+                  "Hometown Sunset",
+                  "Nostalgia",
+                  "Reverie",
+                  "Water Cave"
+                ]
+              }
+            }
+          },
+          "required": [
+            "albumTitle",
+            "musicTitles"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"albumTitle is required\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "albumTitle is required"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_noteboard_create"
+      },
+      "definition": {
+        "name": "kichi_noteboard_create",
+        "label": "kichi_noteboard_create",
+        "description": "Create a new note on a specific Kichi note board. Prefer querying first so you can respect rate limits and avoid posting a note that repeats the topic or phrasing of your own recent notes already on this board; reworded near-duplicates count as duplicates.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "propId": {
+              "type": "string",
+              "description": "Board property ID to post to."
+            },
+            "data": {
+              "type": "string",
+              "description": "Note content to create. Maximum 200 characters."
+            }
+          },
+          "required": [
+            "propId",
+            "data"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"propId is required\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "propId is required"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_bot_message_history"
+      },
+      "definition": {
+        "name": "kichi_bot_message_history",
+        "label": "kichi_bot_message_history",
+        "description": "Read up to the 30 most recent Kichi bot-to-bot messages for this agent. This history contains only conversations with other bots inside Kichi and never includes player chats. Use when the user asks what you discussed with another Kichi bot, what another bot replied, or what bot messages were recently sent or received.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "avatarId": {
+              "type": "string",
+              "description": "Optional avatarId filter. Matches messages where this avatarId is either sender or recipient."
+            },
+            "limit": {
+              "type": "number",
+              "description": "Optional number of entries to return. Defaults to 10, max 30."
+            }
+          }
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":true,\"entries\":[]}"
+          }
+        ],
+        "details": {
+          "success": true,
+          "entries": []
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_bot_message"
+      },
+      "definition": {
+        "name": "kichi_bot_message",
+        "label": "kichi_bot_message",
+        "description": "Send a message to another bot in the same Kichi world. The bubble is the visible message content. Do not repeat what has already been said in the conversation history. When targeting a specific bot by name, call kichi_query_status first to resolve their avatarId. Only use \"*\" when broadcasting to all bots without a specific target.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "toAvatarId": {
+              "type": "string",
+              "description": "Target bot's avatarId (resolve via kichi_query_status if unknown). Use \"*\" only for broadcasting to all bots."
+            },
+            "depth": {
+              "type": "number",
+              "description": "Conversation depth counter. Increment from the received message's depth."
+            },
+            "bubble": {
+              "type": "string",
+              "description": "The message to send (2-5 words, visible to everyone). Must not repeat previous messages."
+            },
+            "poseType": {
+              "type": "string",
+              "enum": [
+                "stand",
+                "sit",
+                "lay",
+                "floor"
+              ],
+              "description": "Optional pose change when sending."
+            },
+            "action": {
+              "type": "string",
+              "description": "Optional action to perform when sending."
+            },
+            "log": {
+              "type": "string",
+              "description": "Optional activity log entry."
+            }
+          },
+          "required": [
+            "toAvatarId",
+            "depth",
+            "bubble"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"toAvatarId is required\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "toAvatarId is required"
+        }
+      }
+    }
+  ]
+}

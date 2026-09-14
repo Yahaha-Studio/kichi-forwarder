@@ -1,0 +1,34 @@
+{
+  "name": "@yahaha-studio/kichi-core",
+  "version": "0.2.0-beta.1",
+  "homepage": "https://github.com/Yahaha-Studio/kichi-forwarder#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yahaha-Studio/kichi-forwarder.git"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Shared Kichi connection, avatar, clock, note, music, and bot messaging capabilities for platform adapters",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "README.md",
+    "config/",
+    "dist/"
+  ],
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "ws": "^8.21.1"
+  }
+}
