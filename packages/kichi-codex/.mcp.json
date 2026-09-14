@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "kichi": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["dist/cli.js", "mcp"],
+      "cwd": ".",
+      "env_vars": ["KICHI_CODEX_PROFILE", "CODEX_HOME"]
+    }
+  }
+}
