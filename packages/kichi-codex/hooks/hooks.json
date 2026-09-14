@@ -7,7 +7,7 @@
             "type": "command",
             "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
             "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }

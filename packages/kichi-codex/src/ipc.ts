@@ -12,6 +12,8 @@ export interface BridgeConfig {
   logPath: string;
 }
 
+export class BridgeNotReadyError extends Error {}
+
 export function getBridgeConfig(): BridgeConfig {
   const profile = process.env.KICHI_CODEX_PROFILE ?? 'default';
   if (!/^[a-zA-Z0-9_-]{1,64}$/.test(profile)) {
@@ -36,7 +38,7 @@ export async function callBridge(
   timeout = 60_000,
 ): Promise<unknown> {
   const token = (await readFile(config.tokenPath, 'utf8').catch((error) => {
-    if (error.code === 'ENOENT') throw new Error('Kichi bridge is not running. Run kichi-codex start first.');
+    if (error.code === 'ENOENT') throw Object.assign(new Error('Kichi bridge is not running.'), { code: 'ENOENT' });
     throw error;
   })).trim();
   if (!token) throw new Error('Kichi bridge token is empty. Restart the bridge.');
@@ -60,6 +62,7 @@ export async function callBridge(
       res.on('end', () => {
         try {
           const response = JSON.parse(output);
+          if (res.statusCode === 503) throw new BridgeNotReadyError(response.error);
           if (res.statusCode !== 200) throw new Error(response.error ?? `Bridge HTTP ${res.statusCode}`);
           resolveResult(response.result);
         } catch (error) { reject(error); }

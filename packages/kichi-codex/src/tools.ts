@@ -20,12 +20,13 @@ import type {
 } from "@yahaha-studio/kichi-core";
 
 const OPERATIONS = [
-  "join", "switch_host", "rejoin", "leave", "connection_status", "action", "glance",
+  "switch_host", "rejoin", "leave", "connection_status", "action", "glance",
   "idle_plan", "clock", "query_status", "music_album_create", "noteboard_create",
   "bot_message_history", "bot_message",
 ] as const;
 
 export type KichiOperation = typeof OPERATIONS[number];
+type ExecutableOperation = "join" | KichiOperation;
 
 type ObjectSchema = {
   type: "object";
@@ -56,11 +57,13 @@ const clockSchema = object({
   remainingSeconds: nonNegativeInteger, elapsedSeconds: nonNegativeInteger,
 }, ["mode"]);
 
-const schemas: Record<KichiOperation, ObjectSchema> = {
-  join: object({
-    environment: choice(VALID_ENVIRONMENTS), host: text, avatarId: text, botName: text, bio: text,
-    tags: { type: "array", items: text },
-  }, ["environment", "avatarId", "botName", "bio"]),
+export const KICHI_JOIN_PARAMETERS = object({
+  environment: choice(VALID_ENVIRONMENTS), host: text, avatarId: text, botName: text, bio: text,
+  tags: { type: "array", items: text },
+}, ["environment", "avatarId"]);
+
+const schemas: Record<ExecutableOperation, ObjectSchema> = {
+  join: KICHI_JOIN_PARAMETERS,
   switch_host: object({ environment: choice(VALID_ENVIRONMENTS), host: text }, ["environment"]),
   rejoin: object({}),
   leave: object({}),
@@ -100,7 +103,6 @@ const schemas: Record<KichiOperation, ObjectSchema> = {
 };
 
 const usage: Record<KichiOperation, string> = {
-  join: "Join as source codex. host is required only for test. Obtain avatarId from Kichi.",
   switch_host: "Change environment and reconnect; host is required only for test.",
   rejoin: "Request rejoin with the saved identity; acceptance is not a server acknowledgement.",
   leave: "Leave and wait for acknowledgement.",
@@ -210,7 +212,7 @@ function targetEnvironment(parameters: Record<string, unknown>) {
 }
 
 export async function executeKichiOperation(service: KichiForwarderService, name: string, args: unknown): Promise<unknown> {
-  const operation = operationName(name);
+  const operation: ExecutableOperation = name === "join" ? "join" : operationName(name);
   validate(schemas[operation], args, "parameters");
   const p = args as Record<string, unknown>;
   const string = (key: string): string => (p[key] as string).trim();
@@ -228,7 +230,7 @@ export async function executeKichiOperation(service: KichiForwarderService, name
         requireSuccess("leave before join", await service.leave());
       }
       if (!sameHost || current.environment !== target.environment) await service.switchHost(target.host, target.environment);
-      const joined = await service.join(avatarId, string("botName"), string("bio"), tags.tags!, "codex");
+      const joined = await service.join(avatarId, optionalString("botName") ?? "Codex", optionalString("bio") ?? "A coding companion.", tags.tags!, "codex");
       requireSuccess(operation, joined);
       return { confirmed: true, avatarId, environment: target.environment };
     }

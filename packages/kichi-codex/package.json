@@ -4,7 +4,7 @@
   "description": "Low-token Kichi avatar feedback and tools for Codex",
   "type": "module",
   "bin": { "kichi-codex": "dist/cli.js" },
-  "files": [".codex-plugin/", ".mcp.json", "hooks/", "dist/", "config/", "README.md"],
+  "files": [".codex-plugin/", ".mcp.json", "hooks/", "skills/", "dist/", "config/", "README.md"],
   "engines": { "node": ">=22.19.0" },
   "scripts": {
     "build": "node scripts/build.mjs",
