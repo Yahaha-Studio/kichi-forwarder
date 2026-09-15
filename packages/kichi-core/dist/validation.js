@@ -1,8 +1,33 @@
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
+import { ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS } from "./types.js";
 export const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"];
 export const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"];
 export function isPlainObject(value) {
     return !!value && typeof value === "object" && !Array.isArray(value);
+}
+export function normalizeEnvironmentControl(value) {
+    if (!isPlainObject(value)) {
+        throw new Error("environment must be an object");
+    }
+    for (const key of Object.keys(value)) {
+        if (key !== "weather" && key !== "time") {
+            throw new Error(`Unsupported environment field: ${key}`);
+        }
+    }
+    const { weather, time } = value;
+    if (weather === undefined && time === undefined) {
+        throw new Error("environment must contain weather or time");
+    }
+    if (weather !== undefined && (typeof weather !== "string" || !ENVIRONMENT_WEATHERS.includes(weather))) {
+        throw new Error(`weather must be one of: ${ENVIRONMENT_WEATHERS.join(", ")}`);
+    }
+    if (time !== undefined && (typeof time !== "string" || !ENVIRONMENT_TIMES.includes(time))) {
+        throw new Error(`time must be one of: ${ENVIRONMENT_TIMES.join(", ")}`);
+    }
+    return {
+        ...(weather !== undefined ? { weather: weather } : {}),
+        ...(time !== undefined ? { time: time } : {}),
+    };
 }
 function isNonNegativeInteger(value) {
     return typeof value === "number" && Number.isInteger(value) && value >= 0;

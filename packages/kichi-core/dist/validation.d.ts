@@ -1,4 +1,4 @@
-import type { AvatarStatus, ClockAction, ClockConfig, PoseType } from "./types.js";
+import type { AvatarStatus, ClockAction, ClockConfig, EnvironmentControl, PoseType } from "./types.js";
 export declare const IDLE_PLAN_POMODORO_PHASES: readonly ["focus", "shortBreak", "longBreak", "none"];
 export declare const AVATAR_STATUSES: readonly ["Idle", "Busy", "Activities", "Break"];
 type IdlePlanPomodoroPhase = typeof IDLE_PLAN_POMODORO_PHASES[number];
@@ -24,6 +24,7 @@ export type IdlePlan = {
     }>;
 };
 export declare function isPlainObject(value: unknown): value is Record<string, unknown>;
+export declare function normalizeEnvironmentControl(value: unknown): EnvironmentControl;
 export declare function normalizeJoinTags(value: unknown): {
     tags?: string[];
     error?: string;

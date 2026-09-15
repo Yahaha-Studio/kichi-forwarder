@@ -72,6 +72,5 @@ export function buildKichiWebSocketUrl(host: string): string {
   const defaultPort = parsed.usesPlainWebSocket ? PLAIN_HOST_DEFAULT_PORT : SECURE_HOST_DEFAULT_PORT;
   const normalizedPort = parsed.port === defaultPort ? undefined : parsed.port;
   const urlPort = normalizedPort ?? (parsed.usesPlainWebSocket ? PLAIN_HOST_DEFAULT_PORT : undefined);
-  // This is the existing KichiServer endpoint, shared by adapters.
-  return `${protocol}://${formatAuthority(parsed.hostname, urlPort)}/ws/openclaw`;
+  return `${protocol}://${formatAuthority(parsed.hostname, urlPort)}/ws/agent`;
 }

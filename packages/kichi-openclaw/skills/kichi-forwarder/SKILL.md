@@ -1,6 +1,6 @@
 ---
 name: kichi-forwarder
-description: Use Kichi websocket tools to connect an OpenClaw companion to Kichi, directly control its avatar poses and actions, sync activity and timers, and handle note board or music workflows; prioritize explicit user requests to act inside Kichi and skip background sync when the user opts out.
+description: Use Kichi websocket tools to connect an OpenClaw companion to Kichi, directly control its avatar poses and actions, change scene weather and time, sync activity and timers, and handle note board or music workflows; prioritize explicit user requests to act inside Kichi and skip background sync when the user opts out.
 metadata: {"openclaw":{"skillKey":"kichi-forwarder","homepage":"https://github.com/Yahaha-Studio/kichi-forwarder"}}
 ---
 
@@ -175,6 +175,20 @@ Use this for the avatar's heartbeat idle plan.
 - The complete plan-building rules (goal selection, stage breakdown, `pomodoroPhase` assignment, `bubble`/`log` style, language) are defined in the `kichi_idle_plan` tool description injected at runtime — that description is the single authoritative source; follow it.
 - Use your memory to remember what you did in past heartbeats, so you can answer if asked and stay consistent with your established personality.
 - Treat the idle plan as what your resident body is doing in Kichi World.
+
+### kichi_environment
+
+Change the Kichi scene's weather, time, or both:
+
+```text
+kichi_environment(weather: "Rainy", time: "Evening")
+kichi_environment(time: "Auto")
+```
+
+- `weather`: optional. `Sunny`, `Cloudy`, `Rainy`, or `Snowy`.
+- `time`: optional. `Auto`, `Morning`, `Day`, `Evening`, or `Night`. `Auto` restores automatic time.
+- Provide at least one of `weather` or `time`.
+- `sent: true` means the Kichi server forwarded the change. `confirmed: false` means the client has not confirmed applying it; describe the result as sent, not as a confirmed scene change.
 
 ### kichi_music_album_create
 

@@ -16,6 +16,8 @@ import type {
   ClockPayload,
   CreateMusicAlbumPayload,
   CreateNotesBoardNotePayload,
+  EnvironmentControlAckPayload,
+  EnvironmentControlPayload,
   GlanceAckPayload,
   GlancePayload,
   GlanceTarget,
@@ -41,6 +43,7 @@ import type {
 } from "./types.js";
 import { buildKichiWebSocketUrl, normalizeKichiHost } from "./host.js";
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
+import { normalizeEnvironmentControl } from "./validation.js";
 
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
@@ -370,6 +373,30 @@ export class KichiForwarderService {
       duration: durationSeconds,
     };
     return this.sendRequest<GlanceAckPayload>(payload, "kichi_glance_ack", 5000);
+  }
+
+  async sendEnvironmentControl(
+    control: unknown,
+    requestId?: string,
+  ): Promise<Extract<EnvironmentControlAckPayload, { success: true }>> {
+    const environment = normalizeEnvironmentControl(control);
+    const identity = this.requireIdentity();
+    if (!identity) {
+      throw new Error("Missing Kichi identity");
+    }
+
+    const payload: EnvironmentControlPayload = {
+      type: "kichi_environment",
+      requestId: requestId?.trim() || randomUUID(),
+      avatarId: identity.avatarId,
+      authKey: identity.authKey,
+      environment,
+    };
+    const ack = await this.sendRequest<EnvironmentControlAckPayload>(payload, "kichi_environment_ack", 5000);
+    if (ack.success !== true) {
+      throw new Error(`${ack.errorCode}: ${ack.errorMessage}`);
+    }
+    return ack;
   }
 
   async queryStatus(requestId?: string): Promise<QueryStatusResultPayload> {

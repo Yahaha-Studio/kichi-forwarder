@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { normalizeKichiHost, getMusicTitleExamples, loadStaticConfig, VALID_ENVIRONMENTS, isKichiEnvironment, resolveJoinEnvironmentHost, normalizeMusicTitles, getActionDefinition, getActionPlayback, IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig, PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule, } from "@yahaha-studio/kichi-core";
+import { normalizeKichiHost, getMusicTitleExamples, loadStaticConfig, VALID_ENVIRONMENTS, isKichiEnvironment, resolveJoinEnvironmentHost, normalizeMusicTitles, getActionDefinition, getActionPlayback, IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig, PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule, ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, } from "@yahaha-studio/kichi-core";
 import { KICHI_WORLD_ROOT_DIR, resolveToolLocator, trimOptionalString } from "./runtime-manager.js";
 import { isOfficialOpenClawSource, readConfiguredJoinSource } from "./source.js";
 const MATE_DAILY_SCHEDULE_PATH = path.join(KICHI_WORLD_ROOT_DIR, "agents", "main", "daily-schedule.json");
@@ -855,6 +855,54 @@ export function registerPluginTools(api, runtimeManager, musicTitleEnum) {
             });
         },
     }), { name: "kichi_clock" });
+    api.registerTool((ctx) => ({
+        name: "kichi_environment",
+        label: "kichi_environment",
+        description: "Change the weather or time in the Kichi scene. Provide weather, time, or both. Success means the server forwarded the change; the client has not confirmed applying it.",
+        parameters: {
+            type: "object",
+            properties: {
+                weather: {
+                    type: "string",
+                    enum: [...ENVIRONMENT_WEATHERS],
+                    description: "Weather to apply in the Kichi scene.",
+                },
+                time: {
+                    type: "string",
+                    enum: [...ENVIRONMENT_TIMES],
+                    description: "Scene time to apply. Auto restores automatic time.",
+                },
+            },
+        },
+        execute: async (_toolCallId, params) => {
+            const locator = resolveToolLocator(ctx);
+            const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+            if (!agentId) {
+                return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+            }
+            const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
+            if (!service.hasValidIdentity() || !service.isConnected()) {
+                return jsonResult({ success: false, error: "Not connected to Kichi world" });
+            }
+            try {
+                const result = await service.sendEnvironmentControl(params);
+                return jsonResult({
+                    success: true,
+                    sent: true,
+                    confirmed: false,
+                    requestId: result.requestId,
+                    environment: result.environment,
+                    message: "Kichi server forwarded the environment change. The client has not confirmed applying it.",
+                });
+            }
+            catch (error) {
+                return jsonResult({
+                    success: false,
+                    error: `Failed to change Kichi environment: ${error instanceof Error ? error.message : String(error)}`,
+                });
+            }
+        },
+    }), { name: "kichi_environment" });
     api.registerTool((ctx) => {
         const locator = resolveToolLocator(ctx);
         const agentId = runtimeManager.resolveRuntimeAgentId(locator);

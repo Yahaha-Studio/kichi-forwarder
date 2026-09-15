@@ -1,5 +1,7 @@
 import {
   AVATAR_STATUSES,
+  ENVIRONMENT_TIMES,
+  ENVIRONMENT_WEATHERS,
   IDLE_PLAN_POMODORO_PHASES,
   VALID_ENVIRONMENTS,
   getActionDefinition,
@@ -21,7 +23,7 @@ import type {
 
 const OPERATIONS = [
   "switch_host", "rejoin", "leave", "connection_status", "action", "glance",
-  "idle_plan", "clock", "query_status", "music_album_create", "noteboard_create",
+  "idle_plan", "clock", "environment", "query_status", "music_album_create", "noteboard_create",
   "bot_message_history", "bot_message",
 ] as const;
 
@@ -91,6 +93,7 @@ const schemas: Record<ExecutableOperation, ObjectSchema> = {
     },
   }, ["heartbeatIntervalSeconds", "goal", "stages"]),
   clock: object({ action: choice(["set", "stop"]), clock: clockSchema, requestId: text }, ["action"]),
+  environment: object({ weather: choice(ENVIRONMENT_WEATHERS), time: choice(ENVIRONMENT_TIMES), requestId: text }),
   query_status: object({ requestId: text }),
   music_album_create: object({
     albumTitle: text, musicTitles: { type: "array", items: text, minItems: 1 }, requestId: text,
@@ -111,6 +114,7 @@ const usage: Record<KichiOperation, string> = {
   glance: "Brief camera glance. Defaults: target=camera, duration=1.8 seconds.",
   idle_plan: "Action durations must total each stage; stages must total heartbeatIntervalSeconds. Once actions: at most 30 seconds each.",
   clock: "Visual timer only. set requires clock; stop forbids it. Pomodoro requires kichiSeconds,shortBreakSeconds,longBreakSeconds,sessionCount; countDown requires durationSeconds. running=true,currentSession=1,phase=focus,elapsedSeconds=0 by default; remainingSeconds defaults to the phase duration.",
+  environment: "Set room weather, time, or both; at least one is required. Auto restores automatic time. A successful acknowledgement means the server forwarded the control; client application is not confirmed.",
   query_status: "Room, avatars, props, notes, timer and quotas. Query before notes or music.",
   music_album_create: "Use exact track titles from this schema. Query status for today's availability first.",
   noteboard_create: "Query status for board propId and quota first. Do not repeat recent notes.",
@@ -300,6 +304,16 @@ export async function executeKichiOperation(service: KichiForwarderService, name
         if (!service.sendClock("set", result.clock, optionalString("requestId"))) throw new Error("Kichi clock command was not sent");
       }
       return { sent: true, confirmed: false };
+    }
+    case "environment": {
+      const ack = await service.sendEnvironmentControl({
+        ...(p.weather === undefined ? {} : { weather: p.weather }),
+        ...(p.time === undefined ? {} : { time: p.time }),
+      }, optionalString("requestId"));
+      return {
+        sent: true, confirmed: false, requestId: ack.requestId, environment: ack.environment,
+        message: "Server forwarded the environment control; client application is not confirmed.",
+      };
     }
     case "query_status": {
       const result = await service.queryStatus(optionalString("requestId"));

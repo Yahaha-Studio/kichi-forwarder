@@ -106,7 +106,7 @@ Installing the OpenClaw package installs Core through its declared npm dependenc
 
 A new adapter imports `@yahaha-studio/kichi-core` and creates a `KichiForwarderService` with a logger, an agent identifier, a runtime directory, and an environment host resolver. It owns the service lifecycle and handles incoming bot messages through `onBotMessageReceived`.
 
-The server WebSocket endpoint remains `/ws/openclaw`, which is the existing KichiServer wire contract. Platform adapters do not change that server protocol.
+Core connects all platform adapters through the `/ws/agent` WebSocket endpoint. The server also retains `/ws/openclaw` for existing clients; both endpoints use the same handler and message protocol.
 
 Run `npm ci` from the repository root to install workspace dependencies, then `npm run build` to build Core followed by OpenClaw. Each package regenerates its own `dist/` directory.
 

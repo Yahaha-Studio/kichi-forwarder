@@ -1,4 +1,4 @@
-import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, StatusAckPayload } from "./types.js";
+import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, EnvironmentControlAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, StatusAckPayload } from "./types.js";
 type AckFailureResult = {
     success: false;
     error: string;
@@ -45,6 +45,9 @@ export declare class KichiForwarderService {
     syncMateDailySchedule(schedule: MateDailySchedule): void;
     sendClock(action: ClockAction, clock?: ClockConfig, requestId?: string): boolean;
     sendGlance(target: GlanceTarget, durationSeconds?: number, requestId?: string): Promise<GlanceAckPayload>;
+    sendEnvironmentControl(control: unknown, requestId?: string): Promise<Extract<EnvironmentControlAckPayload, {
+        success: true;
+    }>>;
     queryStatus(requestId?: string): Promise<QueryStatusResultPayload>;
     createNotesBoardNote(propId: string, data: string): void;
     createMusicAlbum(albumTitle: string, musicTitles: string[], requestId?: string): string;
