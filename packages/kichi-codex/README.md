@@ -60,6 +60,8 @@ npm run build:codex
 
 更新已运行的桥接时，先运行 `node <已安装插件路径>/dist/cli.js stop` 停止旧实例，再按 plugin-creator 的更新流程重新安装。通过 CLI 更新版本后，完整退出并重新打开桌面 App，再创建新任务；App 后端可能仍缓存旧版本的 MCP 启动路径，仅新建任务不足以刷新。新任务会自动启动新版桥接。
 
+Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命令使用 Node 读取 `PLUGIN_ROOT`，不依赖 Shell 的环境变量语法。修改 Hook 定义后，需要在 App 的 Hook 管理中重新信任新定义，否则 Codex 会跳过执行。[官方 Hook 信任规则](https://learn.chatgpt.com/docs/hooks)
+
 ## Kichi 工具
 
 `kichi_join({ environment, avatarId, host?, botName?, bio?, tags? })` 是唯一连接入口。`environment` 和 `avatarId` 必填；test 环境还需 `host`。默认 `botName: "Codex"`、`bio: "A coding companion."`、`tags: []`，固定发送 `source: "codex"`。

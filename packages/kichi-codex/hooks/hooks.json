@@ -5,8 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 15
           }
         ]
@@ -17,8 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
@@ -29,8 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
@@ -41,8 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
@@ -53,8 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
@@ -65,8 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
@@ -77,8 +71,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
@@ -89,8 +82,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
@@ -101,8 +93,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
@@ -113,8 +104,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
@@ -125,8 +115,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
@@ -137,8 +126,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
-            "commandWindows": "\"node\" \"%PLUGIN_ROOT%\\dist\\cli.js\" hook",
+            "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
             "timeout": 3
           }
         ]
