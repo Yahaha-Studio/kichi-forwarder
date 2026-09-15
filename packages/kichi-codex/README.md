@@ -8,7 +8,7 @@
 
 - 生命周期反馈由本地 Hooks 固定映射，额外模型请求为 0；正常返回 `{}`，不注入 prompt、additionalContext 或 MCP instructions。
 - 附带短 `kichi` Skill，只说明直接连接和按需工具入口；不要求模型在每个步骤调用 Kichi，不轮询任务或要求模型总结。
-- Hooks 只保留会话、回合、工具等关联标识，不保存或发送 Codex 消息全文、工具输入输出和 transcript。
+- Hooks 保留会话、回合、工具等关联标识。`UserPromptSubmit.prompt` 通过本地 IPC 传入 bridge，只将用户文本的短预览发送到 Kichi；工具参数仅保留 `tool_input.title` 的短预览。不持久化消息全文或保留其他工具参数、工具输出及 transcript。
 - 注册 `kichi_join`、`kichi`、`kichi_describe` 三个简短 MCP 入口。连接参数直接可见；其他操作参数、动作和音乐目录在需要时查询，避免 14 套完整 schema 常驻。
 - 工具 schema 和插件元数据仍有少量上下文开销，实际调用也会产生输入输出 token；不宣称整个插件零 token。
 - 相同动作和气泡去重；短 Hook 进程不加载 MCP SDK 或 Core，只发送本地 IPC。
@@ -17,7 +17,7 @@
 
 | 事件 | 反馈 |
 | --- | --- |
-| 用户提交提示词 | 思考；收到新任务 |
+| 用户提交提示词 | 思考；`message_received` 携带用户文本短预览 |
 | Shell / 文件编辑 / 其他本地工具 | 打字；正在执行命令 / 正在修改文件 / 正在调用工具 |
 | 等待审批 | 等待；等待确认 |
 | 上下文压缩 | 思考；整理上下文 |
@@ -26,6 +26,10 @@
 | 用户中断 | 空闲；已暂停 |
 
 状态按 session / turn 聚合，一个任务结束不会把其他活动任务设为 Idle。恢复会话会清理该会话的旧状态，压缩后的 SessionStart 保留活动回合。审批事件不包含调用 ID，因此按工具名保持等待，直到同类活动调用结束；不猜测审批对应的调用。
+
+用户消息预览去除首尾空白，按显示宽度上限 20 截断（中文和 emoji 通常计 2，超长时预留 `...`），再加英文双引号作为 `message_received.bubble`。空文本不发送消息预览，仍更新思考状态。新适配层可参考 [Core 接入标准](../kichi-core/README.md)。
+
+工具调用和审批 Hook 的 `tool_input.title` 为非空字符串时，在原状态文案后拼接 ` · 标题预览`；标题使用同样的显示宽度上限 20。没有有效标题时保留原文案，不使用 `description`。工具标题按调用 ID 保存，审批标题来自该审批事件；不推测子 agent 的名字与 ID 关联。
 
 `Stop` 是观察到的停止节点，不代表业务成功。Hooks 不覆盖 WebSearch 等托管工具，也不提供完整回复流。当前功能只需要轻量表现，不扩展 Kichi 服务端协议。[官方 Hooks 文档](https://learn.chatgpt.com/docs/hooks)
 
@@ -80,7 +84,7 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 身份和日志位于 `$CODEX_HOME/kichi-codex/<profile>`，CODEX_HOME 未设置时使用用户目录下的 `.codex`。本地通信使用 Windows named pipe / Unix socket 和该目录中的随机认证令牌。
 
-`runtime.ts` 独占 `KichiForwarderService` 和存储目录；`hooks.ts` 负责状态聚合；`mcp.ts/tools.ts` 负责按需工具。连接、身份、ACK、重连及既有协议继续由 Core 管理。本次没有修改 Core 或 OpenClaw。
+`runtime.ts` 独占 `KichiForwarderService` 和存储目录；`hooks.ts` 负责状态聚合和用户消息预览；`mcp.ts/tools.ts` 负责按需工具。连接、身份、ACK、重连及既有协议继续由 Core 管理。
 
 ## 验证边界
 
