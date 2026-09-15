@@ -6,9 +6,11 @@
   "workspaces": [
     "packages/kichi-core",
     "packages/kichi-openclaw",
-    "packages/kichi-codex"
+    "packages/kichi-codex",
+    "packages/kichi-hermes"
   ],
   "scripts": {
+    "build:hermes": "npm run build --workspace=@yahaha-studio/kichi-hermes",
     "build:codex": "npm run build --workspace=@yahaha-studio/kichi-codex",
     "build": "npm run build --workspace=@yahaha-studio/kichi-core && npm run build --workspace=@yahaha-studio/kichi-forwarder",
     "test": "node --test test/architecture.test.mjs"

@@ -1,0 +1,16 @@
+{
+  "name": "@yahaha-studio/kichi-hermes",
+  "version": "0.2.0-beta.1",
+  "description": "Hermes Agent plugin for Kichi avatar, world, and companion tools",
+  "type": "module",
+  "files": ["plugin.yaml", "__init__.py", "kichi_bridge.py", "dist/", "config/", "README.md"],
+  "engines": { "node": ">=22.19.0" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@yahaha-studio/kichi-core": "0.2.0-beta.1",
+    "esbuild": "^0.28.2"
+  }
+}

@@ -89,12 +89,17 @@ Important files for each agent:
 
 ## Architecture
 
-The repository is a private npm workspace containing two independently published packages:
+The repository is a private npm workspace with a shared Core and platform adapters:
 
 | Package | Directory | Runtime dependencies |
 | --- | --- | --- |
 | `@yahaha-studio/kichi-core` | `packages/kichi-core` | `ws` |
 | `@yahaha-studio/kichi-forwarder` | `packages/kichi-openclaw` | `@yahaha-studio/kichi-core` |
+| `@yahaha-studio/kichi-codex` | `packages/kichi-codex` | Bundled Core |
+| `@yahaha-studio/kichi-hermes` | `packages/kichi-hermes` | Python plugin + bundled Node Core bridge |
+
+For Hermes Agent, see [the Hermes adapter guide](packages/kichi-hermes/README.md).
+Build its standalone plugin with `npm run build:hermes`.
 
 The OpenClaw adapter also declares `openclaw` as a host peer dependency. Its SDK imports must resolve to the running OpenClaw installation. Core has no such requirement.
 

@@ -1,0 +1,25 @@
+name: kichi
+version: 0.2.0-beta.1
+description: Connect Hermes to Kichi through the shared Kichi Core runtime.
+author: Kichi
+manifest_version: 2
+api_version: 1
+provides_tools:
+  - kichi_join
+  - kichi_switch_host
+  - kichi_rejoin
+  - kichi_connection_status
+  - kichi_action
+  - kichi_glance
+  - kichi_idle_plan
+  - kichi_clock
+  - kichi_query_status
+  - kichi_music_album_create
+  - kichi_noteboard_create
+  - kichi_bot_message
+  - kichi_bot_message_history
+  - kichi_leave
+  - kichi_get_config
+provides_hooks:
+  - pre_llm_call
+  - post_llm_call
