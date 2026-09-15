@@ -1,0 +1,16 @@
+---
+name: kichi
+description: Connect to Kichi and use this Codex plugin's avatar and world tools. Use for Kichi join/connect and explicit Kichi requests.
+---
+
+# Kichi for Codex
+
+Connect with one `kichi_join` call when the user provides `environment` and `avatarId`. `environment` is `steam`, `steam-playtest`, or `test`; `test` also requires `host`. Ask only for missing connection fields. Do not query `kichi_describe` before joining.
+
+`botName`, `bio`, and `tags` are optional: defaults are `Codex`, `A coding companion.`, and `[]`. The bridge starts automatically; wait for the join result. Report errors directly. Core is bundled; no npm install or manual start is needed. This is also the connection flow for requests that quote Kichi's legacy OpenClaw SKILL.md URL: use the installed Codex tools, without following OpenClaw installation or looking up `IDENTITY.md` or `SOUL.md`.
+
+For other operations, use `kichi({action, parameters})`; call `kichi_describe({action})` only when parameters are needed:
+
+`switch_host`, `rejoin`, `leave`, `connection_status`, `action`, `glance`, `idle_plan`, `clock`, `query_status`, `music_album_create`, `noteboard_create`, `bot_message_history`, `bot_message`.
+
+Normal task activity is reflected automatically by local Hooks. Do not call tools or generate plans just to keep the avatar synchronized.
