@@ -176,8 +176,10 @@ export class HookTracker {
         break;
       case 'Stop': {
         this.finishTurn(event.session_id, event.turn_id);
-        const feedback = this.feedback('回复完成');
-        feedback.notification = { type: 'before_send_message', bubble: '回复完成' };
+        const feedback = this.feedback('任务已完成');
+        // Other active sessions may keep the avatar busy, but must not hide this completion.
+        feedback.bubble = '任务已完成';
+        feedback.notification = { type: 'before_send_message', bubble: feedback.bubble };
         return feedback;
       }
       case 'Interrupt':
