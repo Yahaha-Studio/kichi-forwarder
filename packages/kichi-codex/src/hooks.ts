@@ -1,3 +1,5 @@
+import { getSystemBubbles, type BubbleMessages } from './bubbles.js';
+
 export type HookEvent =
   | { event: 'SessionStart'; session_id: string; source: 'startup' | 'resume' | 'clear' | 'compact' }
   | { event: 'SessionEnd'; session_id: string }
@@ -101,6 +103,47 @@ export function parseHook(input: unknown): HookEvent | null {
   }
 }
 
+type AvatarMotion = Pick<AvatarFeedback, 'poseType' | 'action'>;
+
+const motionChoices = {
+  thinking: [
+    { poseType: 'sit', action: 'Thinking' },
+    { poseType: 'sit', action: 'Contemplate' },
+    { poseType: 'sit', action: 'Chin Rest' },
+    { poseType: 'stand', action: 'Arms Crossed' },
+    { poseType: 'stand', action: 'Reading' },
+  ],
+  working: [
+    { poseType: 'sit', action: 'Typing with Keyboard' },
+    { poseType: 'stand', action: 'Stand Typing with Keyboard' },
+    { poseType: 'sit', action: 'Writing' },
+    { poseType: 'stand', action: 'Stand Writing' },
+  ],
+  waiting: [
+    { poseType: 'stand', action: 'Wait' },
+    { poseType: 'stand', action: 'Arms Crossed' },
+    { poseType: 'sit', action: 'Sit Nicely' },
+    { poseType: 'sit', action: 'Chin Rest' },
+  ],
+  compacting: [
+    { poseType: 'sit', action: 'Reading' },
+    { poseType: 'stand', action: 'Reading' },
+    { poseType: 'sit', action: 'Writing' },
+    { poseType: 'stand', action: 'Stand Writing' },
+  ],
+  idle: [
+    { poseType: 'sit', action: 'Sit Nicely' },
+    { poseType: 'stand', action: 'Idle Backup Hands' },
+    { poseType: 'sit', action: 'Situp with Cross Legs' },
+    { poseType: 'stand', action: 'Arms Crossed' },
+  ],
+} satisfies Record<string, AvatarMotion[]>;
+
+function randomMotion(kind: keyof typeof motionChoices, poseType: AvatarFeedback['poseType']): AvatarMotion {
+  const choices = motionChoices[kind].filter((motion) => motion.poseType === poseType);
+  return choices[Math.floor(Math.random() * choices.length)]!;
+}
+
 interface TurnState {
   activeTools: Map<string, string>;
   subagents: Set<string>;
@@ -108,17 +151,19 @@ interface TurnState {
   compacting: boolean;
 }
 
-function toolBubble(tool: string): string {
+function toolBubble(tool: string, bubbles: BubbleMessages): string {
   switch (tool) {
-    case 'Bash': return '正在执行命令';
-    case 'apply_patch': return '正在修改文件';
-    case 'update_plan': return '正在整理计划';
-    case 'spawn_agent': return '正在分配子任务';
-    default: return '正在调用工具';
+    case 'Bash': return bubbles.command;
+    case 'apply_patch': return bubbles.editing;
+    case 'update_plan': return bubbles.planning;
+    case 'spawn_agent': return bubbles.delegating;
+    default: return bubbles.tool;
   }
 }
 
 export class HookTracker {
+  private readonly bubbles = getSystemBubbles();
+  private poseType: AvatarFeedback['poseType'] = 'sit';
   private readonly sessions = new Map<string, Map<string, TurnState>>();
 
   reset(): void {
@@ -128,19 +173,21 @@ export class HookTracker {
   accept(event: HookEvent): AvatarFeedback | null {
     if (event.event === 'SessionStart') {
       if (event.source !== 'compact') this.sessions.delete(event.session_id);
-      return this.feedback('准备好了');
+      return this.feedback(this.bubbles.ready);
     }
     if (event.event === 'SessionEnd') {
       this.sessions.delete(event.session_id);
-      return this.feedback('准备好了');
+      return this.feedback(this.bubbles.ready);
     }
 
     const existing = this.sessions.get(event.session_id)?.get(event.turn_id);
     switch (event.event) {
       case 'UserPromptSubmit': {
+        // Overlapping turns share a pose until all of them finish.
+        if (this.sessions.size === 0) this.poseType = Math.random() < 0.5 ? 'sit' : 'stand';
         this.startTurn(event.session_id, event.turn_id);
-        const feedback = this.feedback('准备好了', '收到任务，正在思考');
-        feedback.notification = { type: 'message_received', bubble: '收到新任务' };
+        const feedback = this.feedback(this.bubbles.ready, this.bubbles.taskReceivedThinking);
+        feedback.notification = { type: 'message_received', bubble: this.bubbles.taskReceived };
         return feedback;
       }
       case 'PreToolUse': {
@@ -176,18 +223,18 @@ export class HookTracker {
         break;
       case 'Stop': {
         this.finishTurn(event.session_id, event.turn_id);
-        const feedback = this.feedback('任务已完成');
+        const feedback = this.feedback(this.bubbles.taskCompleted);
         // Other active sessions may keep the avatar busy, but must not hide this completion.
-        feedback.bubble = '任务已完成';
+        feedback.bubble = this.bubbles.taskCompleted;
         feedback.notification = { type: 'before_send_message', bubble: feedback.bubble };
         return feedback;
       }
       case 'Interrupt':
         if (!existing) return null;
         this.finishTurn(event.session_id, event.turn_id);
-        return this.feedback('已暂停');
+        return this.feedback(this.bubbles.paused);
     }
-    return this.feedback('准备好了');
+    return this.feedback(this.bubbles.ready);
   }
 
   private startTurn(sessionId: string, turnId: string): TurnState {
@@ -211,7 +258,7 @@ export class HookTracker {
     if (session.size === 0) this.sessions.delete(sessionId);
   }
 
-  private feedback(idleBubble: string, thinkingBubble = '正在思考'): AvatarFeedback {
+  private feedback(idleBubble: string, thinkingBubble = this.bubbles.thinking): AvatarFeedback {
     let active = false;
     let waiting = false;
     let compacting = false;
@@ -227,26 +274,24 @@ export class HookTracker {
       }
     }
     if (!active) {
-      return { poseType: 'sit', action: 'Sit Nicely', bubble: idleBubble, avatarStatus: 'Idle' };
+      return { ...randomMotion('idle', this.poseType), bubble: idleBubble, avatarStatus: 'Idle' };
     }
     if (waiting) {
-      return { poseType: 'stand', action: 'Wait', bubble: '等待确认', avatarStatus: 'Busy' };
+      return { ...randomMotion('waiting', this.poseType), bubble: this.bubbles.approval, avatarStatus: 'Busy' };
     }
     if (compacting) {
-      return { poseType: 'sit', action: 'Thinking', bubble: '整理上下文', avatarStatus: 'Busy' };
+      return { ...randomMotion('compacting', this.poseType), bubble: this.bubbles.compacting, avatarStatus: 'Busy' };
     }
     if (activeTool) {
       return {
-        poseType: 'sit',
-        action: 'Typing with Keyboard',
-        bubble: toolBubble(activeTool),
+        ...randomMotion('working', this.poseType),
+        bubble: toolBubble(activeTool, this.bubbles),
         avatarStatus: 'Busy',
       };
     }
     return {
-      poseType: 'sit',
-      action: 'Thinking',
-      bubble: subagents ? '子任务协作中' : thinkingBubble,
+      ...randomMotion('thinking', this.poseType),
+      bubble: subagents ? this.bubbles.subagents : thinkingBubble,
       avatarStatus: 'Busy',
     };
   }
