@@ -4,7 +4,13 @@ export type HookEvent =
   | { event: 'SessionStart'; session_id: string; source: 'startup' | 'resume' | 'clear' | 'compact' }
   | { event: 'SessionEnd'; session_id: string }
   | {
-      event: 'UserPromptSubmit' | 'Stop' | 'Interrupt' | 'PreCompact' | 'PostCompact';
+      event: 'UserPromptSubmit';
+      session_id: string;
+      turn_id: string;
+      prompt: string;
+    }
+  | {
+      event: 'Stop' | 'Interrupt' | 'PreCompact' | 'PostCompact';
       session_id: string;
       turn_id: string;
     }
@@ -14,12 +20,14 @@ export type HookEvent =
       turn_id: string;
       tool_name: string;
       tool_use_id: string;
+      tool_input?: { title: string };
     }
   | {
       event: 'PermissionRequest';
       session_id: string;
       turn_id: string;
       tool_name: string;
+      tool_input?: { title: string };
     }
   | {
       event: 'SubagentStart' | 'SubagentStop';
@@ -51,7 +59,15 @@ function isKichiTool(name: string): boolean {
   return name === 'mcp__kichi__kichi_join' || name === 'mcp__kichi__kichi' || name === 'mcp__kichi__kichi_describe';
 }
 
-/** Retain identifiers only; message, tool payload, and transcript content never enter the tracker. */
+function toolTitleInput(input: unknown): { title: string } | undefined {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) return undefined;
+  const title = (input as Record<string, unknown>).title;
+  if (typeof title !== 'string') return undefined;
+  const preview = bubbleTextPreview(title);
+  return preview ? { title: preview } : undefined;
+}
+
+/** Retain lifecycle identifiers, user text, and tool titles; omit other tool payloads and transcripts. */
 export function parseHook(input: unknown): HookEvent | null {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) {
     throw new Error('Codex hook input must be an object');
@@ -71,6 +87,10 @@ export function parseHook(input: unknown): HookEvent | null {
     case 'SessionEnd':
       return { event, session_id };
     case 'UserPromptSubmit':
+      if (typeof value.prompt !== 'string') {
+        throw new Error('Invalid Codex hook field: prompt');
+      }
+      return { event, session_id, turn_id: requiredText(value, 'turn_id'), prompt: value.prompt };
     case 'Stop':
     case 'Interrupt':
     case 'PreCompact':
@@ -82,13 +102,15 @@ export function parseHook(input: unknown): HookEvent | null {
       const tool_name = requiredText(value, 'tool_name');
       const tool_use_id = requiredText(value, 'tool_use_id');
       if (isKichiTool(tool_name)) return null;
-      return { event, session_id, turn_id, tool_name, tool_use_id };
+      const tool_input = toolTitleInput(value.tool_input);
+      return { event, session_id, turn_id, tool_name, tool_use_id, ...(tool_input ? { tool_input } : {}) };
     }
     case 'PermissionRequest': {
       const turn_id = requiredText(value, 'turn_id');
       const tool_name = requiredText(value, 'tool_name');
       if (isKichiTool(tool_name)) return null;
-      return { event, session_id, turn_id, tool_name };
+      const tool_input = toolTitleInput(value.tool_input);
+      return { event, session_id, turn_id, tool_name, ...(tool_input ? { tool_input } : {}) };
     }
     case 'SubagentStart':
     case 'SubagentStop':
@@ -101,6 +123,29 @@ export function parseHook(input: unknown): HookEvent | null {
     default:
       throw new Error('Unsupported Codex hook event');
   }
+}
+
+function bubbleTextPreview(value: string): string {
+  const text = value.trim();
+  const maxWidth = 20;
+  const ellipsis = '...';
+  const segments = Array.from(
+    new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text),
+    ({ segment }) => ({
+      text: segment,
+      width: /[\u1100-\u115F\u2329\u232A\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE10-\uFE19\uFE30-\uFE6F\uFF01-\uFF60\uFFE0-\uFFE6]|\p{Extended_Pictographic}/u.test(segment) ? 2 : 1,
+    }),
+  );
+  if (segments.reduce((width, segment) => width + segment.width, 0) <= maxWidth) return text;
+
+  let preview = '';
+  let width = 0;
+  for (const segment of segments) {
+    if (width + segment.width > maxWidth - ellipsis.length) break;
+    preview += segment.text;
+    width += segment.width;
+  }
+  return preview.trimEnd() + ellipsis;
 }
 
 type AvatarMotion = Pick<AvatarFeedback, 'poseType' | 'action'>;
@@ -144,21 +189,32 @@ function randomMotion(kind: keyof typeof motionChoices, poseType: AvatarFeedback
   return choices[Math.floor(Math.random() * choices.length)]!;
 }
 
+interface ToolActivity {
+  name: string;
+  title: string | undefined;
+}
+
 interface TurnState {
-  activeTools: Map<string, string>;
+  activeTools: Map<string, ToolActivity>;
   subagents: Set<string>;
-  pendingApprovalTools: Set<string>;
+  pendingApprovalTools: Map<string, ToolActivity>;
   compacting: boolean;
 }
 
-function toolBubble(tool: string, bubbles: BubbleMessages): string {
-  switch (tool) {
-    case 'Bash': return bubbles.command;
-    case 'apply_patch': return bubbles.editing;
-    case 'update_plan': return bubbles.planning;
-    case 'spawn_agent': return bubbles.delegating;
-    default: return bubbles.tool;
+function withToolTitle(bubble: string, title: string | undefined): string {
+  return title ? `${bubble} · ${title}` : bubble;
+}
+
+function toolBubble(tool: ToolActivity, bubbles: BubbleMessages): string {
+  let bubble: string;
+  switch (tool.name) {
+    case 'Bash': bubble = bubbles.command; break;
+    case 'apply_patch': bubble = bubbles.editing; break;
+    case 'update_plan': bubble = bubbles.planning; break;
+    case 'spawn_agent': bubble = bubbles.delegating; break;
+    default: bubble = bubbles.tool;
   }
+  return withToolTitle(bubble, tool.title);
 }
 
 export class HookTracker {
@@ -187,12 +243,13 @@ export class HookTracker {
         if (this.sessions.size === 0) this.poseType = Math.random() < 0.5 ? 'sit' : 'stand';
         this.startTurn(event.session_id, event.turn_id);
         const feedback = this.feedback(this.bubbles.ready, this.bubbles.taskReceivedThinking);
-        feedback.notification = { type: 'message_received', bubble: this.bubbles.taskReceived };
+        const preview = bubbleTextPreview(event.prompt);
+        if (preview) feedback.notification = { type: 'message_received', bubble: `"${preview}"` };
         return feedback;
       }
       case 'PreToolUse': {
         const turn = this.startTurn(event.session_id, event.turn_id);
-        turn.activeTools.set(event.tool_use_id, event.tool_name);
+        turn.activeTools.set(event.tool_use_id, { name: event.tool_name, title: event.tool_input?.title });
         break;
       }
       case 'PostToolUse':
@@ -200,12 +257,15 @@ export class HookTracker {
         existing.activeTools.delete(event.tool_use_id);
         // PermissionRequest supplies a tool name, not a call id. Keep waiting while
         // any same-name invocation is active instead of guessing which call was approved.
-        if (![...existing.activeTools.values()].includes(event.tool_name)) {
+        if (![...existing.activeTools.values()].some((tool) => tool.name === event.tool_name)) {
           existing.pendingApprovalTools.delete(event.tool_name);
         }
         break;
       case 'PermissionRequest':
-        this.startTurn(event.session_id, event.turn_id).pendingApprovalTools.add(event.tool_name);
+        this.startTurn(event.session_id, event.turn_id).pendingApprovalTools.set(event.tool_name, {
+          name: event.tool_name,
+          title: event.tool_input?.title,
+        });
         break;
       case 'PreCompact':
         this.startTurn(event.session_id, event.turn_id).compacting = true;
@@ -245,7 +305,7 @@ export class HookTracker {
     }
     let turn = session.get(turnId);
     if (!turn) {
-      turn = { activeTools: new Map(), subagents: new Set(), pendingApprovalTools: new Set(), compacting: false };
+      turn = { activeTools: new Map(), subagents: new Set(), pendingApprovalTools: new Map(), compacting: false };
       session.set(turnId, turn);
     }
     return turn;
@@ -260,14 +320,14 @@ export class HookTracker {
 
   private feedback(idleBubble: string, thinkingBubble = this.bubbles.thinking): AvatarFeedback {
     let active = false;
-    let waiting = false;
+    let approvalTool: ToolActivity | undefined;
     let compacting = false;
     let subagents = false;
-    let activeTool: string | undefined;
+    let activeTool: ToolActivity | undefined;
     for (const session of this.sessions.values()) {
       for (const turn of session.values()) {
         active = true;
-        waiting ||= turn.pendingApprovalTools.size > 0;
+        for (const tool of turn.pendingApprovalTools.values()) approvalTool = tool;
         compacting ||= turn.compacting;
         subagents ||= turn.subagents.size > 0;
         for (const tool of turn.activeTools.values()) activeTool = tool;
@@ -276,8 +336,8 @@ export class HookTracker {
     if (!active) {
       return { ...randomMotion('idle', this.poseType), bubble: idleBubble, avatarStatus: 'Idle' };
     }
-    if (waiting) {
-      return { ...randomMotion('waiting', this.poseType), bubble: this.bubbles.approval, avatarStatus: 'Busy' };
+    if (approvalTool) {
+      return { ...randomMotion('waiting', this.poseType), bubble: withToolTitle(this.bubbles.approval, approvalTool.title), avatarStatus: 'Busy' };
     }
     if (compacting) {
       return { ...randomMotion('compacting', this.poseType), bubble: this.bubbles.compacting, avatarStatus: 'Busy' };
