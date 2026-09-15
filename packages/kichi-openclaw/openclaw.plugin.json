@@ -18,6 +18,7 @@
       "kichi_idle_plan",
       "kichi_sync_mate_daily_schedule",
       "kichi_clock",
+      "kichi_environment",
       "kichi_query_status",
       "kichi_music_album_create",
       "kichi_noteboard_create",

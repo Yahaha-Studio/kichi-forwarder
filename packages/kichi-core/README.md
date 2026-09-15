@@ -6,7 +6,7 @@ Shared TypeScript runtime for connecting agent platforms to Kichi.
 
 Core owns the Kichi WebSocket protocol, persisted identity, connection lifecycle, action catalog, request acknowledgements, and incoming bot messages. Adapters own platform tools, prompts, event hooks, session routing, and platform-specific input validation.
 
-Import from `@yahaha-studio/kichi-core`. The public entry point exports `KichiForwarderService`, its options and result types, protocol types, catalog, validation and schedule helpers, and host URL helpers. All adapters share the `/ws/openclaw` WebSocket endpoint; its name does not restrict it to OpenClaw.
+Import from `@yahaha-studio/kichi-core`. The public entry point exports `KichiForwarderService`, its options and result types, protocol types, catalog, validation and schedule helpers, and host URL helpers. All adapters connect through the `/ws/agent` WebSocket endpoint. The server retains `/ws/openclaw` for existing clients and routes both endpoints to the same handler.
 
 ## Minimal adapter lifecycle
 
@@ -43,6 +43,12 @@ For `message_received`, the adapter prepares the preview: use the actual user te
 User-message notifications and work-status updates are separate events. A fixed “thinking” bubble is work status and does not carry the user's message. Likewise, forward assistant text only from a host event that actually includes it. The current Codex adapter uses `Stop` for a fixed completion notification; that event does not forward the assistant's reply text.
 
 Use the exported action catalog and validation helpers when building platform-facing action tools. `sendAction` resolves the action's playback settings through the catalog; adapters should keep their tool input and status mapping aligned with the public Core types.
+
+## World environment control
+
+Call `await service.sendEnvironmentControl({ weather: "Rainy", time: "Night" })` to update the user's Kichi world. Supply either field or both; omitted fields keep their current values. Weather is `Sunny`, `Cloudy`, `Rainy`, or `Snowy`; time is `Auto`, `Morning`, `Day`, `Evening`, or `Night`. `Auto` restores automatic world time. This is separate from the focus timer controlled by `sendClock`.
+
+Core validates the patch and sends `kichi_environment` with an `environment` object over the authenticated WebSocket connection. The server forwards it through `OnServerControl` and returns `kichi_environment_ack`. Invalid input, missing identity, connection failure, timeout, and rejected requests fail explicitly. A successful ACK confirms server forwarding only; it does not confirm that the client has applied the change. This requires the corresponding server WebSocket handler and a client with `ServerControlNotify` support.
 
 ## Incoming messages
 

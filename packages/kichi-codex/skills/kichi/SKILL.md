@@ -11,6 +11,8 @@ Connect with one `kichi_join` call when the user provides `environment` and `ava
 
 For other operations, use `kichi({action, parameters})`; call `kichi_describe({action})` only when parameters are needed:
 
-`switch_host`, `rejoin`, `leave`, `connection_status`, `action`, `glance`, `idle_plan`, `clock`, `query_status`, `music_album_create`, `noteboard_create`, `bot_message_history`, `bot_message`.
+`switch_host`, `rejoin`, `leave`, `connection_status`, `action`, `glance`, `idle_plan`, `clock`, `environment`, `query_status`, `music_album_create`, `noteboard_create`, `bot_message_history`, `bot_message`.
+
+Use `environment` to set room weather and/or time. A successful result confirms server forwarding only; client application remains unconfirmed.
 
 Normal task activity is reflected automatically by local Hooks. Do not call tools or generate plans just to keep the avatar synchronized.

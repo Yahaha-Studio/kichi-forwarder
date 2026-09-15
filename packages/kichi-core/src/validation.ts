@@ -1,9 +1,13 @@
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
+import { ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS } from "./types.js";
 import type {
   ActionDefinition,
   AvatarStatus,
   ClockAction,
   ClockConfig,
+  EnvironmentControl,
+  EnvironmentTime,
+  EnvironmentWeather,
   PomodoroPhase,
   PoseType,
 } from "./types.js";
@@ -37,6 +41,31 @@ export type IdlePlan = {
 
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+export function normalizeEnvironmentControl(value: unknown): EnvironmentControl {
+  if (!isPlainObject(value)) {
+    throw new Error("environment must be an object");
+  }
+  for (const key of Object.keys(value)) {
+    if (key !== "weather" && key !== "time") {
+      throw new Error(`Unsupported environment field: ${key}`);
+    }
+  }
+  const { weather, time } = value;
+  if (weather === undefined && time === undefined) {
+    throw new Error("environment must contain weather or time");
+  }
+  if (weather !== undefined && (typeof weather !== "string" || !ENVIRONMENT_WEATHERS.includes(weather as EnvironmentWeather))) {
+    throw new Error(`weather must be one of: ${ENVIRONMENT_WEATHERS.join(", ")}`);
+  }
+  if (time !== undefined && (typeof time !== "string" || !ENVIRONMENT_TIMES.includes(time as EnvironmentTime))) {
+    throw new Error(`time must be one of: ${ENVIRONMENT_TIMES.join(", ")}`);
+  }
+  return {
+    ...(weather !== undefined ? { weather: weather as EnvironmentWeather } : {}),
+    ...(time !== undefined ? { time: time as EnvironmentTime } : {}),
+  };
 }
 
 function isNonNegativeInteger(value: unknown): value is number {
@@ -372,4 +401,3 @@ export function normalizeClockConfig(value: unknown): { clock?: ClockConfig; err
     },
   };
 }
-

@@ -157,6 +157,33 @@ export type GlanceAckPayload = {
   target: GlanceTarget;
 };
 
+export const ENVIRONMENT_WEATHERS = ["Sunny", "Cloudy", "Rainy", "Snowy"] as const;
+export const ENVIRONMENT_TIMES = ["Auto", "Morning", "Day", "Evening", "Night"] as const;
+
+export type EnvironmentWeather = typeof ENVIRONMENT_WEATHERS[number];
+export type EnvironmentTime = typeof ENVIRONMENT_TIMES[number];
+
+export type EnvironmentControl = {
+  weather?: EnvironmentWeather;
+  time?: EnvironmentTime;
+};
+
+export type EnvironmentControlPayload = {
+  type: "kichi_environment";
+  requestId: string;
+  avatarId: string;
+  authKey: string;
+  environment: EnvironmentControl;
+};
+
+export type EnvironmentControlAckPayload = {
+  type: "kichi_environment_ack";
+  requestId: string;
+} & (
+  | { success: true; environment: EnvironmentControl }
+  | { success: false; errorCode: string; errorMessage: string }
+);
+
 export type HookNotifyType = "message_received" | "before_send_message";
 
 export type HookNotifyPayload = {

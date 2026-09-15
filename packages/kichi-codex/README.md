@@ -9,7 +9,7 @@
 - 生命周期反馈由本地 Hooks 固定映射，额外模型请求为 0；正常返回 `{}`，不注入 prompt、additionalContext 或 MCP instructions。
 - 附带短 `kichi` Skill，只说明直接连接和按需工具入口；不要求模型在每个步骤调用 Kichi，不轮询任务或要求模型总结。
 - Hooks 保留会话、回合、工具等关联标识。`UserPromptSubmit.prompt` 通过本地 IPC 传入 bridge，只将用户文本的短预览发送到 Kichi；工具参数仅保留 `tool_input.title` 的短预览。不持久化消息全文或保留其他工具参数、工具输出及 transcript。
-- 注册 `kichi_join`、`kichi`、`kichi_describe` 三个简短 MCP 入口。连接参数直接可见；其他操作参数、动作和音乐目录在需要时查询，避免 14 套完整 schema 常驻。
+- 注册 `kichi_join`、`kichi`、`kichi_describe` 三个简短 MCP 入口。连接参数直接可见；其他操作参数、动作和音乐目录在需要时查询，避免 15 套完整 schema 常驻。
 - 工具 schema 和插件元数据仍有少量上下文开销，实际调用也会产生输入输出 token；不宣称整个插件零 token。
 - 相同动作和气泡去重；短 Hook 进程不加载 MCP SDK 或 Core，只发送本地 IPC。
 
@@ -72,7 +72,9 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 其他操作通过 `kichi({ action, parameters })` 执行，需要参数说明时查询 `kichi_describe({ action })`：
 
-`switch_host`、`rejoin`、`leave`、`connection_status`、`action`、`glance`、`idle_plan`、`clock`、`query_status`、`music_album_create`、`noteboard_create`、`bot_message_history`、`bot_message`。
+`switch_host`、`rejoin`、`leave`、`connection_status`、`action`、`glance`、`idle_plan`、`clock`、`environment`、`query_status`、`music_album_create`、`noteboard_create`、`bot_message_history`、`bot_message`。
+
+`environment` 设置房间天气和时间：`weather` 为 `Sunny` / `Cloudy` / `Rainy` / `Snowy`，`time` 为 `Auto` / `Morning` / `Day` / `Evening` / `Night`，至少提供一个，也可一起设置。`Auto` 恢复自动时间。成功 ACK 表示服务端已转发控制，返回 `sent: true, confirmed: false`，不表示客户端已应用。
 
 工具参数严格检查，错误设置 `isError`，成功结果保持简短。有 ACK 才返回 `confirmed: true`；没有 ACK 的发送只报告已发送但未确认。
 
