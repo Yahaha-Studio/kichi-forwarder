@@ -1,6 +1,6 @@
 {
   "name": "@yahaha-studio/kichi-codex",
-  "version": "0.2.0-beta.2",
+  "version": "0.2.0-beta.3",
   "description": "Low-token Kichi avatar feedback and tools for Codex",
   "type": "module",
   "bin": { "kichi-codex": "dist/cli.js" },
@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "@yahaha-studio/kichi-core": "0.2.0-beta.2",
+    "@yahaha-studio/kichi-core": "0.2.0-beta.3",
     "esbuild": "^0.28.2"
   }
 }

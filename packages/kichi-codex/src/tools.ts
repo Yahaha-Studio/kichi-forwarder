@@ -93,7 +93,10 @@ const schemas: Record<ExecutableOperation, ObjectSchema> = {
     },
   }, ["heartbeatIntervalSeconds", "goal", "stages"]),
   clock: object({ action: choice(["set", "stop"]), clock: clockSchema, requestId: text }, ["action"]),
-  environment: object({ weather: choice(ENVIRONMENT_WEATHERS), time: choice(ENVIRONMENT_TIMES), requestId: text }),
+  environment: object({
+    weather: choice(ENVIRONMENT_WEATHERS), time: choice(ENVIRONMENT_TIMES),
+    lightingValue: { type: "number", minimum: 0.1, maximum: 2 }, lightingEnabled: flag, musicPaused: flag, requestId: text,
+  }),
   query_status: object({ requestId: text }),
   music_album_create: object({
     albumTitle: text, musicTitles: { type: "array", items: text, minItems: 1 }, requestId: text,
@@ -114,7 +117,7 @@ const usage: Record<KichiOperation, string> = {
   glance: "Brief camera glance. Defaults: target=camera, duration=1.8 seconds.",
   idle_plan: "Action durations must total each stage; stages must total heartbeatIntervalSeconds. Once actions: at most 30 seconds each.",
   clock: "Visual timer only. set requires clock; stop forbids it. Pomodoro requires kichiSeconds,shortBreakSeconds,longBreakSeconds,sessionCount; countDown requires durationSeconds. running=true,currentSession=1,phase=focus,elapsedSeconds=0 by default; remainingSeconds defaults to the phase duration.",
-  environment: "Set room weather, time, or both; at least one is required. Auto restores automatic time. A successful acknowledgement means the server forwarded the control; client application is not confirmed.",
+  environment: "Set room weather, time, House lighting, or current music playback; at least one setting is required. Auto restores automatic time. lightingValue sets House lighting intensity from 0.1 to 2; lightingEnabled switches all House lights on or off. musicPaused=true pauses current music; false resumes it. The server checks room permissions. A successful acknowledgement means the server forwarded the control; client application is not confirmed.",
   query_status: "Room, avatars, props, notes, timer and quotas. Query before notes or music.",
   music_album_create: "Use exact track titles from this schema. Query status for today's availability first.",
   noteboard_create: "Query status for board propId and quota first. Do not repeat recent notes.",
@@ -309,6 +312,9 @@ export async function executeKichiOperation(service: KichiForwarderService, name
       const ack = await service.sendEnvironmentControl({
         ...(p.weather === undefined ? {} : { weather: p.weather }),
         ...(p.time === undefined ? {} : { time: p.time }),
+        ...(p.lightingValue === undefined ? {} : { lightingValue: p.lightingValue }),
+        ...(p.lightingEnabled === undefined ? {} : { lightingEnabled: p.lightingEnabled }),
+        ...(p.musicPaused === undefined ? {} : { musicPaused: p.musicPaused }),
       }, optionalString("requestId"));
       return {
         sent: true, confirmed: false, requestId: ack.requestId, environment: ack.environment,

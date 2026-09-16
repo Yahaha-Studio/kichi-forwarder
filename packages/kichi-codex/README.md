@@ -74,7 +74,7 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 `switch_host`、`rejoin`、`leave`、`connection_status`、`action`、`glance`、`idle_plan`、`clock`、`environment`、`query_status`、`music_album_create`、`noteboard_create`、`bot_message_history`、`bot_message`。
 
-`environment` 设置房间天气和时间：`weather` 为 `Sunny` / `Cloudy` / `Rainy` / `Snowy`，`time` 为 `Auto` / `Morning` / `Day` / `Evening` / `Night`，至少提供一个，也可一起设置。`Auto` 恢复自动时间。成功 ACK 表示服务端已转发控制，返回 `sent: true, confirmed: false`，不表示客户端已应用。
+`environment` 设置房间天气、时间、House 灯光和当前音乐播放状态：`weather` 为 `Sunny` / `Cloudy` / `Rainy` / `Snowy`，`time` 为 `Auto` / `Morning` / `Day` / `Evening` / `Night`，`Auto` 恢复自动时间。`lightingValue` 设置 House 灯光强度（`0.1–2`），`lightingEnabled` 控制 House 灯光总开关，关灯使用 `false`；`musicPaused: true` 暂停当前音乐，`false` 恢复，不涉及选曲或音量。至少提供一个设置，也可组合设置，房间权限由服务端校验。成功 ACK 表示服务端已转发控制，返回 `sent: true, confirmed: false`，不表示客户端已应用。
 
 工具参数严格检查，错误设置 `isError`，成功结果保持简短。有 ACK 才返回 `confirmed: true`；没有 ACK 的发送只报告已发送但未确认。
 

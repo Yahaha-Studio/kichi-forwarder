@@ -1,6 +1,6 @@
 {
   "name": "kichi-codex",
-  "version": "0.2.0-beta.2",
+  "version": "0.2.0-beta.3",
   "description": "Show Codex activity through a Kichi avatar and call Kichi tools.",
   "author": {
     "name": "Kichi"
