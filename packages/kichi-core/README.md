@@ -46,7 +46,9 @@ Use the exported action catalog and validation helpers when building platform-fa
 
 ## World environment control
 
-Call `await service.sendEnvironmentControl({ weather: "Rainy", time: "Night" })` to update the user's Kichi world. Supply either field or both; omitted fields keep their current values. Weather is `Sunny`, `Cloudy`, `Rainy`, or `Snowy`; time is `Auto`, `Morning`, `Day`, `Evening`, or `Night`. `Auto` restores automatic world time. This is separate from the focus timer controlled by `sendClock`.
+Call `await service.sendEnvironmentControl({ weather: "Rainy", time: "Night", lightingValue: 0.5, lightingEnabled: true, musicPaused: false })` to update the user's Kichi world. Supply at least one field; omitted fields keep their current values. Weather is `Sunny`, `Cloudy`, `Rainy`, or `Snowy`; time is `Auto`, `Morning`, `Day`, `Evening`, or `Night`. `Auto` restores automatic world time. This is separate from the focus timer controlled by `sendClock`.
+
+`lightingValue` sets house light intensity from `0.1` to `2`, matching the current main scene's supported range; out-of-range values are rejected. `lightingEnabled` switches house lights on or off. `musicPaused: true` pauses the current music and `musicPaused: false` resumes it; it does not select a track or change the volume. These playback controls are separate from creating a recommended album with `createMusicAlbum`.
 
 Core validates the patch and sends `kichi_environment` with an `environment` object over the authenticated WebSocket connection. The server forwards it through `OnServerControl` and returns `kichi_environment_ack`. Invalid input, missing identity, connection failure, timeout, and rejected requests fail explicitly. A successful ACK confirms server forwarding only; it does not confirm that the client has applied the change. This requires the corresponding server WebSocket handler and a client with `ServerControlNotify` support.
 

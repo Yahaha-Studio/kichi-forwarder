@@ -964,7 +964,7 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
     name: "kichi_environment",
     label: "kichi_environment",
     description:
-      "Change the weather or time in the Kichi scene. Provide weather, time, or both. Success means the server forwarded the change; the client has not confirmed applying it.",
+      "Change the Kichi scene's weather, time, House lighting, or current music playback. Provide at least one setting. The server checks room permissions. Success means the server forwarded the change; the client has not confirmed applying it.",
     parameters: {
       type: "object",
       properties: {
@@ -977,6 +977,20 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
           type: "string",
           enum: [...ENVIRONMENT_TIMES],
           description: "Scene time to apply. Auto restores automatic time.",
+        },
+        lightingValue: {
+          type: "number",
+          minimum: 0.1,
+          maximum: 2,
+          description: "House lighting intensity from 0.1 to 2. To turn lights off, use lightingEnabled=false.",
+        },
+        lightingEnabled: {
+          type: "boolean",
+          description: "Enable or disable all House lights.",
+        },
+        musicPaused: {
+          type: "boolean",
+          description: "Pause the current music when true, or resume it when false.",
         },
       },
     },

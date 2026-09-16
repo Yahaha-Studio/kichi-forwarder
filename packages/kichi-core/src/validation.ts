@@ -48,13 +48,13 @@ export function normalizeEnvironmentControl(value: unknown): EnvironmentControl 
     throw new Error("environment must be an object");
   }
   for (const key of Object.keys(value)) {
-    if (key !== "weather" && key !== "time") {
+    if (!["weather", "time", "lightingValue", "lightingEnabled", "musicPaused"].includes(key)) {
       throw new Error(`Unsupported environment field: ${key}`);
     }
   }
-  const { weather, time } = value;
-  if (weather === undefined && time === undefined) {
-    throw new Error("environment must contain weather or time");
+  const { weather, time, lightingValue, lightingEnabled, musicPaused } = value;
+  if (weather === undefined && time === undefined && lightingValue === undefined && lightingEnabled === undefined && musicPaused === undefined) {
+    throw new Error("environment must contain weather, time, lightingValue, lightingEnabled, or musicPaused");
   }
   if (weather !== undefined && (typeof weather !== "string" || !ENVIRONMENT_WEATHERS.includes(weather as EnvironmentWeather))) {
     throw new Error(`weather must be one of: ${ENVIRONMENT_WEATHERS.join(", ")}`);
@@ -62,9 +62,21 @@ export function normalizeEnvironmentControl(value: unknown): EnvironmentControl 
   if (time !== undefined && (typeof time !== "string" || !ENVIRONMENT_TIMES.includes(time as EnvironmentTime))) {
     throw new Error(`time must be one of: ${ENVIRONMENT_TIMES.join(", ")}`);
   }
+  if (lightingValue !== undefined && (typeof lightingValue !== "number" || !Number.isFinite(lightingValue) || lightingValue < 0.1 || lightingValue > 2)) {
+    throw new Error("lightingValue must be a finite number from 0.1 to 2; use lightingEnabled to turn lights off");
+  }
+  if (lightingEnabled !== undefined && typeof lightingEnabled !== "boolean") {
+    throw new Error("lightingEnabled must be a boolean");
+  }
+  if (musicPaused !== undefined && typeof musicPaused !== "boolean") {
+    throw new Error("musicPaused must be a boolean");
+  }
   return {
     ...(weather !== undefined ? { weather: weather as EnvironmentWeather } : {}),
     ...(time !== undefined ? { time: time as EnvironmentTime } : {}),
+    ...(lightingValue !== undefined ? { lightingValue } : {}),
+    ...(lightingEnabled !== undefined ? { lightingEnabled } : {}),
+    ...(musicPaused !== undefined ? { musicPaused } : {}),
   };
 }
 

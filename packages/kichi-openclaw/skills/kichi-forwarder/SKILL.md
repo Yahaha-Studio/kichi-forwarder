@@ -178,16 +178,20 @@ Use this for the avatar's heartbeat idle plan.
 
 ### kichi_environment
 
-Change the Kichi scene's weather, time, or both:
+Change the Kichi scene's weather, time, House lighting, or current music playback:
 
 ```text
 kichi_environment(weather: "Rainy", time: "Evening")
 kichi_environment(time: "Auto")
+kichi_environment(lightingEnabled: false, musicPaused: true)
 ```
 
 - `weather`: optional. `Sunny`, `Cloudy`, `Rainy`, or `Snowy`.
 - `time`: optional. `Auto`, `Morning`, `Day`, `Evening`, or `Night`. `Auto` restores automatic time.
-- Provide at least one of `weather` or `time`.
+- `lightingValue`: optional House lighting intensity from `0.1` to `2`. To turn lights off, use `lightingEnabled: false`.
+- `lightingEnabled`: optional boolean. Enables or disables all House lights.
+- `musicPaused`: optional boolean. `true` pauses the current music; `false` resumes it. This does not select a track or change volume.
+- Provide at least one setting. The server checks room permissions.
 - `sent: true` means the Kichi server forwarded the change. `confirmed: false` means the client has not confirmed applying it; describe the result as sent, not as a confirmed scene change.
 
 ### kichi_music_album_create

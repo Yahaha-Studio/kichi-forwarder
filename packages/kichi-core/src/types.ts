@@ -166,6 +166,11 @@ export type EnvironmentTime = typeof ENVIRONMENT_TIMES[number];
 export type EnvironmentControl = {
   weather?: EnvironmentWeather;
   time?: EnvironmentTime;
+  /** House light intensity, from 0.1 to 2. Use lightingEnabled to turn lights off. */
+  lightingValue?: number;
+  lightingEnabled?: boolean;
+  /** Pause (true) or resume (false) the current music. */
+  musicPaused?: boolean;
 };
 
 export type EnvironmentControlPayload = {

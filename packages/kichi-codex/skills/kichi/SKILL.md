@@ -13,6 +13,6 @@ For other operations, use `kichi({action, parameters})`; call `kichi_describe({a
 
 `switch_host`, `rejoin`, `leave`, `connection_status`, `action`, `glance`, `idle_plan`, `clock`, `environment`, `query_status`, `music_album_create`, `noteboard_create`, `bot_message_history`, `bot_message`.
 
-Use `environment` to set room weather and/or time. A successful result confirms server forwarding only; client application remains unconfirmed.
+Use `environment` to set room weather, time, House lighting (`lightingValue`: 0.1–2, `lightingEnabled`: on/off), or current music playback (`musicPaused`: true to pause, false to resume). To turn lights off, use `lightingEnabled: false`. Provide at least one setting; the server checks room permissions. A successful result confirms server forwarding only; client application remains unconfirmed.
 
 Normal task activity is reflected automatically by local Hooks. Do not call tools or generate plans just to keep the avatar synchronized.
