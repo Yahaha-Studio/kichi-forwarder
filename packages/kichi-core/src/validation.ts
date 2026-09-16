@@ -74,9 +74,9 @@ export function normalizeEnvironmentControl(value: unknown): EnvironmentControl 
   return {
     ...(weather !== undefined ? { weather: weather as EnvironmentWeather } : {}),
     ...(time !== undefined ? { time: time as EnvironmentTime } : {}),
-    ...(lightingValue !== undefined ? { lightingValue } : {}),
-    ...(lightingEnabled !== undefined ? { lightingEnabled } : {}),
-    ...(musicPaused !== undefined ? { musicPaused } : {}),
+    ...(lightingValue !== undefined ? { lightingValue: lightingValue as number } : {}),
+    ...(lightingEnabled !== undefined ? { lightingEnabled: lightingEnabled as boolean } : {}),
+    ...(musicPaused !== undefined ? { musicPaused: musicPaused as boolean } : {}),
   };
 }
 
