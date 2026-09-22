@@ -1,5 +1,5 @@
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES } from "./types.js";
+import { ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES, } from "./types.js";
 export const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"];
 export const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"];
 export function normalizeEmojiName(value) {
@@ -20,13 +20,13 @@ export function normalizeEnvironmentControl(value) {
         throw new Error("environment must be an object");
     }
     for (const key of Object.keys(value)) {
-        if (!["weather", "time", "lightingValue", "lightingEnabled", "musicPaused"].includes(key)) {
+        if (!["weather", "time", "lightingValue", "lightingEnabled", "musicPaused", "musicAction", "musicPlayType"].includes(key)) {
             throw new Error(`Unsupported environment field: ${key}`);
         }
     }
-    const { weather, time, lightingValue, lightingEnabled, musicPaused } = value;
-    if (weather === undefined && time === undefined && lightingValue === undefined && lightingEnabled === undefined && musicPaused === undefined) {
-        throw new Error("environment must contain weather, time, lightingValue, lightingEnabled, or musicPaused");
+    const { weather, time, lightingValue, lightingEnabled, musicPaused, musicAction, musicPlayType } = value;
+    if (weather === undefined && time === undefined && lightingValue === undefined && lightingEnabled === undefined && musicPaused === undefined && musicAction === undefined && musicPlayType === undefined) {
+        throw new Error("environment must contain weather, time, lightingValue, lightingEnabled, musicPaused, musicAction, or musicPlayType");
     }
     if (weather !== undefined && (typeof weather !== "string" || !ENVIRONMENT_WEATHERS.includes(weather))) {
         throw new Error(`weather must be one of: ${ENVIRONMENT_WEATHERS.join(", ")}`);
@@ -43,12 +43,20 @@ export function normalizeEnvironmentControl(value) {
     if (musicPaused !== undefined && typeof musicPaused !== "boolean") {
         throw new Error("musicPaused must be a boolean");
     }
+    if (musicAction !== undefined && (typeof musicAction !== "string" || !MUSIC_ACTIONS.includes(musicAction))) {
+        throw new Error(`musicAction must be one of: ${MUSIC_ACTIONS.join(", ")}`);
+    }
+    if (musicPlayType !== undefined && (typeof musicPlayType !== "string" || !MUSIC_PLAY_TYPES.includes(musicPlayType))) {
+        throw new Error(`musicPlayType must be one of: ${MUSIC_PLAY_TYPES.join(", ")}`);
+    }
     return {
         ...(weather !== undefined ? { weather: weather } : {}),
         ...(time !== undefined ? { time: time } : {}),
         ...(lightingValue !== undefined ? { lightingValue: lightingValue } : {}),
         ...(lightingEnabled !== undefined ? { lightingEnabled: lightingEnabled } : {}),
         ...(musicPaused !== undefined ? { musicPaused: musicPaused } : {}),
+        ...(musicAction !== undefined ? { musicAction: musicAction } : {}),
+        ...(musicPlayType !== undefined ? { musicPlayType: musicPlayType } : {}),
     };
 }
 function isNonNegativeInteger(value) {

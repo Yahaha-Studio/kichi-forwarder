@@ -190,9 +190,13 @@ export type EmojiAckPayload = {
 
 export const ENVIRONMENT_WEATHERS = ["Sunny", "Cloudy", "Rainy", "Snowy"] as const;
 export const ENVIRONMENT_TIMES = ["Auto", "Morning", "Day", "Evening", "Night"] as const;
+export const MUSIC_ACTIONS = ["Next", "Previous"] as const;
+export const MUSIC_PLAY_TYPES = ["Loop", "Random"] as const;
 
 export type EnvironmentWeather = typeof ENVIRONMENT_WEATHERS[number];
 export type EnvironmentTime = typeof ENVIRONMENT_TIMES[number];
+export type MusicAction = typeof MUSIC_ACTIONS[number];
+export type MusicPlayType = typeof MUSIC_PLAY_TYPES[number];
 
 export type EnvironmentControl = {
   weather?: EnvironmentWeather;
@@ -202,6 +206,10 @@ export type EnvironmentControl = {
   lightingEnabled?: boolean;
   /** Pause (true) or resume (false) the current music. */
   musicPaused?: boolean;
+  /** Select the next or previous track in the current music album. */
+  musicAction?: MusicAction;
+  /** Select sequential (Loop) or random track playback. */
+  musicPlayType?: MusicPlayType;
 };
 
 export type EnvironmentControlPayload = {

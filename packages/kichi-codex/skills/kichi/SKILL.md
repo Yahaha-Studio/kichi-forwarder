@@ -15,6 +15,6 @@ For other operations, use `kichi({action, parameters})`; call `kichi_describe({a
 
 Use `emoji` for an explicit expressive request. Its required `emojiName` is one of `Heart`, `Like`, `Happy`, `Celebrate`, `Keep Going`, `Peeking`, `Laughing`, `Sleeping`, `Coffee`, or `Waving`; a successful result confirms server forwarding/broadcast, not client rendering.
 
-Use `environment` to set room weather, time, House lighting (`lightingValue`: 0.1–2, `lightingEnabled`: on/off), or current music playback (`musicPaused`: true to pause, false to resume). To turn lights off, use `lightingEnabled: false`. Provide at least one setting; the server checks room permissions. A successful result confirms server forwarding only; client application remains unconfirmed.
+Use `environment` to set room weather, time, House lighting (`lightingValue`: 0.1–2, `lightingEnabled`: on/off), or current music playback (`musicPaused`: true to pause, false to resume; `musicAction`: `Next`/`Previous`; `musicPlayType`: `Loop`/`Random`). To turn lights off, use `lightingEnabled: false`. Provide at least one setting; the server checks room permissions. A successful result confirms server forwarding only; client application remains unconfirmed.
 
 Normal task activity is reflected automatically by local Hooks. Do not call tools or generate plans just to keep the avatar synchronized.

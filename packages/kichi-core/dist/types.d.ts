@@ -158,8 +158,12 @@ export type EmojiAckPayload = {
 });
 export declare const ENVIRONMENT_WEATHERS: readonly ["Sunny", "Cloudy", "Rainy", "Snowy"];
 export declare const ENVIRONMENT_TIMES: readonly ["Auto", "Morning", "Day", "Evening", "Night"];
+export declare const MUSIC_ACTIONS: readonly ["Next", "Previous"];
+export declare const MUSIC_PLAY_TYPES: readonly ["Loop", "Random"];
 export type EnvironmentWeather = typeof ENVIRONMENT_WEATHERS[number];
 export type EnvironmentTime = typeof ENVIRONMENT_TIMES[number];
+export type MusicAction = typeof MUSIC_ACTIONS[number];
+export type MusicPlayType = typeof MUSIC_PLAY_TYPES[number];
 export type EnvironmentControl = {
     weather?: EnvironmentWeather;
     time?: EnvironmentTime;
@@ -168,6 +172,10 @@ export type EnvironmentControl = {
     lightingEnabled?: boolean;
     /** Pause (true) or resume (false) the current music. */
     musicPaused?: boolean;
+    /** Select the next or previous track in the current music album. */
+    musicAction?: MusicAction;
+    /** Select sequential (Loop) or random track playback. */
+    musicPlayType?: MusicPlayType;
 };
 export type EnvironmentControlPayload = {
     type: "kichi_environment";

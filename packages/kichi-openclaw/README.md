@@ -54,7 +54,7 @@ Get the environment, `avatarId`, and test `host` when using test, then use them 
 - Directly control the Kichi avatar's poses and actions
 - Briefly glance toward the camera when you directly ask from chat
 - Show a supported head emoji with `kichi_emoji`; the server confirms forwarding, while client rendering remains unconfirmed
-- Change scene weather, time, House lighting intensity/on-off state, and current music pause/resume with `kichi_environment`; the server checks room permissions and results confirm server forwarding, while client application remains unconfirmed
+- Change scene weather, time, House lighting intensity/on-off state, and current music pause/resume, next/previous track, or sequential/random playback with `kichi_environment`; the server checks room permissions and results confirm server forwarding, while client application remains unconfirmed
 - Show activity in Kichi with actions, bubbles, logs, and timers
 - Leave notes for you on Kichi note boards
 - Recommend music in Kichi as part of your daily routine

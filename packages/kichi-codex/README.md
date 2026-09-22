@@ -76,7 +76,7 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 `emoji` 显示头像头顶的一个受支持表情：`emojiName` 必须是 `Heart`、`Like`、`Happy`、`Celebrate`、`Keep Going`、`Peeking`、`Laughing`、`Sleeping`、`Coffee` 或 `Waving`，可选 `requestId` 用于追踪。成功 ACK 表示服务端已接受并广播，不表示客户端已完成渲染，结果包含 `sent: true, confirmed: false`。
 
-`environment` 设置房间天气、时间、House 灯光和当前音乐播放状态：`weather` 为 `Sunny` / `Cloudy` / `Rainy` / `Snowy`，`time` 为 `Auto` / `Morning` / `Day` / `Evening` / `Night`，`Auto` 恢复自动时间。`lightingValue` 设置 House 灯光强度（`0.1–2`），`lightingEnabled` 控制 House 灯光总开关，关灯使用 `false`；`musicPaused: true` 暂停当前音乐，`false` 恢复，不涉及选曲或音量。至少提供一个设置，也可组合设置，房间权限由服务端校验。成功 ACK 表示服务端已转发控制，返回 `sent: true, confirmed: false`，不表示客户端已应用。
+`environment` 设置房间天气、时间、House 灯光和当前音乐播放状态：`weather` 为 `Sunny` / `Cloudy` / `Rainy` / `Snowy`，`time` 为 `Auto` / `Morning` / `Day` / `Evening` / `Night`，`Auto` 恢复自动时间。`lightingValue` 设置 House 灯光强度（`0.1–2`），`lightingEnabled` 控制 House 灯光总开关，关灯使用 `false`；`musicPaused: true` 暂停当前音乐，`false` 恢复；`musicAction` 使用 `Next` / `Previous` 切换曲目，`musicPlayType` 使用 `Loop`（顺序播放）/ `Random`（随机播放）。至少提供一个设置，也可组合设置，房间权限由服务端校验。成功 ACK 表示服务端已转发控制，返回 `sent: true, confirmed: false`，不表示客户端已应用。
 
 工具参数严格检查，错误设置 `isError`，成功结果保持简短。`confirmed` 按具体协议语义返回；服务端转发 ACK 仍不代表客户端已应用。没有 ACK 的发送只报告已发送但未确认。
 
