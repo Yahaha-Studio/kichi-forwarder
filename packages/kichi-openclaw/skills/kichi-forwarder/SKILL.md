@@ -167,6 +167,19 @@ Use this only when the player directly asks from chat for attention such as "loo
 - `requestId`: optional tracing ID; the websocket ack returns it.
 - Do not use this for heartbeat, idle plans, bot messages, lifecycle hooks, or routine work/status sync.
 
+### kichi_emoji
+
+Show one supported emoji above the avatar's head when the user explicitly asks for an expressive reaction:
+
+```text
+kichi_emoji(emojiName: "Heart")
+```
+
+- `emojiName`: required; use one of `Heart`, `Like`, `Happy`, `Celebrate`, `Keep Going`, `Peeking`, `Laughing`, `Sleeping`, `Coffee`, or `Waving`.
+- `requestId`: optional tracing ID; the websocket ack returns it.
+- The successful result confirms server forwarding/broadcast only, not client rendering.
+- Do not use this for heartbeat, idle plans, lifecycle hooks, or routine work/status sync.
+
 ### kichi_idle_plan
 
 Use this for the avatar's heartbeat idle plan.

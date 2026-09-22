@@ -1,6 +1,7 @@
-import type { AvatarStatus, ClockAction, ClockConfig, EnvironmentControl, PoseType } from "./types.js";
+import type { AvatarStatus, ClockAction, ClockConfig, EnvironmentControl, KichiEmojiName, PoseType } from "./types.js";
 export declare const IDLE_PLAN_POMODORO_PHASES: readonly ["focus", "shortBreak", "longBreak", "none"];
 export declare const AVATAR_STATUSES: readonly ["Idle", "Busy", "Activities", "Break"];
+export declare function normalizeEmojiName(value: unknown): KichiEmojiName;
 type IdlePlanPomodoroPhase = typeof IDLE_PLAN_POMODORO_PHASES[number];
 type IdlePlanAction = {
     poseType: PoseType;

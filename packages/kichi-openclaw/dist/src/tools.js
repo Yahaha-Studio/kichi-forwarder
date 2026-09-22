@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { normalizeKichiHost, getMusicTitleExamples, loadStaticConfig, VALID_ENVIRONMENTS, isKichiEnvironment, resolveJoinEnvironmentHost, normalizeMusicTitles, getActionDefinition, getActionPlayback, IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig, PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule, ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, } from "@yahaha-studio/kichi-core";
+import { normalizeKichiHost, getMusicTitleExamples, loadStaticConfig, VALID_ENVIRONMENTS, isKichiEnvironment, resolveJoinEnvironmentHost, normalizeMusicTitles, getActionDefinition, getActionPlayback, IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig, PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule, ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES, } from "@yahaha-studio/kichi-core";
 import { KICHI_WORLD_ROOT_DIR, resolveToolLocator, trimOptionalString } from "./runtime-manager.js";
 import { isOfficialOpenClawSource, readConfiguredJoinSource } from "./source.js";
 const MATE_DAILY_SCHEDULE_PATH = path.join(KICHI_WORLD_ROOT_DIR, "agents", "main", "daily-schedule.json");
@@ -625,6 +625,61 @@ export function registerPluginTools(api, runtimeManager, musicTitleEnum) {
             }
         },
     }), { name: "kichi_glance" });
+    api.registerTool((ctx) => ({
+        name: "kichi_emoji",
+        label: "kichi_emoji",
+        description: "Show one supported emoji above the Kichi avatar's head. Use for direct player requests or a clearly requested expressive reaction; do not use during routine heartbeat/status synchronization.",
+        parameters: {
+            type: "object",
+            properties: {
+                emojiName: {
+                    type: "string",
+                    enum: [...KICHI_EMOJI_NAMES],
+                    description: "Emoji name. Use one of the exact supported names.",
+                },
+                requestId: {
+                    type: "string",
+                    description: "Optional client request ID for tracing. The websocket ack returns this ID.",
+                },
+            },
+            required: ["emojiName"],
+        },
+        execute: async (_toolCallId, params) => {
+            const locator = resolveToolLocator(ctx);
+            const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+            if (!agentId) {
+                return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+            }
+            const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
+            const { emojiName, requestId } = (params || {});
+            if (typeof emojiName !== "string" || !KICHI_EMOJI_NAMES.includes(emojiName)) {
+                return jsonResult({
+                    success: false,
+                    error: `emojiName must be one of: ${KICHI_EMOJI_NAMES.join(", ")}`,
+                });
+            }
+            if (requestId !== undefined && typeof requestId !== "string") {
+                return jsonResult({ success: false, error: "requestId must be a string when provided" });
+            }
+            if (!service.hasValidIdentity() || !service.isConnected()) {
+                return jsonResult({ success: false, error: "Not connected to Kichi world" });
+            }
+            try {
+                const ack = await service.sendEmoji(emojiName, typeof requestId === "string" ? requestId : undefined);
+                return jsonResult({
+                    success: true,
+                    sent: true,
+                    confirmed: false,
+                    requestId: ack.requestId,
+                    emojiName: ack.emojiName,
+                    message: "Server accepted and broadcast the emoji; client rendering is not confirmed.",
+                });
+            }
+            catch (error) {
+                return jsonResult({ success: false, error: `Failed to send emoji: ${error}` });
+            }
+        },
+    }), { name: "kichi_emoji" });
     api.registerTool((ctx) => ({
         name: "kichi_idle_plan",
         label: "kichi_idle_plan",

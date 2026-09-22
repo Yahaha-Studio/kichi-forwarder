@@ -4,7 +4,7 @@ import * as path from "path";
 import { randomUUID } from "node:crypto";
 import { buildKichiWebSocketUrl, normalizeKichiHost } from "./host.js";
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { normalizeEnvironmentControl } from "./validation.js";
+import { normalizeEnvironmentControl, normalizeEmojiName } from "./validation.js";
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
@@ -253,6 +253,28 @@ export class KichiForwarderService {
             environment,
         };
         const ack = await this.sendRequest(payload, "kichi_environment_ack", 5000);
+        if (ack.success !== true) {
+            throw new Error(`${ack.errorCode}: ${ack.errorMessage}`);
+        }
+        return ack;
+    }
+    async sendEmoji(emojiName, requestId) {
+        const normalizedEmojiName = normalizeEmojiName(emojiName);
+        const identity = this.requireIdentity();
+        if (!identity) {
+            throw new Error("Missing Kichi identity");
+        }
+        if (this.ws?.readyState !== WebSocket.OPEN) {
+            throw new Error("Kichi websocket is not connected");
+        }
+        const payload = {
+            type: "kichi_emoji",
+            requestId: requestId?.trim() || randomUUID(),
+            avatarId: identity.avatarId,
+            authKey: identity.authKey,
+            emojiName: normalizedEmojiName,
+        };
+        const ack = await this.sendRequest(payload, "kichi_emoji_ack", 5000);
         if (ack.success !== true) {
             throw new Error(`${ack.errorCode}: ${ack.errorMessage}`);
         }

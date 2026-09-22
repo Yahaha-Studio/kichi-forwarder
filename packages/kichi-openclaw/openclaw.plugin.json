@@ -15,6 +15,7 @@
       "kichi_connection_status",
       "kichi_action",
       "kichi_glance",
+      "kichi_emoji",
       "kichi_idle_plan",
       "kichi_sync_mate_daily_schedule",
       "kichi_clock",

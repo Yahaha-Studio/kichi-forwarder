@@ -136,6 +136,26 @@ export type GlanceAckPayload = {
     requestId: string;
     target: GlanceTarget;
 };
+export declare const KICHI_EMOJI_NAMES: readonly ["Heart", "Like", "Happy", "Celebrate", "Keep Going", "Peeking", "Laughing", "Sleeping", "Coffee", "Waving"];
+export type KichiEmojiName = typeof KICHI_EMOJI_NAMES[number];
+export type EmojiPayload = {
+    type: "kichi_emoji";
+    requestId: string;
+    avatarId: string;
+    authKey: string;
+    emojiName: KichiEmojiName;
+};
+export type EmojiAckPayload = {
+    type: "kichi_emoji_ack";
+    requestId: string;
+} & ({
+    success: true;
+    emojiName: KichiEmojiName;
+} | {
+    success: false;
+    errorCode: string;
+    errorMessage: string;
+});
 export declare const ENVIRONMENT_WEATHERS: readonly ["Sunny", "Cloudy", "Rainy", "Snowy"];
 export declare const ENVIRONMENT_TIMES: readonly ["Auto", "Morning", "Day", "Evening", "Night"];
 export type EnvironmentWeather = typeof ENVIRONMENT_WEATHERS[number];

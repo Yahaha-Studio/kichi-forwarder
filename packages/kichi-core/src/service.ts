@@ -18,6 +18,8 @@ import type {
   CreateNotesBoardNotePayload,
   EnvironmentControlAckPayload,
   EnvironmentControlPayload,
+  EmojiAckPayload,
+  EmojiPayload,
   GlanceAckPayload,
   GlancePayload,
   GlanceTarget,
@@ -43,7 +45,7 @@ import type {
 } from "./types.js";
 import { buildKichiWebSocketUrl, normalizeKichiHost } from "./host.js";
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { normalizeEnvironmentControl } from "./validation.js";
+import { normalizeEnvironmentControl, normalizeEmojiName } from "./validation.js";
 
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
@@ -393,6 +395,33 @@ export class KichiForwarderService {
       environment,
     };
     const ack = await this.sendRequest<EnvironmentControlAckPayload>(payload, "kichi_environment_ack", 5000);
+    if (ack.success !== true) {
+      throw new Error(`${ack.errorCode}: ${ack.errorMessage}`);
+    }
+    return ack;
+  }
+
+  async sendEmoji(
+    emojiName: unknown,
+    requestId?: string,
+  ): Promise<Extract<EmojiAckPayload, { success: true }>> {
+    const normalizedEmojiName = normalizeEmojiName(emojiName);
+    const identity = this.requireIdentity();
+    if (!identity) {
+      throw new Error("Missing Kichi identity");
+    }
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      throw new Error("Kichi websocket is not connected");
+    }
+
+    const payload: EmojiPayload = {
+      type: "kichi_emoji",
+      requestId: requestId?.trim() || randomUUID(),
+      avatarId: identity.avatarId,
+      authKey: identity.authKey,
+      emojiName: normalizedEmojiName,
+    };
+    const ack = await this.sendRequest<EmojiAckPayload>(payload, "kichi_emoji_ack", 5000);
     if (ack.success !== true) {
       throw new Error(`${ack.errorCode}: ${ack.errorMessage}`);
     }

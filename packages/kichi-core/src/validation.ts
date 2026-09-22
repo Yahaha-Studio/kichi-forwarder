@@ -1,5 +1,5 @@
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS } from "./types.js";
+import { ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES } from "./types.js";
 import type {
   ActionDefinition,
   AvatarStatus,
@@ -8,12 +8,24 @@ import type {
   EnvironmentControl,
   EnvironmentTime,
   EnvironmentWeather,
+  KichiEmojiName,
   PomodoroPhase,
   PoseType,
 } from "./types.js";
 
 export const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"] as const;
 export const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"] as const;
+
+export function normalizeEmojiName(value: unknown): KichiEmojiName {
+  if (typeof value !== "string") {
+    throw new Error("emojiName must be a string");
+  }
+  const emojiName = value.trim();
+  if (!KICHI_EMOJI_NAMES.includes(emojiName as KichiEmojiName)) {
+    throw new Error(`emojiName must be one of: ${KICHI_EMOJI_NAMES.join(", ")}`);
+  }
+  return emojiName as KichiEmojiName;
+}
 
 type AvatarStatusName = typeof AVATAR_STATUSES[number];
 type IdlePlanPomodoroPhase = typeof IDLE_PLAN_POMODORO_PHASES[number];
