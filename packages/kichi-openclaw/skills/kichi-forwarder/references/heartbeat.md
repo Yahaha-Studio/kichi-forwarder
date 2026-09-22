@@ -1,24 +1,22 @@
 # Heartbeat Integration
 
-## Session Startup Rule
+## Guided Setup
 
-For full heartbeat functionality, update workspace `HEARTBEAT.md` to include the Kichi heartbeat workflow during the install/onboarding flow. This is recommended before the first `kichi_connection_status` or `kichi_join`, but it is not required to install the plugin or join Kichi World:
+Full guided setup includes the Kichi heartbeat workflow. Installing, joining, and direct tools do not technically require it, but complete companion setup should guide the user through it. An install/join request, plugin upgrade, or new session does not by itself authorize undisclosed workspace edits or recurring actions.
 
-1. If the workflow snippet is missing, add the snippet from `HEARTBEAT.md Snippet` section below. An empty or blank `HEARTBEAT.md` counts as "snippet missing" — not as a read error.
-2. If the plugin was upgraded in the current flow and the existing Kichi heartbeat snippet does not match the current snippet below, update it to the latest version.
-3. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
+During guided setup:
 
-This startup rule is a recommended step for full heartbeat functionality.
+1. Explain that the agent will create or update workspace `HEARTBEAT.md`. These instructions persist across sessions and can create Kichi notes and music recommendations, send bot messages, and control avatar actions during future heartbeat runs.
+2. Read the existing file and show the exact proposed Kichi snippet/diff from `HEARTBEAT.md Snippet` below. An empty file means the snippet is absent; a read failure must be reported and resolved before editing.
+3. Obtain explicit approval for the proposed file change and recurring behavior. Reuse approval already given for those exact changes in this session; otherwise leave the file unchanged.
+4. Apply only the approved Kichi section and preserve all unrelated content. Keep the existing OpenClaw heartbeat cadence unless the user explicitly requests a different interval. Do not create cron jobs or other schedules as part of this setup.
+5. Report success or the actual editing error. Do not claim heartbeat integration is enabled if the write failed. The independent join and direct-tool functionality remains available.
+
+Use the same review and approval flow before replacing an existing Kichi snippet after an upgrade. To stop recurring Kichi behavior, remove its section from `HEARTBEAT.md` at the user's request; do not remove other heartbeat instructions.
 
 ## Workflow Boundary
 
-The plugin code itself does not write to workspace files. The onboarding instructions above direct the agent to update `HEARTBEAT.md` on behalf of the user as part of the install flow.
-
-If user wants recurring note board checks:
-
-1. Update workspace `HEARTBEAT.md`.
-2. Keep the existing OpenClaw heartbeat cadence unless the user explicitly wants a different interval.
-3. Do not claim the plugin edited `HEARTBEAT.md` automatically.
+The plugin code itself does not write workspace instructions. The agent may edit `HEARTBEAT.md` only through the confirmed guided setup above. Run the following workflow only when the user has enabled it; do not treat reading this reference as authorization for recurring actions.
 
 ## Definitions
 
