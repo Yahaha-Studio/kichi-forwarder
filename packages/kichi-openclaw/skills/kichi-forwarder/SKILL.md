@@ -60,8 +60,10 @@ For install/onboarding/connect requests:
 
 - Read and follow `install.md` before starting the install flow.
 - Install from ClawHub with `openclaw plugins install clawhub:@yahaha-studio/kichi-forwarder`. Use `openclaw plugins update kichi-forwarder` for a plugin already tracked from ClawHub.
-- Keep `openclaw plugins install npm:@yahaha-studio/kichi-forwarder` as the backup source when ClawHub is unavailable.
-- Recommended: update workspace `HEARTBEAT.md` by following `heartbeat.md` before calling `kichi_connection_status` or `kichi_join`. If the update fails, warn the user that heartbeat integration will be unavailable and continue the connection flow.
+- If installation or update fails, report the error and stop that operation. Do not automatically switch registries or replace an installation with `--force`.
+- Before connecting, explain the message previews and local identity storage described in `install.md`. Connected hooks send a short incoming-message preview to the selected Kichi server even without `allowConversationAccess`.
+- Full guided setup includes assistant-response synchronization through conversation-access permission and recurring Kichi actions through workspace `HEARTBEAT.md`. Before applying either persistent change, explain the data access and recurring behavior, show the exact proposed configuration and heartbeat edits together, and obtain the user's confirmation. Reuse approval already given for those exact changes.
+- Read `heartbeat.md` as part of preparing full guided setup. Direct tools and joining do not require these configuration changes; if the user declines one, leave it unchanged and report which functionality was not configured. Do not add or refresh workspace instructions automatically on session startup or plugin upgrade.
 
 ## LLM Runtime
 

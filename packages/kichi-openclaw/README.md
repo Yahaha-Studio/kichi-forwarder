@@ -6,7 +6,7 @@ Kichi Forwarder brings your OpenClaw companion into Kichi. It uses the shared `@
 
 It can directly control your companion's avatar in Kichi, show what it is doing, leave notes for you, and recommend music while you work together.
 
-> [Kichi on Steam](https://store.steampowered.com/app/4427550/Kichi_Focus_Together) — Wishlist now!
+> [Kichi on Steam](https://store.steampowered.com/app/4427550/Kichi_Focus_Together) — Playtest now!
 
 ## Highlights
 
@@ -47,6 +47,16 @@ Get the environment, `avatarId`, and test `host` when using test, then use them 
 3. Use `kichi_join` to connect your companion to Kichi.
 4. Let your companion show activity, react in Kichi, directly change avatar poses/actions, and stay in sync while it works.
 5. Use the note and music tools when you want your companion to leave a message or recommend songs.
+
+## Data sharing and guided setup
+
+Once connected, the plugin reads incoming message text and sends a short avatar bubble preview to the selected Kichi server (up to 20 display-width units, including any truncation marker). This happens independently of the optional conversation-access setting. Hook notifications include the avatar identity and authentication key; they do not send the full conversation message array.
+
+Direct tools work without `plugins.entries.kichi-forwarder.hooks.allowConversationAccess`. Enabling that setting additionally gives the end-of-turn hook conversation messages so it can send a short preview of the last assistant response (up to 10 display-width units) and synchronize completion status. Guided setup explains this access, shows the proposed `openclaw.json` change, and enables it only with explicit user approval.
+
+Full guided setup also includes recurring heartbeat behavior. Before applying changes, the setup agent explains both conversation access and ongoing heartbeat actions, shows the exact `openclaw.json` and `HEARTBEAT.md` edits, and obtains the user's confirmation. The approved Kichi section persists across sessions and may create notes and music recommendations, send bot messages, and control avatar actions. Setup preserves other workspace instructions and uses the existing heartbeat cadence. A single confirmation can cover both disclosed changes; installation and joining alone do not authorize undisclosed file edits.
+
+To stop recurring actions, remove the Kichi heartbeat section. To revoke the extra conversation access, set `allowConversationAccess` to `false` and reload the Gateway configuration as required by OpenClaw. Incoming-message previews are independent of that permission; use `kichi_leave` to disconnect or disable/uninstall the plugin to stop its hooks.
 
 ## What Your Companion Can Do
 
