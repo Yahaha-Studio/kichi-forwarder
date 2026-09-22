@@ -12,3 +12,5 @@ export const KICHI_EMOJI_NAMES = [
 ];
 export const ENVIRONMENT_WEATHERS = ["Sunny", "Cloudy", "Rainy", "Snowy"];
 export const ENVIRONMENT_TIMES = ["Auto", "Morning", "Day", "Evening", "Night"];
+export const MUSIC_ACTIONS = ["Next", "Previous"];
+export const MUSIC_PLAY_TYPES = ["Loop", "Random"];

@@ -6,7 +6,7 @@ import {
   isKichiEnvironment, resolveJoinEnvironmentHost, normalizeMusicTitles, getActionDefinition, getActionPlayback,
   IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig,
   PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule,
-  ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES,
+  ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES,
 } from "@yahaha-studio/kichi-core";
 import type { ActionPlayback, ClockConfig, MateDailySchedule, PoseType, PresenceScope, QueryStatusResultPayload } from "@yahaha-studio/kichi-core";
 import { KICHI_WORLD_ROOT_DIR, KichiRuntimeManager, resolveToolLocator, trimOptionalString } from "./runtime-manager.js";
@@ -1024,7 +1024,7 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
     name: "kichi_environment",
     label: "kichi_environment",
     description:
-      "Change the Kichi scene's weather, time, House lighting, or current music playback. Provide at least one setting. The server checks room permissions. Success means the server forwarded the change; the client has not confirmed applying it.",
+      "Change the Kichi scene's weather, time, House lighting, or current music playback. Provide at least one setting. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. The server checks room permissions. Success means the server forwarded the change; the client has not confirmed applying it.",
     parameters: {
       type: "object",
       properties: {
@@ -1051,6 +1051,16 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
         musicPaused: {
           type: "boolean",
           description: "Pause the current music when true, or resume it when false.",
+        },
+        musicAction: {
+          type: "string",
+          enum: [...MUSIC_ACTIONS],
+          description: "Select the next or previous track in the current music album.",
+        },
+        musicPlayType: {
+          type: "string",
+          enum: [...MUSIC_PLAY_TYPES],
+          description: "Select sequential (Loop) or random (Random) playback.",
         },
       },
     },

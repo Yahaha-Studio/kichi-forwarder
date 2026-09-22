@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { normalizeKichiHost, getMusicTitleExamples, loadStaticConfig, VALID_ENVIRONMENTS, isKichiEnvironment, resolveJoinEnvironmentHost, normalizeMusicTitles, getActionDefinition, getActionPlayback, IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig, PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule, ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES, } from "@yahaha-studio/kichi-core";
+import { normalizeKichiHost, getMusicTitleExamples, loadStaticConfig, VALID_ENVIRONMENTS, isKichiEnvironment, resolveJoinEnvironmentHost, normalizeMusicTitles, getActionDefinition, getActionPlayback, IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig, PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule, ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES, } from "@yahaha-studio/kichi-core";
 import { KICHI_WORLD_ROOT_DIR, resolveToolLocator, trimOptionalString } from "./runtime-manager.js";
 import { isOfficialOpenClawSource, readConfiguredJoinSource } from "./source.js";
 const MATE_DAILY_SCHEDULE_PATH = path.join(KICHI_WORLD_ROOT_DIR, "agents", "main", "daily-schedule.json");
@@ -913,7 +913,7 @@ export function registerPluginTools(api, runtimeManager, musicTitleEnum) {
     api.registerTool((ctx) => ({
         name: "kichi_environment",
         label: "kichi_environment",
-        description: "Change the Kichi scene's weather, time, House lighting, or current music playback. Provide at least one setting. The server checks room permissions. Success means the server forwarded the change; the client has not confirmed applying it.",
+        description: "Change the Kichi scene's weather, time, House lighting, or current music playback. Provide at least one setting. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. The server checks room permissions. Success means the server forwarded the change; the client has not confirmed applying it.",
         parameters: {
             type: "object",
             properties: {
@@ -940,6 +940,16 @@ export function registerPluginTools(api, runtimeManager, musicTitleEnum) {
                 musicPaused: {
                     type: "boolean",
                     description: "Pause the current music when true, or resume it when false.",
+                },
+                musicAction: {
+                    type: "string",
+                    enum: [...MUSIC_ACTIONS],
+                    description: "Select the next or previous track in the current music album.",
+                },
+                musicPlayType: {
+                    type: "string",
+                    enum: [...MUSIC_PLAY_TYPES],
+                    description: "Select sequential (Loop) or random (Random) playback.",
                 },
             },
         },

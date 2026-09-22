@@ -197,6 +197,7 @@ Change the Kichi scene's weather, time, House lighting, or current music playbac
 kichi_environment(weather: "Rainy", time: "Evening")
 kichi_environment(time: "Auto")
 kichi_environment(lightingEnabled: false, musicPaused: true)
+kichi_environment(musicAction: "Next", musicPlayType: "Random")
 ```
 
 - `weather`: optional. `Sunny`, `Cloudy`, `Rainy`, or `Snowy`.
@@ -204,6 +205,8 @@ kichi_environment(lightingEnabled: false, musicPaused: true)
 - `lightingValue`: optional House lighting intensity from `0.1` to `2`. To turn lights off, use `lightingEnabled: false`.
 - `lightingEnabled`: optional boolean. Enables or disables all House lights.
 - `musicPaused`: optional boolean. `true` pauses the current music; `false` resumes it. This does not select a track or change volume.
+- `musicAction`: optional `Next` or `Previous`; selects a track in the current music album.
+- `musicPlayType`: optional `Loop` (sequential) or `Random` playback mode.
 - Provide at least one setting. The server checks room permissions.
 - `sent: true` means the Kichi server forwarded the change. `confirmed: false` means the client has not confirmed applying it; describe the result as sent, not as a confirmed scene change.
 

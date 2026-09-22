@@ -1,5 +1,11 @@
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES } from "./types.js";
+import {
+  ENVIRONMENT_TIMES,
+  ENVIRONMENT_WEATHERS,
+  KICHI_EMOJI_NAMES,
+  MUSIC_ACTIONS,
+  MUSIC_PLAY_TYPES,
+} from "./types.js";
 import type {
   ActionDefinition,
   AvatarStatus,
@@ -9,6 +15,8 @@ import type {
   EnvironmentTime,
   EnvironmentWeather,
   KichiEmojiName,
+  MusicAction,
+  MusicPlayType,
   PomodoroPhase,
   PoseType,
 } from "./types.js";
@@ -60,13 +68,13 @@ export function normalizeEnvironmentControl(value: unknown): EnvironmentControl 
     throw new Error("environment must be an object");
   }
   for (const key of Object.keys(value)) {
-    if (!["weather", "time", "lightingValue", "lightingEnabled", "musicPaused"].includes(key)) {
+    if (!["weather", "time", "lightingValue", "lightingEnabled", "musicPaused", "musicAction", "musicPlayType"].includes(key)) {
       throw new Error(`Unsupported environment field: ${key}`);
     }
   }
-  const { weather, time, lightingValue, lightingEnabled, musicPaused } = value;
-  if (weather === undefined && time === undefined && lightingValue === undefined && lightingEnabled === undefined && musicPaused === undefined) {
-    throw new Error("environment must contain weather, time, lightingValue, lightingEnabled, or musicPaused");
+  const { weather, time, lightingValue, lightingEnabled, musicPaused, musicAction, musicPlayType } = value;
+  if (weather === undefined && time === undefined && lightingValue === undefined && lightingEnabled === undefined && musicPaused === undefined && musicAction === undefined && musicPlayType === undefined) {
+    throw new Error("environment must contain weather, time, lightingValue, lightingEnabled, musicPaused, musicAction, or musicPlayType");
   }
   if (weather !== undefined && (typeof weather !== "string" || !ENVIRONMENT_WEATHERS.includes(weather as EnvironmentWeather))) {
     throw new Error(`weather must be one of: ${ENVIRONMENT_WEATHERS.join(", ")}`);
@@ -83,12 +91,20 @@ export function normalizeEnvironmentControl(value: unknown): EnvironmentControl 
   if (musicPaused !== undefined && typeof musicPaused !== "boolean") {
     throw new Error("musicPaused must be a boolean");
   }
+  if (musicAction !== undefined && (typeof musicAction !== "string" || !MUSIC_ACTIONS.includes(musicAction as MusicAction))) {
+    throw new Error(`musicAction must be one of: ${MUSIC_ACTIONS.join(", ")}`);
+  }
+  if (musicPlayType !== undefined && (typeof musicPlayType !== "string" || !MUSIC_PLAY_TYPES.includes(musicPlayType as MusicPlayType))) {
+    throw new Error(`musicPlayType must be one of: ${MUSIC_PLAY_TYPES.join(", ")}`);
+  }
   return {
     ...(weather !== undefined ? { weather: weather as EnvironmentWeather } : {}),
     ...(time !== undefined ? { time: time as EnvironmentTime } : {}),
     ...(lightingValue !== undefined ? { lightingValue: lightingValue as number } : {}),
     ...(lightingEnabled !== undefined ? { lightingEnabled: lightingEnabled as boolean } : {}),
     ...(musicPaused !== undefined ? { musicPaused: musicPaused as boolean } : {}),
+    ...(musicAction !== undefined ? { musicAction: musicAction as MusicAction } : {}),
+    ...(musicPlayType !== undefined ? { musicPlayType: musicPlayType as MusicPlayType } : {}),
   };
 }
 
