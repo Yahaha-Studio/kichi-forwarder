@@ -129,7 +129,7 @@ Until Core is published to the registry, local installation requires both archiv
 
 ```bash
 npm init -y
-npm install --ignore-scripts --legacy-peer-deps ./yahaha-studio-kichi-core-0.2.0-beta.3.tgz ./yahaha-studio-kichi-forwarder-0.2.0-beta.3.tgz
+npm install --ignore-scripts --legacy-peer-deps ./yahaha-studio-kichi-core-0.2.0-beta.4.tgz ./yahaha-studio-kichi-forwarder-0.2.0-beta.4.tgz
 kichi_host_root="$(dirname "$(readlink -f "$(command -v openclaw)")")"
 mkdir -p node_modules/@yahaha-studio/kichi-forwarder/node_modules
 ln -s "$kichi_host_root" node_modules/@yahaha-studio/kichi-forwarder/node_modules/openclaw

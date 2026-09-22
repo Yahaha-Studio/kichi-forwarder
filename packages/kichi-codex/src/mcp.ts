@@ -38,7 +38,7 @@ export const tools: Tool[] = [
 ];
 
 export async function runMcp(config: BridgeConfig): Promise<void> {
-  const server = new Server({ name: 'kichi', version: '0.2.0-beta.3' }, { capabilities: { tools: {} } });
+  const server = new Server({ name: 'kichi', version: '0.2.0-beta.4' }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
   server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
     try {
