@@ -3,6 +3,7 @@ import {
   ENVIRONMENT_TIMES,
   ENVIRONMENT_WEATHERS,
   IDLE_PLAN_POMODORO_PHASES,
+  KICHI_EMOJI_NAMES,
   VALID_ENVIRONMENTS,
   getActionDefinition,
   getActionPlayback,
@@ -22,7 +23,7 @@ import type {
 } from "@yahaha-studio/kichi-core";
 
 const OPERATIONS = [
-  "switch_host", "rejoin", "leave", "connection_status", "action", "glance",
+  "switch_host", "rejoin", "leave", "connection_status", "action", "glance", "emoji",
   "idle_plan", "clock", "environment", "query_status", "music_album_create", "noteboard_create",
   "bot_message_history", "bot_message",
 ] as const;
@@ -75,6 +76,7 @@ const schemas: Record<ExecutableOperation, ObjectSchema> = {
     bubble: text, log: text, propId: text, verify: flag,
   }, ["poseType", "action", "avatarStatus"]),
   glance: object({ target: choice(["camera"]), duration: { type: "number", exclusiveMinimum: 0 }, requestId: text }),
+  emoji: object({ emojiName: choice(KICHI_EMOJI_NAMES), requestId: text }, ["emojiName"]),
   idle_plan: object({
     requestId: text, heartbeatIntervalSeconds: positiveInteger, goal: text,
     stages: {
@@ -115,6 +117,7 @@ const usage: Record<KichiOperation, string> = {
   connection_status: "Local connection and identity readiness. Use query_status for room state.",
   action: "Use actions[poseType]. verify defaults true; bubble/log should be short. Room props come from query_status.",
   glance: "Brief camera glance. Defaults: target=camera, duration=1.8 seconds.",
+  emoji: "Show one supported emoji above the avatar's head. Use only for a direct expressive request; the server acknowledgement confirms forwarding, not client rendering.",
   idle_plan: "Action durations must total each stage; stages must total heartbeatIntervalSeconds. Once actions: at most 30 seconds each.",
   clock: "Visual timer only. set requires clock; stop forbids it. Pomodoro requires kichiSeconds,shortBreakSeconds,longBreakSeconds,sessionCount; countDown requires durationSeconds. running=true,currentSession=1,phase=focus,elapsedSeconds=0 by default; remainingSeconds defaults to the phase duration.",
   environment: "Set room weather, time, House lighting, or current music playback; at least one setting is required. Auto restores automatic time. lightingValue sets House lighting intensity from 0.1 to 2; lightingEnabled switches all House lights on or off. musicPaused=true pauses current music; false resumes it. The server checks room permissions. A successful acknowledgement means the server forwarded the control; client application is not confirmed.",
@@ -279,6 +282,16 @@ export async function executeKichiOperation(service: KichiForwarderService, name
     case "glance": {
       const ack = await service.sendGlance("camera", p.duration === undefined ? 1.8 : p.duration as number, optionalString("requestId"));
       return { confirmed: true, target: ack.target };
+    }
+    case "emoji": {
+      const ack = await service.sendEmoji(string("emojiName"), optionalString("requestId"));
+      return {
+        sent: true,
+        confirmed: false,
+        requestId: ack.requestId,
+        emojiName: ack.emojiName,
+        message: "Server accepted and broadcast the emoji; client rendering is not confirmed.",
+      };
     }
     case "idle_plan": {
       const result = normalizeIdlePlan(p);

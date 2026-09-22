@@ -1,7 +1,17 @@
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS } from "./types.js";
+import { ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES } from "./types.js";
 export const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"];
 export const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"];
+export function normalizeEmojiName(value) {
+    if (typeof value !== "string") {
+        throw new Error("emojiName must be a string");
+    }
+    const emojiName = value.trim();
+    if (!KICHI_EMOJI_NAMES.includes(emojiName)) {
+        throw new Error(`emojiName must be one of: ${KICHI_EMOJI_NAMES.join(", ")}`);
+    }
+    return emojiName;
+}
 export function isPlainObject(value) {
     return !!value && typeof value === "object" && !Array.isArray(value);
 }

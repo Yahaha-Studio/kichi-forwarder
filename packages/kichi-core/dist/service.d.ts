@@ -1,4 +1,4 @@
-import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, EnvironmentControlAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, StatusAckPayload } from "./types.js";
+import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, EnvironmentControlAckPayload, EmojiAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, StatusAckPayload } from "./types.js";
 type AckFailureResult = {
     success: false;
     error: string;
@@ -46,6 +46,9 @@ export declare class KichiForwarderService {
     sendClock(action: ClockAction, clock?: ClockConfig, requestId?: string): boolean;
     sendGlance(target: GlanceTarget, durationSeconds?: number, requestId?: string): Promise<GlanceAckPayload>;
     sendEnvironmentControl(control: unknown, requestId?: string): Promise<Extract<EnvironmentControlAckPayload, {
+        success: true;
+    }>>;
+    sendEmoji(emojiName: unknown, requestId?: string): Promise<Extract<EmojiAckPayload, {
         success: true;
     }>>;
     queryStatus(requestId?: string): Promise<QueryStatusResultPayload>;

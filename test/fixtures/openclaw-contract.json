@@ -351,6 +351,56 @@
     },
     {
       "registration": {
+        "name": "kichi_emoji"
+      },
+      "definition": {
+        "name": "kichi_emoji",
+        "label": "kichi_emoji",
+        "description": "Show one supported emoji above the Kichi avatar's head. Use for direct player requests or a clearly requested expressive reaction; do not use during routine heartbeat/status synchronization.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "emojiName": {
+              "type": "string",
+              "enum": [
+                "Heart",
+                "Like",
+                "Happy",
+                "Celebrate",
+                "Keep Going",
+                "Peeking",
+                "Laughing",
+                "Sleeping",
+                "Coffee",
+                "Waving"
+              ],
+              "description": "Emoji name. Use one of the exact supported names."
+            },
+            "requestId": {
+              "type": "string",
+              "description": "Optional client request ID for tracing. The websocket ack returns this ID."
+            }
+          },
+          "required": [
+            "emojiName"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"emojiName must be one of: Heart, Like, Happy, Celebrate, Keep Going, Peeking, Laughing, Sleeping, Coffee, Waving\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "emojiName must be one of: Heart, Like, Happy, Celebrate, Keep Going, Peeking, Laughing, Sleeping, Coffee, Waving"
+        }
+      }
+    },
+    {
+      "registration": {
         "name": "kichi_idle_plan"
       },
       "definition": {

@@ -52,6 +52,10 @@ Call `await service.sendEnvironmentControl({ weather: "Rainy", time: "Night", li
 
 Core validates the patch and sends `kichi_environment` with an `environment` object over the authenticated WebSocket connection. The server forwards it through `OnServerControl` and returns `kichi_environment_ack`. Invalid input, missing identity, connection failure, timeout, and rejected requests fail explicitly. A successful ACK confirms server forwarding only; it does not confirm that the client has applied the change. This requires the corresponding server WebSocket handler and a client with `ServerControlNotify` support.
 
+## Head emoji
+
+Call `await service.sendEmoji("Heart", requestId?)` to show one supported emoji above the avatar's head. `emojiName` must be one of `Heart`, `Like`, `Happy`, `Celebrate`, `Keep Going`, `Peeking`, `Laughing`, `Sleeping`, `Coffee`, or `Waving`. Core sends `kichi_emoji` and waits for `kichi_emoji_ack`; a successful ACK confirms that the server accepted and broadcast the emoji, not that the client has rendered it.
+
 ## Incoming messages
 
 `onBotMessageReceived` has the signature `(service, message) => void`. Core dispatches `bot_message_received` payloads to it and records the incoming bot message. The adapter routes the message to the matching platform session and decides how that platform processes or replies to it. Receiving a bot message is distinct from receiving a user's platform input.
@@ -62,6 +66,7 @@ Core validates the patch and sends `kichi_environment` with an `environment` obj
 | --- | --- |
 | `sendHookNotify`, `sendStatus`, `sendAction` | No ACK is awaited. Missing identity or a closed socket causes the send to be skipped. Calling the method does not prove delivery or application. |
 | `sendStatusVerified` | Waits for `status_ack` and rejects on connection failure or timeout. |
+| `sendEmoji` | Waits for `kichi_emoji_ack`; a successful ACK confirms server forwarding/broadcast only. |
 | `queryStatus` | Waits for `query_status_result`; use the returned data when current Kichi state is needed. |
 | `join` | Resolves with `JoinResult`; check `success` and report its error on failure. |
 
