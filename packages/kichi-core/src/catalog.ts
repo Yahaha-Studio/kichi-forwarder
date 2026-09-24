@@ -51,6 +51,19 @@ export function getMusicTitleEnum(): string[] {
   return loadRuntimeAlbumConfig().track.map((item) => item.name);
 }
 
+export function getMusicSelectionCatalog(): Array<{ albumTitle: string; musicTitles: string[] }> {
+  const albums = new Map<string, string[]>();
+  for (const track of loadRuntimeAlbumConfig().track) {
+    const titles = albums.get(track.album);
+    if (titles) {
+      titles.push(track.name);
+    } else {
+      albums.set(track.album, [track.name]);
+    }
+  }
+  return Array.from(albums, ([albumTitle, musicTitles]) => ({ albumTitle, musicTitles }));
+}
+
 export function getMusicTitleExamples(): string[] {
   return loadRuntimeAlbumConfig().track.slice(0, 10).map((item) => item.name);
 }

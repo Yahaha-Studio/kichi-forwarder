@@ -33,6 +33,19 @@ function getMusicTitleLookup() {
 export function getMusicTitleEnum() {
     return loadRuntimeAlbumConfig().track.map((item) => item.name);
 }
+export function getMusicSelectionCatalog() {
+    const albums = new Map();
+    for (const track of loadRuntimeAlbumConfig().track) {
+        const titles = albums.get(track.album);
+        if (titles) {
+            titles.push(track.name);
+        }
+        else {
+            albums.set(track.album, [track.name]);
+        }
+    }
+    return Array.from(albums, ([albumTitle, musicTitles]) => ({ albumTitle, musicTitles }));
+}
 export function getMusicTitleExamples() {
     return loadRuntimeAlbumConfig().track.slice(0, 10).map((item) => item.name);
 }

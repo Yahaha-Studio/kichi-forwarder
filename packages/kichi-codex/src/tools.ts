@@ -9,6 +9,7 @@ import {
   VALID_ENVIRONMENTS,
   getActionDefinition,
   getActionPlayback,
+  getMusicSelectionCatalog,
   getMusicTitleEnum,
   loadStaticConfig,
   normalizeClockConfig,
@@ -100,6 +101,8 @@ const schemas: Record<ExecutableOperation, ObjectSchema> = {
   environment: object({
     weather: choice(ENVIRONMENT_WEATHERS), time: choice(ENVIRONMENT_TIMES),
     lightingValue: { type: "number", minimum: 0.1, maximum: 2 }, lightingEnabled: flag, musicPaused: flag,
+    ambientLightIntensity: { type: "number", minimum: 0.5, maximum: 3 }, ambientLightEnabled: flag,
+    musicAlbumTitle: text, musicTitle: text,
     musicAction: choice(MUSIC_ACTIONS), musicPlayType: choice(MUSIC_PLAY_TYPES), requestId: text,
   }),
   query_status: object({ requestId: text }),
@@ -123,7 +126,7 @@ const usage: Record<KichiOperation, string> = {
   emoji: "Show one supported emoji above the avatar's head. Use only for a direct expressive request; the server acknowledgement confirms forwarding, not client rendering.",
   idle_plan: "Action durations must total each stage; stages must total heartbeatIntervalSeconds. Once actions: at most 30 seconds each.",
   clock: "Visual timer only. set requires clock; stop forbids it. Pomodoro requires kichiSeconds,shortBreakSeconds,longBreakSeconds,sessionCount; countDown requires durationSeconds. running=true,currentSession=1,phase=focus,elapsedSeconds=0 by default; remainingSeconds defaults to the phase duration.",
-  environment: "Set room weather, time, House lighting, or current music playback; at least one setting is required. Auto restores automatic time. lightingValue sets House lighting intensity from 0.1 to 2; lightingEnabled switches all House lights on or off. musicPaused=true pauses current music; false resumes it. musicAction selects the Next or Previous track. musicPlayType selects Loop (sequential) or Random playback. The server checks room permissions. A successful acknowledgement means the server forwarded the control; client application is not confirmed.",
+  environment: "Set room weather, time, House lighting, scene ambient light, or music playback; at least one setting is required. Auto restores automatic time. lightingValue sets House lighting intensity from 0.1 to 2; lightingEnabled switches all House lights on or off. ambientLightIntensity sets scene ambient light intensity from 0.5 to 3; ambientLightEnabled switches ambient light on or off. musicAlbumTitle and/or musicTitle select music by exact name; names are trimmed and must not be empty. Selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicPaused=true pauses current music; false resumes it. musicAction selects the Next or Previous track. musicPlayType selects Loop (sequential) or Random playback. The server checks room permissions. A successful acknowledgement means the server forwarded the control; client application is not confirmed.",
   query_status: "Room, avatars, props, notes, timer and quotas. Query before notes or music.",
   music_album_create: "Use exact track titles from this schema. Query status for today's availability first.",
   noteboard_create: "Query status for board propId and quota first. Do not repeat recent notes.",
@@ -152,6 +155,9 @@ export function describeKichiOperation(name: string) {
     } };
   }
   const result: { parameters: ObjectSchema; usage: string; actions?: unknown } = { parameters, usage: usage[operation] };
+  if (operation === "environment") {
+    result.usage += ` Known built-in album and track names: ${JSON.stringify(getMusicSelectionCatalog())}. Other available albums and tracks, including custom albums, can also be selected by exact name.`;
+  }
   if (operation === "action") {
     const actions = loadStaticConfig().actions;
     result.actions = Object.fromEntries(poses.map((pose) => [pose, actions[pose].map((entry) => entry.name)]));
@@ -330,6 +336,10 @@ export async function executeKichiOperation(service: KichiForwarderService, name
         ...(p.time === undefined ? {} : { time: p.time }),
         ...(p.lightingValue === undefined ? {} : { lightingValue: p.lightingValue }),
         ...(p.lightingEnabled === undefined ? {} : { lightingEnabled: p.lightingEnabled }),
+        ...(p.ambientLightIntensity === undefined ? {} : { ambientLightIntensity: p.ambientLightIntensity }),
+        ...(p.ambientLightEnabled === undefined ? {} : { ambientLightEnabled: p.ambientLightEnabled }),
+        ...(p.musicAlbumTitle === undefined ? {} : { musicAlbumTitle: p.musicAlbumTitle }),
+        ...(p.musicTitle === undefined ? {} : { musicTitle: p.musicTitle }),
         ...(p.musicPaused === undefined ? {} : { musicPaused: p.musicPaused }),
         ...(p.musicAction === undefined ? {} : { musicAction: p.musicAction }),
         ...(p.musicPlayType === undefined ? {} : { musicPlayType: p.musicPlayType }),

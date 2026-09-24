@@ -68,13 +68,13 @@ export function normalizeEnvironmentControl(value: unknown): EnvironmentControl 
     throw new Error("environment must be an object");
   }
   for (const key of Object.keys(value)) {
-    if (!["weather", "time", "lightingValue", "lightingEnabled", "musicPaused", "musicAction", "musicPlayType"].includes(key)) {
+    if (!["weather", "time", "lightingValue", "lightingEnabled", "ambientLightIntensity", "ambientLightEnabled", "musicAlbumTitle", "musicTitle", "musicPaused", "musicAction", "musicPlayType"].includes(key)) {
       throw new Error(`Unsupported environment field: ${key}`);
     }
   }
-  const { weather, time, lightingValue, lightingEnabled, musicPaused, musicAction, musicPlayType } = value;
-  if (weather === undefined && time === undefined && lightingValue === undefined && lightingEnabled === undefined && musicPaused === undefined && musicAction === undefined && musicPlayType === undefined) {
-    throw new Error("environment must contain weather, time, lightingValue, lightingEnabled, musicPaused, musicAction, or musicPlayType");
+  const { weather, time, lightingValue, lightingEnabled, ambientLightIntensity, ambientLightEnabled, musicAlbumTitle, musicTitle, musicPaused, musicAction, musicPlayType } = value;
+  if (weather === undefined && time === undefined && lightingValue === undefined && lightingEnabled === undefined && ambientLightIntensity === undefined && ambientLightEnabled === undefined && musicAlbumTitle === undefined && musicTitle === undefined && musicPaused === undefined && musicAction === undefined && musicPlayType === undefined) {
+    throw new Error("environment must contain weather, time, lightingValue, lightingEnabled, ambientLightIntensity, ambientLightEnabled, musicAlbumTitle, musicTitle, musicPaused, musicAction, or musicPlayType");
   }
   if (weather !== undefined && (typeof weather !== "string" || !ENVIRONMENT_WEATHERS.includes(weather as EnvironmentWeather))) {
     throw new Error(`weather must be one of: ${ENVIRONMENT_WEATHERS.join(", ")}`);
@@ -87,6 +87,21 @@ export function normalizeEnvironmentControl(value: unknown): EnvironmentControl 
   }
   if (lightingEnabled !== undefined && typeof lightingEnabled !== "boolean") {
     throw new Error("lightingEnabled must be a boolean");
+  }
+  if (ambientLightIntensity !== undefined && (typeof ambientLightIntensity !== "number" || !Number.isFinite(ambientLightIntensity) || ambientLightIntensity < 0.5 || ambientLightIntensity > 3)) {
+    throw new Error("ambientLightIntensity must be a finite number from 0.5 to 3; use ambientLightEnabled to turn ambient light off");
+  }
+  if (ambientLightEnabled !== undefined && typeof ambientLightEnabled !== "boolean") {
+    throw new Error("ambientLightEnabled must be a boolean");
+  }
+  if (musicAlbumTitle !== undefined && (typeof musicAlbumTitle !== "string" || !musicAlbumTitle.trim())) {
+    throw new Error("musicAlbumTitle must be a non-empty string");
+  }
+  if (musicTitle !== undefined && (typeof musicTitle !== "string" || !musicTitle.trim())) {
+    throw new Error("musicTitle must be a non-empty string");
+  }
+  if ((musicAlbumTitle !== undefined || musicTitle !== undefined) && (musicPaused !== undefined || musicAction !== undefined)) {
+    throw new Error("musicAlbumTitle and musicTitle cannot be combined with musicPaused or musicAction");
   }
   if (musicPaused !== undefined && typeof musicPaused !== "boolean") {
     throw new Error("musicPaused must be a boolean");
@@ -102,6 +117,10 @@ export function normalizeEnvironmentControl(value: unknown): EnvironmentControl 
     ...(time !== undefined ? { time: time as EnvironmentTime } : {}),
     ...(lightingValue !== undefined ? { lightingValue: lightingValue as number } : {}),
     ...(lightingEnabled !== undefined ? { lightingEnabled: lightingEnabled as boolean } : {}),
+    ...(ambientLightIntensity !== undefined ? { ambientLightIntensity: ambientLightIntensity as number } : {}),
+    ...(ambientLightEnabled !== undefined ? { ambientLightEnabled: ambientLightEnabled as boolean } : {}),
+    ...(musicAlbumTitle !== undefined ? { musicAlbumTitle: (musicAlbumTitle as string).trim() } : {}),
+    ...(musicTitle !== undefined ? { musicTitle: (musicTitle as string).trim() } : {}),
     ...(musicPaused !== undefined ? { musicPaused: musicPaused as boolean } : {}),
     ...(musicAction !== undefined ? { musicAction: musicAction as MusicAction } : {}),
     ...(musicPlayType !== undefined ? { musicPlayType: musicPlayType as MusicPlayType } : {}),

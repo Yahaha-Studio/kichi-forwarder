@@ -76,7 +76,9 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 `emoji` 显示头像头顶的一个受支持表情：`emojiName` 必须是 `Heart`、`Like`、`Happy`、`Celebrate`、`Keep Going`、`Peeking`、`Laughing`、`Sleeping`、`Coffee` 或 `Waving`，可选 `requestId` 用于追踪。成功 ACK 表示服务端已接受并广播，不表示客户端已完成渲染，结果包含 `sent: true, confirmed: false`。
 
-`environment` 设置房间天气、时间、House 灯光和当前音乐播放状态：`weather` 为 `Sunny` / `Cloudy` / `Rainy` / `Snowy`，`time` 为 `Auto` / `Morning` / `Day` / `Evening` / `Night`，`Auto` 恢复自动时间。`lightingValue` 设置 House 灯光强度（`0.1–2`），`lightingEnabled` 控制 House 灯光总开关，关灯使用 `false`；`musicPaused: true` 暂停当前音乐，`false` 恢复；`musicAction` 使用 `Next` / `Previous` 切换曲目，`musicPlayType` 使用 `Loop`（顺序播放）/ `Random`（随机播放）。至少提供一个设置，也可组合设置，房间权限由服务端校验。成功 ACK 表示服务端已转发控制，返回 `sent: true, confirmed: false`，不表示客户端已应用。
+`environment` 设置房间天气、时间、House 灯光、环境光和音乐播放：`weather` 为 `Sunny` / `Cloudy` / `Rainy` / `Snowy`，`time` 为 `Auto` / `Morning` / `Day` / `Evening` / `Night`，`Auto` 恢复自动时间。`lightingValue` 设置 House 灯光强度（`0.1–2`），`lightingEnabled` 控制 House 灯光总开关，关灯使用 `false`。环境光独立控制：`ambientLightIntensity` 为 `0.5–3` 的有限数值，`ambientLightEnabled` 为布尔开关。
+
+`musicPaused: true` 暂停当前音乐，`false` 恢复；`musicAction` 使用 `Next` / `Previous` 切换曲目，`musicPlayType` 使用 `Loop`（顺序播放）/ `Random`（随机播放）。指定音乐使用 `musicAlbumTitle`、`musicTitle` 或两者，按精确专辑名和曲名匹配；`kichi_describe({ action: "environment" })` 的参数说明列出曲库 `album` / `name` 字段中的已知内置名称，用户精选专辑和曲目也可按实际精确名称指定。名称会 trim，不能留空；任一指定音乐字段都不能与 `musicPaused`（包括 `false`）或 `musicAction` 同传，但可与 `musicPlayType` 组合。至少提供一个设置，房间权限由服务端校验。成功 ACK 表示服务端已转发控制，返回 `sent: true, confirmed: false`，不表示客户端已应用。
 
 工具参数严格检查，错误设置 `isError`，成功结果保持简短。`confirmed` 按具体协议语义返回；服务端转发 ACK 仍不代表客户端已应用。没有 ACK 的发送只报告已发送但未确认。
 

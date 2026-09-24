@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import {
-  KichiForwarderService, normalizeKichiHost, getMusicTitleExamples, loadStaticConfig, VALID_ENVIRONMENTS,
+  KichiForwarderService, normalizeKichiHost, getMusicTitleExamples, getMusicSelectionCatalog, loadStaticConfig, VALID_ENVIRONMENTS,
   isKichiEnvironment, resolveJoinEnvironmentHost, normalizeMusicTitles, getActionDefinition, getActionPlayback,
   IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig,
   PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule,
@@ -1024,7 +1024,8 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
     name: "kichi_environment",
     label: "kichi_environment",
     description:
-      "Change the Kichi scene's weather, time, House lighting, or current music playback. Provide at least one setting. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. The server checks room permissions. Success means the server forwarded the change; the client has not confirmed applying it.",
+      "Change the Kichi scene's weather, time, House lighting, ambient light, or music playback. Provide at least one setting. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. The server checks room permissions. Success means the server forwarded the change; the client has not confirmed applying it. " +
+      `Known built-in album and track names: ${JSON.stringify(getMusicSelectionCatalog())}. Other available albums and tracks, including custom albums, can also be selected by exact name.`,
     parameters: {
       type: "object",
       properties: {
@@ -1047,6 +1048,26 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
         lightingEnabled: {
           type: "boolean",
           description: "Enable or disable all House lights.",
+        },
+        ambientLightIntensity: {
+          type: "number",
+          minimum: 0.5,
+          maximum: 3,
+          description: "Scene ambient light intensity from 0.5 to 3. To turn ambient light off, use ambientLightEnabled=false.",
+        },
+        ambientLightEnabled: {
+          type: "boolean",
+          description: "Enable or disable scene ambient light.",
+        },
+        musicAlbumTitle: {
+          type: "string",
+          minLength: 1,
+          description: "Exact album name to play. Trimmed before sending and must not be empty.",
+        },
+        musicTitle: {
+          type: "string",
+          minLength: 1,
+          description: "Exact track name to play, optionally within musicAlbumTitle. Trimmed before sending and must not be empty.",
         },
         musicPaused: {
           type: "boolean",

@@ -1,5 +1,9 @@
 import type { ActionDefinition, ActionPlayback, KichiEnvironment, KichiEnvironmentsConfig, KichiStaticConfig, PoseType } from "./types.js";
 export declare function getMusicTitleEnum(): string[];
+export declare function getMusicSelectionCatalog(): Array<{
+    albumTitle: string;
+    musicTitles: string[];
+}>;
 export declare function getMusicTitleExamples(): string[];
 export declare function loadStaticConfig(): KichiStaticConfig;
 export declare const VALID_ENVIRONMENTS: KichiEnvironment[];
