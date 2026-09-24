@@ -1,6 +1,6 @@
 {
   "name": "@yahaha-studio/kichi-forwarder",
-  "version": "0.2.0-beta.5",
+  "version": "0.2.0-beta.6",
   "homepage": "https://github.com/Yahaha-Studio/kichi-forwarder#readme",
   "repository": {
     "type": "git",
@@ -46,7 +46,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@yahaha-studio/kichi-core": "0.2.0-beta.4"
+    "@yahaha-studio/kichi-core": "0.2.0-beta.6"
   },
   "peerDependencies": {
     "openclaw": ">=2026.4.25"
