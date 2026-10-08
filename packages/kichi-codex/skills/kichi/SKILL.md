@@ -15,6 +15,8 @@ For other operations, use `kichi({action, parameters})`; call `kichi_describe({a
 
 Use `emoji` for an explicit expressive request. Its required `emojiName` is one of `Heart`, `Like`, `Happy`, `Celebrate`, `Keep Going`, `Peeking`, `Laughing`, `Sleeping`, `Coffee`, or `Waving`; a successful result confirms server forwarding/broadcast, not client rendering.
 
-Use `environment` to set room weather, time, House lighting (`lightingValue`: 0.1–2, `lightingEnabled`: on/off), or current music playback (`musicPaused`: true to pause, false to resume; `musicAction`: `Next`/`Previous`; `musicPlayType`: `Loop`/`Random`). To turn lights off, use `lightingEnabled: false`. Provide at least one setting; the server checks room permissions. A successful result confirms server forwarding only; client application remains unconfirmed.
+Use `environment` to set room weather, time, House lighting (`lightingValue`: 0.1–2, `lightingEnabled`: boolean), independent ambient light (`ambientLightIntensity`: finite number 0.5–3, `ambientLightEnabled`: boolean), or music playback (`musicPaused`: true to pause, false to resume; `musicAction`: `Next`/`Previous`; `musicPlayType`: `Loop`/`Random`). To turn House lights off, use `lightingEnabled: false`.
+
+Select music with `musicAlbumTitle`, `musicTitle`, or both using exact names. `kichi_describe({action: "environment"})` descriptions list known built-in catalog `album`/`name` values; user-curated albums and tracks also accept their actual exact names. Strings are trimmed and must be non-empty. Either selection field excludes `musicPaused` (including false) and `musicAction`, but can accompany `musicPlayType`. Provide at least one setting; the server checks room permissions. A successful result returns `sent: true`, meaning the server forwarded the control.
 
 Normal task activity is reflected automatically by local Hooks. Do not call tools or generate plans just to keep the avatar synchronized.

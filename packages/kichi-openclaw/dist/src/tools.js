@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { normalizeKichiHost, getMusicTitleExamples, loadStaticConfig, VALID_ENVIRONMENTS, isKichiEnvironment, resolveJoinEnvironmentHost, normalizeMusicTitles, getActionDefinition, getActionPlayback, IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig, PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule, ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES, } from "@yahaha-studio/kichi-core";
+import { normalizeKichiHost, getMusicTitleExamples, getMusicSelectionCatalog, loadStaticConfig, VALID_ENVIRONMENTS, isKichiEnvironment, resolveJoinEnvironmentHost, normalizeMusicTitles, getActionDefinition, getActionPlayback, IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig, PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule, ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES, } from "@yahaha-studio/kichi-core";
 import { KICHI_WORLD_ROOT_DIR, resolveToolLocator, trimOptionalString } from "./runtime-manager.js";
 import { isOfficialOpenClawSource, readConfiguredJoinSource } from "./source.js";
 const MATE_DAILY_SCHEDULE_PATH = path.join(KICHI_WORLD_ROOT_DIR, "agents", "main", "daily-schedule.json");
@@ -913,7 +913,8 @@ export function registerPluginTools(api, runtimeManager, musicTitleEnum) {
     api.registerTool((ctx) => ({
         name: "kichi_environment",
         label: "kichi_environment",
-        description: "Change the Kichi scene's weather, time, House lighting, or current music playback. Provide at least one setting. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. The server checks room permissions. Success means the server forwarded the change; the client has not confirmed applying it.",
+        description: "Change the Kichi scene's weather, time, House lighting, ambient light, or music playback. Provide at least one setting. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. The server checks room permissions. Success means the server forwarded the change. " +
+            `Known built-in album and track names: ${JSON.stringify(getMusicSelectionCatalog())}. Other available albums and tracks, including custom albums, can also be selected by exact name.`,
         parameters: {
             type: "object",
             properties: {
@@ -936,6 +937,26 @@ export function registerPluginTools(api, runtimeManager, musicTitleEnum) {
                 lightingEnabled: {
                     type: "boolean",
                     description: "Enable or disable all House lights.",
+                },
+                ambientLightIntensity: {
+                    type: "number",
+                    minimum: 0.5,
+                    maximum: 3,
+                    description: "Scene ambient light intensity from 0.5 to 3. To turn ambient light off, use ambientLightEnabled=false.",
+                },
+                ambientLightEnabled: {
+                    type: "boolean",
+                    description: "Enable or disable scene ambient light.",
+                },
+                musicAlbumTitle: {
+                    type: "string",
+                    minLength: 1,
+                    description: "Exact album name to play. Trimmed before sending and must not be empty.",
+                },
+                musicTitle: {
+                    type: "string",
+                    minLength: 1,
+                    description: "Exact track name to play, optionally within musicAlbumTitle. Trimmed before sending and must not be empty.",
                 },
                 musicPaused: {
                     type: "boolean",
@@ -968,10 +989,8 @@ export function registerPluginTools(api, runtimeManager, musicTitleEnum) {
                 return jsonResult({
                     success: true,
                     sent: true,
-                    confirmed: false,
                     requestId: result.requestId,
                     environment: result.environment,
-                    message: "Kichi server forwarded the environment change. The client has not confirmed applying it.",
                 });
             }
             catch (error) {

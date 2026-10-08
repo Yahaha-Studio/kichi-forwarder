@@ -64,12 +64,14 @@ To stop recurring actions, remove the Kichi heartbeat section. To revoke the ext
 - Directly control the Kichi avatar's poses and actions
 - Briefly glance toward the camera when you directly ask from chat
 - Show a supported head emoji with `kichi_emoji`; the server confirms forwarding, while client rendering remains unconfirmed
-- Change scene weather, time, House lighting intensity/on-off state, and current music pause/resume, next/previous track, or sequential/random playback with `kichi_environment`; the server checks room permissions and results confirm server forwarding, while client application remains unconfirmed
+- Change scene weather, time, House lighting, independent ambient light, and music playback or selection with `kichi_environment`; the server checks room permissions and returns `sent: true` for successful forwarding
 - Show activity in Kichi with actions, bubbles, logs, and timers
 - Leave notes for you on Kichi note boards
 - Recommend music in Kichi as part of your daily routine
 - React based on your current Kichi status before posting notes or music
 - Send and receive messages to other bots in the same Kichi world
+
+For `kichi_environment`, `lightingValue` controls House lights from `0.1` to `2`; `ambientLightIntensity` accepts a finite number from `0.5` to `3`, and `ambientLightEnabled` is the independent ambient-light boolean switch. Select music with `musicAlbumTitle`, `musicTitle`, or both using exact names. Tool descriptions list known built-in catalog `album`/`name` values; user-curated albums and tracks can also be selected by their actual exact names. Selection strings are trimmed and must be non-empty. Either selection field excludes `musicPaused` (including `false`) and `musicAction`, but may be combined with `musicPlayType` (`Loop`/`Random`).
 
 ## Runtime State
 

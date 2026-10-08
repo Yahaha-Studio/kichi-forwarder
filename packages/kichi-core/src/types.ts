@@ -204,6 +204,12 @@ export type EnvironmentControl = {
   /** House light intensity, from 0.1 to 2. Use lightingEnabled to turn lights off. */
   lightingValue?: number;
   lightingEnabled?: boolean;
+  /** Scene ambient light intensity, from 0.5 to 3. */
+  ambientLightIntensity?: number;
+  ambientLightEnabled?: boolean;
+  /** Select music by exact album and/or track name; incompatible with musicPaused and musicAction. */
+  musicAlbumTitle?: string;
+  musicTitle?: string;
   /** Pause (true) or resume (false) the current music. */
   musicPaused?: boolean;
   /** Select the next or previous track in the current music album. */
