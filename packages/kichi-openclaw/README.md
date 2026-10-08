@@ -64,7 +64,7 @@ To stop recurring actions, remove the Kichi heartbeat section. To revoke the ext
 - Directly control the Kichi avatar's poses and actions
 - Briefly glance toward the camera when you directly ask from chat
 - Show a supported head emoji with `kichi_emoji`; the server confirms forwarding, while client rendering remains unconfirmed
-- Change scene weather, time, House lighting, independent ambient light, and music playback or selection with `kichi_environment`; the server checks room permissions and returns `sent: true, confirmed: false` for successful forwarding, while client application remains unconfirmed
+- Change scene weather, time, House lighting, independent ambient light, and music playback or selection with `kichi_environment`; the server checks room permissions and returns `sent: true` for successful forwarding
 - Show activity in Kichi with actions, bubbles, logs, and timers
 - Leave notes for you on Kichi note boards
 - Recommend music in Kichi as part of your daily routine

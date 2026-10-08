@@ -1024,7 +1024,7 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
     name: "kichi_environment",
     label: "kichi_environment",
     description:
-      "Change the Kichi scene's weather, time, House lighting, ambient light, or music playback. Provide at least one setting. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. The server checks room permissions. Success means the server forwarded the change; the client has not confirmed applying it. " +
+      "Change the Kichi scene's weather, time, House lighting, ambient light, or music playback. Provide at least one setting. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. The server checks room permissions. Success means the server forwarded the change. " +
       `Known built-in album and track names: ${JSON.stringify(getMusicSelectionCatalog())}. Other available albums and tracks, including custom albums, can also be selected by exact name.`,
     parameters: {
       type: "object",
@@ -1100,10 +1100,8 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
         return jsonResult({
           success: true,
           sent: true,
-          confirmed: false,
           requestId: result.requestId,
           environment: result.environment,
-          message: "Kichi server forwarded the environment change. The client has not confirmed applying it.",
         });
       } catch (error) {
         return jsonResult({

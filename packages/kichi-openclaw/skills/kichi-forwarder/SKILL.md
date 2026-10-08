@@ -214,7 +214,7 @@ kichi_environment(musicAction: "Next", musicPlayType: "Random")
 - `musicPlayType`: optional `Loop` (sequential) or `Random` playback mode.
 - `musicAlbumTitle` / `musicTitle`: optional music selection strings. Use exact names; tool descriptions list known built-in catalog `album` / `name` values, and user-curated albums and tracks can also use their actual exact names. Strings are trimmed and must be non-empty. Provide either or both. Either selection field excludes `musicPaused` (including `false`) and `musicAction`, but may accompany `musicPlayType`.
 - Provide at least one setting. The server checks room permissions.
-- `sent: true` means the Kichi server forwarded the change. `confirmed: false` means the client has not confirmed applying it; describe the result as sent, not as a confirmed scene change.
+- `sent: true` means the Kichi server forwarded the change.
 
 ### kichi_music_album_create
 
