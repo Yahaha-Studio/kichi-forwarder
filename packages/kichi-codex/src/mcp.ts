@@ -8,8 +8,9 @@ const actions = [...listKichiOperations()];
 export const tools: Tool[] = [
   {
     name: 'kichi_join',
-    description: 'Join Kichi directly; the local bridge starts automatically. host is required for test. botName/bio default to Codex/A coding companion; tags default to [].',
+    description: 'Join Kichi; the local bridge starts automatically. Once connected, local tasks sharing this profile automatically send activity status and short previews of user prompts and tool titles to the selected Kichi environment, where room members may see them. host is required for test. botName/bio default to Codex/A coding companion; tags default to [].',
     inputSchema: { ...KICHI_JOIN_PARAMETERS, required: [...KICHI_JOIN_PARAMETERS.required] },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true, idempotentHint: false },
   },
   {
     name: 'kichi',
@@ -23,6 +24,7 @@ export const tools: Tool[] = [
       required: ['action'],
       additionalProperties: false,
     },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true, idempotentHint: false },
   },
   {
     name: 'kichi_describe',
@@ -33,7 +35,7 @@ export const tools: Tool[] = [
       required: ['action'],
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: true, openWorldHint: false },
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true },
   },
 ];
 

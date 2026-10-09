@@ -230,7 +230,10 @@ export function normalizeIdlePlan(value: unknown): { idlePlan?: IdlePlan; error?
         error: `stages[${stageIndex}].pomodoroPhase must be one of: ${IDLE_PLAN_POMODORO_PHASES.join(", ")}`,
       };
     }
-    const normalizedAvatarStatus = normalizeAvatarStatus(avatarStatus, `stages[${stageIndex}].avatarStatus`);
+    const stageAvatarStatus = avatarStatus === undefined ? (
+      pomodoroPhase === "focus" ? "Busy" : pomodoroPhase === "none" ? "Idle" : "Break"
+    ) : avatarStatus;
+    const normalizedAvatarStatus = normalizeAvatarStatus(stageAvatarStatus, `stages[${stageIndex}].avatarStatus`);
     if (normalizedAvatarStatus.error || normalizedAvatarStatus.avatarStatus === undefined) {
       return { error: normalizedAvatarStatus.error ?? `stages[${stageIndex}].avatarStatus is invalid` };
     }

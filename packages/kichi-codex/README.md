@@ -4,6 +4,8 @@
 
 这是原生桌面插件：`.codex-plugin/plugin.json`、`hooks/hooks.json` 和 `.mcp.json` 由 App 加载。`src/cli.ts` 是插件自己的 Node 后端入口，不启动 Codex CLI、Codex SDK、App Server 或另一轮模型对话。
 
+当前包适用于手动安装的本地桌面插件，尚不符合普通公开插件目录的提交条件。ChatGPT 与 Codex 共用公开目录，但该提交流程暂不接受生命周期 Hooks，并要求公网 HTTPS MCP。完整发布差距见下文“公开目录发布”。
+
 ## 低 token 设计
 
 - 生命周期反馈由本地 Hooks 固定映射，额外模型请求为 0；正常返回 `{}`，不注入 prompt、additionalContext 或 MCP instructions。
@@ -41,6 +43,8 @@ App 加载插件时自动启动本地桥接，MCP 与 Hooks 共用一个 profile
 
 提供 Kichi 给出的连接信息即可，例如：
 
+连接后，同一 profile 的本地任务会自动将活动状态、用户提示词短预览和工具标题短预览发送到所选 Kichi 服务器，房间其他成员可能看到这些气泡。这个范围包括使用该 profile 的其他聊天；执行 `leave` 可停止该 profile 的自动反馈。完整说明见 [数据处理说明](DATA_HANDLING.md)。
+
 > 帮我加入 Kichi：environment=test，host=你的测试服地址，avatarId=你的-avatar-id。
 
 Codex 直接调用一次 `kichi_join` 完成连接并等待 Join ACK；无需先查询参数、生成角色资料或读取 OpenClaw 安装文档。后续普通工作由 Hooks 自动反馈。
@@ -60,11 +64,26 @@ npm run build:codex
 
 产物为新包内的 `dist/` 和 `config/`。动态模块都在 dist 同级，Core 配置资源随包复制；运行不依赖仓库 `node_modules`。
 
-使用官方 `@plugin-creator` 的个人 marketplace 流程分发构建包。需要一起分发 `.codex-plugin/`、`.mcp.json`、`hooks/`、`skills/`、`dist/`、`config/`、`package.json` 和本 README。[官方创建插件文档](https://learn.chatgpt.com/docs/build-plugins)
+使用官方 `@plugin-creator` 的个人 marketplace 流程分发构建包。需要一起分发 `.codex-plugin/`、`.mcp.json`、`hooks/`、`skills/`、`assets/`、`dist/`、`config/`、`package.json`、`DATA_HANDLING.md` 和本 README。方形图标复用仓库封面的 Kichi 字标区域。[官方创建插件文档](https://developers.openai.com/plugins/build/plugins)
 
 更新已运行的桥接时，先运行 `node <已安装插件路径>/dist/cli.js stop` 停止旧实例，再按 plugin-creator 的更新流程重新安装。通过 CLI 更新版本后，完整退出并重新打开桌面 App，再创建新任务；App 后端可能仍缓存旧版本的 MCP 启动路径，仅新建任务不足以刷新。新任务会自动启动新版桥接。
 
 Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命令使用 Node 读取 `PLUGIN_ROOT`，不依赖 Shell 的环境变量语法。修改 Hook 定义后，需要在 App 的 Hook 管理中重新信任新定义，否则 Codex 会跳过执行。[官方 Hook 信任规则](https://learn.chatgpt.com/docs/hooks)
+
+## 公开目录发布
+
+截至 2026-10-09，本地 marketplace 安装与公开目录发布是不同流程。当前 `.codex-plugin/plugin.json` 格式仍被官方接受，不需要另加一份兼容清单；但现有功能有以下公开提交阻碍：
+
+| 项目 | 当前状态与所需调整 |
+| --- | --- |
+| 生命周期 Hooks | 普通公开目录不接受含 Hooks 的插件；自动 avatar 反馈依赖 Hooks，不能仅修改清单就保留该功能并公开提交。 |
+| MCP 连接 | 当前为本地 stdio。普通公开提交需要可访问的公网 HTTPS MCP；无法迁移本地执行需求时，须联系 OpenAI 申请本地 MCP 支持。 |
+| 工具暴露 | 本地版为减少常驻 schema 使用 `kichi` 通用执行器和 `kichi_describe`。公开版必须逐项暴露操作的描述、参数与注解，不能用这套发现/通用执行模式。 |
+| 工具注解 | 三个本地入口均显式标注读写、破坏性、开放范围和幂等性；混合操作入口按其整体副作用标注，不可当作只读工具。 |
+| 展示材料 | 已补齐 30 字符以内的简介、能力标签、方形图标、示例提示和入门技能入口。发布者名称仍需与提交时验证的身份一致。 |
+| 运营与审核 | 远程 MCP 版需要真实的产品、支持、隐私政策、服务条款 HTTPS 链接，以及域名验证、适用的 OAuth、审核账号、5 个正向案例、3 个反向案例和演示视频。凭据只填审核后台，不打进包。 |
+
+[官方打包要求](https://developers.openai.com/plugins/build/plugins)、[官方提交字段与流程](https://developers.openai.com/plugins/deploy/submission)、[官方工具准则](https://developers.openai.com/plugins/plugin-guidelines)。本包的 `DATA_HANDLING.md` 描述本地实现，不代替服务运营方的正式隐私政策或服务条款；清单中不填写虚构政策、支持或远程 MCP 地址。
 
 ## Kichi 工具
 
