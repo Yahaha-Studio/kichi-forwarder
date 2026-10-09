@@ -258,7 +258,7 @@ export type IdlePlanStage = {
   name: string;
   purpose: string;
   pomodoroPhase: IdlePlanPhase;
-  avatarStatus: AvatarStatus;
+  avatarStatus?: AvatarStatus;
   durationSeconds: number;
   actions: IdlePlanStageAction[];
 };

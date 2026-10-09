@@ -3,16 +3,33 @@
   "version": "0.2.0-beta.6",
   "description": "Show Codex activity through a Kichi avatar and call Kichi tools.",
   "author": {
-    "name": "Kichi"
+    "name": "Kichi",
+    "url": "https://github.com/Yahaha-Studio/kichi-forwarder"
   },
+  "homepage": "https://github.com/Yahaha-Studio/kichi-forwarder",
+  "repository": "https://github.com/Yahaha-Studio/kichi-forwarder",
+  "keywords": ["kichi", "avatar", "productivity", "desktop"],
   "interface": {
     "displayName": "Kichi for Codex",
-    "shortDescription": "Live avatar activity and Kichi tools.",
-    "longDescription": "Reflect Codex lifecycle events as Kichi avatar activity and bubbles using local hooks, with Kichi tools available through MCP.",
+    "shortDescription": "Avatar activity and tools",
+    "longDescription": "Connect a Kichi avatar to local Codex and ChatGPT Work tasks on desktop. Trusted local hooks reflect task activity as avatar actions and short bubbles; on-demand tools control the avatar, room, music, notes, and bot messages. Requires Node.js 22.19.0 or later and Kichi connection details. After joining, local tasks sharing the same profile automatically send activity, short user-prompt previews, and short tool-title previews to the selected Kichi server; these may be visible to room members. Leave Kichi to stop feedback for that profile. Local hooks do not add model requests. Web and cloud chats do not provide this local hook runtime. This package is for manual desktop installation and is not eligible for the ordinary public plugin directory submission flow.",
     "developerName": "Kichi",
     "category": "Productivity",
-    "capabilities": []
+    "capabilities": ["Local avatar activity", "Avatar and room controls", "Notes, music and bot messages"],
+    "websiteURL": "https://store.steampowered.com/app/4427550/Kichi_Focus_Together",
+    "defaultPrompt": [
+      "Connect my Kichi avatar using the connection details I provide.",
+      "Show the current status of my Kichi room.",
+      "Set the weather in my Kichi room to sunny."
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
   },
   "mcpServers": "./.mcp.json",
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/kichi/SKILL.md"
+    }
+  }
 }

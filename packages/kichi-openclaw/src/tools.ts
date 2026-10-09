@@ -230,7 +230,7 @@ function buildKichiIdlePlanDescription(): string {
     "2. Set the overall goal to that project. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary as the goal.",
     "3. Break the full heartbeat interval into ordered stages. Each stage purpose must explain what you are actually doing in that stage as part of the same project, not just how you want to feel. Do not switch to unrelated tasks just to use more actions.",
     "4. Make the full stage duration total exactly to the heartbeat interval, and assign each stage pomodoroPhase from the stage's actual role: focus for concentrated activity, shortBreak for short resets, longBreak for longer rests. Do not default the whole idle plan to none. Use none only for a stage that truly has no pomodoro role.",
-    "5. Set each stage avatarStatus to the avatar status for that stage: Idle, Busy, Activities, or Break.",
+    "5. Optionally set each stage avatarStatus to Idle, Busy, Activities, or Break. When omitted, focus defaults to Busy, shortBreak and longBreak to Break, and none to Idle.",
     "6. Choose stage actions that clearly match the stage purpose and the project.",
     "7. Write each action bubble as the current presented state, not a next step, plan, or instruction.",
     "8. If an idle plan is currently being carried out and the user asks about something from it, answer from inside that ongoing activity with an immersive in-universe depiction or draft.",
@@ -819,7 +819,7 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
               },
               avatarStatus: {
                 type: "string",
-                description: "Avatar status for this stage: Idle, Busy, Activities, or Break.",
+                description: "Optional avatar status: Idle, Busy, Activities, or Break. Defaults to Busy for focus, Break for shortBreak/longBreak, and Idle for none.",
                 enum: [...AVATAR_STATUSES],
               },
               durationSeconds: {
@@ -861,7 +861,7 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
                 },
               },
             },
-            required: ["name", "purpose", "pomodoroPhase", "avatarStatus", "durationSeconds", "actions"],
+            required: ["name", "purpose", "pomodoroPhase", "durationSeconds", "actions"],
           },
         },
       },
