@@ -37,7 +37,14 @@
 
 ## 桌面 App 使用
 
-需要 Node.js >= 22.19.0。在 App 的 Plugins / 插件页安装 **Kichi for Codex** 并信任其 Hooks，然后新建一个本地 Codex / Work 任务。
+需要 Node.js >= 22.19.0，并确保 `node` 可从 App 启动的本地 Shell 找到。先在终端把本仓库添加为插件 marketplace，再在 ChatGPT 桌面 App 的 Plugins / 插件页安装 **Kichi for Codex**：
+
+```powershell
+codex plugin marketplace add https://github.com/Yahaha-Studio/kichi-forwarder.git
+codex plugin add kichi-codex@kichi
+```
+
+安装后在 App 的插件设置中审核并信任 Kichi 的 Hooks，再新建一个本地 Codex / Work 任务。GitHub marketplace 只负责分发插件；Hooks 仍然只在本地运行环境执行。
 
 App 加载插件时自动启动本地桥接，MCP 与 Hooks 共用一个 profile runtime。用户无需执行 start、npm 或 OpenClaw 命令，也无需单独安装 Kichi Core；Core、MCP SDK 与运行依赖已经打进插件产物。
 
@@ -62,9 +69,9 @@ npm install --ignore-scripts
 npm run build:codex
 ```
 
-产物为新包内的 `dist/` 和 `config/`。动态模块都在 dist 同级，Core 配置资源随包复制；运行不依赖仓库 `node_modules`。
+产物为包内的 `dist/` 和 `config/`，并提交到 GitHub marketplace 使用的插件目录。动态模块都在 dist 同级，Core 配置资源随包复制；运行不依赖仓库 `node_modules`。修改 `src/` 或 Core 依赖后，必须重新运行构建并一并更新这两个目录。
 
-使用官方 `@plugin-creator` 的个人 marketplace 流程分发构建包。需要一起分发 `.codex-plugin/`、`.mcp.json`、`hooks/`、`skills/`、`assets/`、`dist/`、`config/`、`package.json`、`DATA_HANDLING.md` 和本 README。方形图标复用仓库封面的 Kichi 字标区域。[官方创建插件文档](https://developers.openai.com/plugins/build/plugins)
+仓库根目录的 `.agents/plugins/marketplace.json` 已将 `packages/kichi-codex` 注册为 GitHub marketplace 插件。需要一起分发 `.codex-plugin/`、`.mcp.json`、`hooks/`、`skills/`、`assets/`、`dist/`、`config/`、`package.json`、`DATA_HANDLING.md` 和本 README。方形图标复用仓库封面的 Kichi 字标区域。[官方创建插件文档](https://developers.openai.com/plugins/build/plugins)
 
 更新已运行的桥接时，先运行 `node <已安装插件路径>/dist/cli.js stop` 停止旧实例，再按 plugin-creator 的更新流程重新安装。通过 CLI 更新版本后，完整退出并重新打开桌面 App，再创建新任务；App 后端可能仍缓存旧版本的 MCP 启动路径，仅新建任务不足以刷新。新任务会自动启动新版桥接。
 
