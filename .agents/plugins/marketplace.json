@@ -1,0 +1,22 @@
+{
+  "name": "kichi",
+  "interface": {
+    "displayName": "Kichi Plugins"
+  },
+  "plugins": [
+    {
+      "name": "kichi-codex",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/Yahaha-Studio/kichi-forwarder.git",
+        "path": "./packages/kichi-codex",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
