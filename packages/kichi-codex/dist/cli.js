@@ -122,7 +122,7 @@ Profile: KICHI_CODEX_PROFILE (default: default).
 `);
       return;
     case "serve": {
-      const { serve } = await import("./runtime-2IMMKUSB.js");
+      const { serve } = await import("./runtime-KISP5W5K.js");
       const runtime = await serve(config);
       process.send?.({ ready: true });
       const stop = () => {
@@ -138,7 +138,7 @@ Profile: KICHI_CODEX_PROFILE (default: default).
     }
     case "mcp": {
       await start(config);
-      const { runMcp } = await import("./mcp-X3GECK5J.js");
+      const { runMcp } = await import("./mcp-VKHUEXNJ.js");
       await runMcp(config);
       return;
     }

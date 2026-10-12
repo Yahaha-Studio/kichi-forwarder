@@ -33,6 +33,7 @@ import {
   ResourceListChangedNotificationSchema,
   SUPPORTED_PROTOCOL_VERSIONS,
   ToolListChangedNotificationSchema,
+  ToolSchema,
   ZodIssueCode,
   any,
   array,
@@ -40,6 +41,7 @@ import {
   assertToolsCallTaskCapability,
   boolean,
   coerce_exports,
+  external_exports,
   getLiteralValue,
   getObjectShape,
   isInitializedNotification,
@@ -53,7 +55,7 @@ import {
   safeParse,
   string,
   url
-} from "./chunk-JUPZ443H.js";
+} from "./chunk-COQX75PR.js";
 import {
   __commonJS,
   __toESM,
@@ -2320,6 +2322,13 @@ var StreamableHTTPClientTransport = class {
 };
 
 // src/remote.ts
+var listToolsResultSchema = ListToolsResultSchema.extend({
+  tools: ToolSchema.extend({
+    outputSchema: ToolSchema.shape.outputSchema.unwrap().extend({
+      properties: external_exports.record(external_exports.string(), external_exports.union([external_exports.boolean(), external_exports.looseObject({})])).optional()
+    }).optional()
+  }).array()
+});
 function requireToolSuccess(name, result) {
   if (result.isError || result.structuredContent?.success === false) {
     throw new Error(`${name} failed: ${JSON.stringify(result)}`);
@@ -2330,7 +2339,13 @@ var KichiMcpClient = class {
     this.config = config;
   }
   config;
-  client = new Client({ name: "kichi-codex", version: "0.2.0-beta.6" }, { capabilities: {} });
+  jsonSchemaValidator = new AjvJsonSchemaValidator();
+  client = new Client({ name: "kichi-codex", version: "0.2.0-beta.6" }, {
+    capabilities: {},
+    jsonSchemaValidator: this.jsonSchemaValidator
+  });
+  outputValidators = /* @__PURE__ */ new Map();
+  requiredTaskTools = /* @__PURE__ */ new Set();
   avatarId;
   get selectedAvatarId() {
     return this.avatarId;
@@ -2341,16 +2356,40 @@ var KichiMcpClient = class {
     });
     await this.client.connect(transport);
   }
-  listTools(params) {
-    return this.client.listTools(params);
+  async listTools(params) {
+    const result = await this.client.request({ method: "tools/list", params }, listToolsResultSchema);
+    this.outputValidators.clear();
+    this.requiredTaskTools.clear();
+    for (const tool of result.tools) {
+      if (tool.outputSchema) {
+        this.outputValidators.set(tool.name, this.jsonSchemaValidator.getValidator(tool.outputSchema));
+      }
+      if (tool.execution?.taskSupport === "required") this.requiredTaskTools.add(tool.name);
+    }
+    return result;
   }
   async callTool(params, timeout = 6e4) {
+    if (this.requiredTaskTools.has(params.name)) {
+      throw new McpError(ErrorCode.InvalidRequest, `Tool ${params.name} requires a task-augmented call.`);
+    }
     const request = params.arguments?.request;
     const avatarId = typeof request?.avatarId === "string" ? request.avatarId : void 0;
     if ((params.name === "kichi_join" || params.name === "kichi_rejoin") && this.avatarId && avatarId !== this.avatarId) {
       throw new Error("Leave the current avatar before joining another avatar in this profile.");
     }
     const result = await this.client.callTool(params, void 0, { timeout });
+    const validator = this.outputValidators.get(params.name);
+    if (validator) {
+      if (!result.structuredContent && !result.isError) {
+        throw new McpError(ErrorCode.InvalidRequest, `Tool ${params.name} has an output schema but did not return structured content`);
+      }
+      if (result.structuredContent) {
+        const validation = validator(result.structuredContent);
+        if (!validation.valid) {
+          throw new McpError(ErrorCode.InvalidParams, `Structured content does not match the tool's output schema: ${validation.errorMessage}`);
+        }
+      }
+    }
     if (result.isError || result.structuredContent?.success === false) return { ...result, isError: true };
     if (params.name === "kichi_join" || params.name === "kichi_rejoin") {
       if (!avatarId || result.structuredContent?.success !== true) {
