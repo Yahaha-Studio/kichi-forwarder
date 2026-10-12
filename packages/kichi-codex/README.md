@@ -4,16 +4,18 @@
 
 这是原生桌面插件：`.codex-plugin/plugin.json`、`hooks/hooks.json` 和 `.mcp.json` 由 App 加载。`src/cli.ts` 是插件自己的 Node 后端入口，不启动 Codex CLI、Codex SDK、App Server 或另一轮模型对话。
 
-当前包适用于手动安装的本地桌面插件，尚不符合普通公开插件目录的提交条件。ChatGPT 与 Codex 共用公开目录，但该提交流程暂不接受生命周期 Hooks，并要求公网 HTTPS MCP。完整发布差距见下文“公开目录发布”。
+工具调用和 Hook 反馈都通过同一个远端 MCP 服务发送。默认连接 Steam Playtest 的 `https://focus-steam-playtest-int.yahaha.com/mcp`。本地 stdio MCP 只负责透传远端工具；本地 bridge 负责共享 MCP client、所选 avatar 和 Hook 状态，不依赖 Kichi Core 或 WebSocket。
+
+当前包适用于手动安装的本地桌面插件。使用公网 MCP 不等于已满足普通公开插件目录的提交条件：公开目录仍不接受生命周期 Hooks，共享环境 token 也不是用户身份授权。完整发布差距见下文“公开目录发布”。
 
 ## 低 token 设计
 
 - 生命周期反馈由本地 Hooks 固定映射，额外模型请求为 0；正常返回 `{}`，不注入 prompt、additionalContext 或 MCP instructions。
-- 附带短 `kichi` Skill，只说明直接连接和按需工具入口；不要求模型在每个步骤调用 Kichi，不轮询任务或要求模型总结。
+- 附带短 `kichi` Skill，只说明连接和按需工具入口；不要求模型在每个步骤调用 Kichi，不轮询任务或要求模型总结。
 - Hooks 保留会话、回合、工具等关联标识。`UserPromptSubmit.prompt` 通过本地 IPC 传入 bridge，只将用户文本的短预览发送到 Kichi；工具参数仅保留 `tool_input.title` 的短预览。不持久化消息全文或保留其他工具参数、工具输出及 transcript。
-- 注册 `kichi_join`、`kichi`、`kichi_describe` 三个简短 MCP 入口。连接参数直接可见；其他操作参数、动作和音乐目录在需要时查询，避免 15 套完整 schema 常驻。
-- 工具 schema 和插件元数据仍有少量上下文开销，实际调用也会产生输入输出 token；不宣称整个插件零 token。
-- 相同动作和气泡去重；短 Hook 进程不加载 MCP SDK 或 Core，只发送本地 IPC。
+- 本地 MCP 动态返回远端 `tools/list`，当前服务暴露 18 个独立 `kichi_*` 工具。工具名称、参数 schema 和注解由服务端提供。
+- 工具 schema 和插件元数据有上下文开销，实际调用也会产生输入输出 token；不宣称整个插件零 token。
+- 相同动作和气泡去重；短 Hook 进程只发送本地 IPC。
 
 ## Avatar 反馈
 
@@ -27,13 +29,13 @@
 | 回复停止节点 | 空闲；回复完成 |
 | 用户中断 | 空闲；已暂停 |
 
-状态按 session / turn 聚合，一个任务结束不会把其他活动任务设为 Idle。恢复会话会清理该会话的旧状态，压缩后的 SessionStart 保留活动回合。审批事件不包含调用 ID，因此按工具名保持等待，直到同类活动调用结束；不猜测审批对应的调用。
+状态按 session / turn 聚合，一个任务结束不会把其他活动任务设为 Idle。恢复会话会清理该会话的旧状态，压缩后的 SessionStart 保留活动回合。审批事件不包含调用 ID，因此按工具名保持等待，直到同类活动调用结束；不猜测审批对应的调用。Kichi 工具调用不会触发覆盖用户指定动作的自动工具反馈。
 
-用户消息预览去除首尾空白，按显示宽度上限 20 截断（中文和 emoji 通常计 2，超长时预留 `...`），再加英文双引号作为 `message_received.bubble`。空文本不发送消息预览，仍更新思考状态。新适配层可参考 [Core 接入标准](../kichi-core/README.md)。
+用户消息预览去除首尾空白，按显示宽度上限 20 截断（中文和 emoji 通常计 2，超长时预留 `...`），再加英文双引号作为 `message_received.bubble`。空文本不发送消息预览，仍更新思考状态。
 
 工具调用和审批 Hook 的 `tool_input.title` 为非空字符串时，在原状态文案后拼接 ` · 标题预览`；标题使用同样的显示宽度上限 20。没有有效标题时保留原文案，不使用 `description`。工具标题按调用 ID 保存，审批标题来自该审批事件；不推测子 agent 的名字与 ID 关联。
 
-`Stop` 是观察到的停止节点，不代表业务成功。Hooks 不覆盖 WebSearch 等托管工具，也不提供完整回复流。当前功能只需要轻量表现，不扩展 Kichi 服务端协议。[官方 Hooks 文档](https://learn.chatgpt.com/docs/hooks)
+`Stop` 是观察到的停止节点，不代表业务成功。Hooks 不覆盖 WebSearch 等托管工具，也不提供完整回复流。[官方 Hooks 文档](https://learn.chatgpt.com/docs/hooks)
 
 ## 桌面 App 使用
 
@@ -44,21 +46,35 @@ codex plugin marketplace add https://github.com/Yahaha-Studio/kichi-forwarder.gi
 codex plugin add kichi-codex@kichi
 ```
 
-安装后在 App 的插件设置中审核并信任 Kichi 的 Hooks，再新建一个本地 Codex / Work 任务。GitHub marketplace 只负责分发插件；Hooks 仍然只在本地运行环境执行。
+安装后在 App 的插件设置中审核并信任 Kichi 的 Hooks。GitHub marketplace 只负责分发插件；Hooks 在本地运行环境执行。
 
-App 加载插件时自动启动本地桥接，MCP 与 Hooks 共用一个 profile runtime。用户无需执行 start、npm 或 OpenClaw 命令，也无需单独安装 Kichi Core；Core、MCP SDK 与运行依赖已经打进插件产物。
+首次使用前配置 MCP token。token 文件只放在本机，不放进插件包或仓库：
 
-提供 Kichi 给出的连接信息即可，例如：
+```powershell
+kichi-codex configure --token-file C:\private\kichi-mcp-token.txt
+```
 
-连接后，同一 profile 的本地任务会自动将活动状态、用户提示词短预览和工具标题短预览发送到所选 Kichi 服务器，房间其他成员可能看到这些气泡。这个范围包括使用该 profile 的其他聊天；执行 `leave` 可停止该 profile 的自动反馈。完整说明见 [数据处理说明](DATA_HANDLING.md)。
+默认 server URL 为 `https://focus-steam-playtest-int.yahaha.com/mcp`。本地或开发测试环境通过 `--server-url` 配置对应 MCP URL 和对应 token：
 
-> 帮我加入 Kichi：environment=test，host=你的测试服地址，avatarId=你的-avatar-id。
+```powershell
+kichi-codex configure --token-file C:\private\dev-mcp-token.txt --server-url http://localhost:5000/mcp
+```
 
-Codex 直接调用一次 `kichi_join` 完成连接并等待 Join ACK；无需先查询参数、生成角色资料或读取 OpenClaw 安装文档。后续普通工作由 Hooks 自动反馈。
+配置写入 `$CODEX_HOME/kichi-codex/<profile>/connection.json`，其中包含 URL 和 token。修改已运行 profile 的连接配置时，必须先 `kichi-codex stop`，再执行 `configure`，最后 `kichi-codex start`。停止 bridge 会对已选 avatar 显式执行 Leave；切换服务后需要重新 Join。
+
+App 加载插件时自动启动本地桥接，MCP 与 Hooks 共用一个 profile runtime。用户无需单独安装 Kichi Core；MCP SDK 与运行依赖已经打进插件产物。也可通过 `start`、`stop` 和 `status` 管理 bridge；`mcp` 和 `hook` 是 App 使用的入口。
+
+在新建的本地 Codex / Work 任务中提供 avatar ID 即可：
+
+> 帮我加入 Kichi：avatarId=你的-avatar-id。
+
+Codex 调用一次 `kichi_join` 并等待服务端结果。MCP URL 已确定连接的服务和环境，Join 不接受 `environment` 或 `host`。`avatarId`、`botName` 和 `bio` 是必填字段；用户未指定角色名称和简介时，Skill 使用 `Codex` 和 `A coding companion.`，无需额外生成资料。`tags` 可选。服务端将此连接标记为 `source: "mcp"`。
+
+连接后，同一 profile 的本地任务会自动将活动状态、用户提示词短预览和工具标题短预览发送到所配置的 MCP 服务，房间其他成员可能看到这些气泡。这个范围包括使用该 profile 的其他聊天；执行 `kichi_leave` 停止该 profile 的自动反馈。完整说明见 [数据处理说明](DATA_HANDLING.md)。
 
 安装后使用 App 原有任务界面。普通 Chat 或云端任务不具备本机 Hook 执行环境，本插件不承诺在那里反馈本机 avatar。[官方桌面插件说明](https://learn.chatgpt.com/docs/plugins)
 
-尚未 Join 或 Leave 后不发送自动状态；连接错误明确返回给调用者。
+尚未 Join 或 Leave 后不发送自动状态。连接和工具错误明确返回给调用者。服务端角色状态保存在内存中，服务重启后需要重新 Join。关闭 HTTP 连接不等于 Leave；停止 bridge 时会显式离开已选 avatar。服务端按 avatar 共享 MCP 角色状态，不要让多个 profile 对同一 avatar 重复 Join。
 
 ## 开发者构建与分发
 
@@ -69,9 +85,9 @@ npm install --ignore-scripts
 npm run build:codex
 ```
 
-产物为包内的 `dist/` 和 `config/`，并提交到 GitHub marketplace 使用的插件目录。动态模块都在 dist 同级，Core 配置资源随包复制；运行不依赖仓库 `node_modules`。修改 `src/` 或 Core 依赖后，必须重新运行构建并一并更新这两个目录。
+产物为包内的 `dist/`，并提交到 GitHub marketplace 使用的插件目录。动态模块都在 dist 同级；运行不依赖仓库 `node_modules`。修改 `src/` 后必须重新运行构建并更新产物。
 
-仓库根目录的 `.agents/plugins/marketplace.json` 已将 `packages/kichi-codex` 注册为 GitHub marketplace 插件。需要一起分发 `.codex-plugin/`、`.mcp.json`、`hooks/`、`skills/`、`assets/`、`dist/`、`config/`、`package.json`、`DATA_HANDLING.md` 和本 README。方形图标复用仓库封面的 Kichi 字标区域。[官方创建插件文档](https://developers.openai.com/plugins/build/plugins)
+仓库根目录的 `.agents/plugins/marketplace.json` 已将 `packages/kichi-codex` 注册为 GitHub marketplace 插件。需要一起分发 `.codex-plugin/`、`.mcp.json`、`hooks/`、`skills/`、`assets/`、`dist/`、`package.json`、`DATA_HANDLING.md` 和本 README。MCP token 和本机 `connection.json` 不得包含在分发文件中。方形图标复用仓库封面的 Kichi 字标区域。[官方创建插件文档](https://developers.openai.com/plugins/build/plugins)
 
 更新已运行的桥接时，先运行 `node <已安装插件路径>/dist/cli.js stop` 停止旧实例，再按 plugin-creator 的更新流程重新安装。通过 CLI 更新版本后，完整退出并重新打开桌面 App，再创建新任务；App 后端可能仍缓存旧版本的 MCP 启动路径，仅新建任务不足以刷新。新任务会自动启动新版桥接。
 
@@ -79,34 +95,37 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 ## 公开目录发布
 
-截至 2026-10-09，本地 marketplace 安装与公开目录发布是不同流程。当前 `.codex-plugin/plugin.json` 格式仍被官方接受，不需要另加一份兼容清单；但现有功能有以下公开提交阻碍：
+本地 marketplace 安装与公开目录发布是不同流程。当前功能有以下公开提交阻碍：
 
 | 项目 | 当前状态与所需调整 |
 | --- | --- |
-| 生命周期 Hooks | 普通公开目录不接受含 Hooks 的插件；自动 avatar 反馈依赖 Hooks，不能仅修改清单就保留该功能并公开提交。 |
-| MCP 连接 | 当前为本地 stdio。普通公开提交需要可访问的公网 HTTPS MCP；无法迁移本地执行需求时，须联系 OpenAI 申请本地 MCP 支持。 |
-| 工具暴露 | 本地版为减少常驻 schema 使用 `kichi` 通用执行器和 `kichi_describe`。公开版必须逐项暴露操作的描述、参数与注解，不能用这套发现/通用执行模式。 |
-| 工具注解 | 三个本地入口均显式标注读写、破坏性、开放范围和幂等性；混合操作入口按其整体副作用标注，不可当作只读工具。 |
+| 生命周期 Hooks | 普通公开目录不接受含 Hooks 的插件；自动 avatar 反馈依赖 Hooks。 |
+| MCP 连接 | 所有操作已经发送到公网 HTTPS MCP，但桌面插件入口仍使用本地 stdio 代理和 bridge。普通公开提交需要满足远端 MCP 要求；本地执行需求仍需单独处理。 |
+| 工具暴露 | 透传服务端提供的独立工具、参数 schema 和注解，当前为 18 个 `kichi_*` 工具。 |
+| 身份授权 | 当前环境 token 是共享环境凭据，不是用户级身份授权；面向公众需要服务端提供适用的授权和身份隔离。 |
 | 展示材料 | 已补齐 30 字符以内的简介、能力标签、方形图标、示例提示和入门技能入口。发布者名称仍需与提交时验证的身份一致。 |
-| 运营与审核 | 远程 MCP 版需要真实的产品、支持、隐私政策、服务条款 HTTPS 链接，以及域名验证、适用的 OAuth、审核账号、5 个正向案例、3 个反向案例和演示视频。凭据只填审核后台，不打进包。 |
+| 运营与审核 | 需要真实的产品、支持、隐私政策、服务条款 HTTPS 链接，以及域名验证、适用的 OAuth、审核账号、5 个正向案例、3 个反向案例和演示视频。凭据只填审核后台，不打进包。 |
 
-[官方打包要求](https://developers.openai.com/plugins/build/plugins)、[官方提交字段与流程](https://developers.openai.com/plugins/deploy/submission)、[官方工具准则](https://developers.openai.com/plugins/plugin-guidelines)。本包的 `DATA_HANDLING.md` 描述本地实现，不代替服务运营方的正式隐私政策或服务条款；清单中不填写虚构政策、支持或远程 MCP 地址。
+[官方打包要求](https://developers.openai.com/plugins/build/plugins)、[官方提交字段与流程](https://developers.openai.com/plugins/deploy/submission)、[官方工具准则](https://developers.openai.com/plugins/plugin-guidelines)。本包的 `DATA_HANDLING.md` 描述本地实现，不代替服务运营方的正式隐私政策或服务条款；清单中不填写虚构政策或支持地址。
 
 ## Kichi 工具
 
-`kichi_join({ environment, avatarId, host?, botName?, bio?, tags? })` 是唯一连接入口。`environment` 和 `avatarId` 必填；test 环境还需 `host`。默认 `botName: "Codex"`、`bio: "A coding companion."`、`tags: []`，固定发送 `source: "codex"`。
+`kichi_join({ request: { avatarId, botName, bio, tags? } })` 选择角色并加入已配置的 MCP 服务。连接配置由本地 CLI 管理，不属于 Join 参数。示例：
 
-其他操作通过 `kichi({ action, parameters })` 执行，需要参数说明时查询 `kichi_describe({ action })`：
+```json
+{
+  "request": {
+    "avatarId": "你的-avatar-id",
+    "botName": "Codex",
+    "bio": "A coding companion.",
+    "tags": []
+  }
+}
+```
 
-`switch_host`、`rejoin`、`leave`、`connection_status`、`action`、`glance`、`emoji`、`idle_plan`、`clock`、`environment`、`query_status`、`music_album_create`、`noteboard_create`、`bot_message_history`、`bot_message`。
+所有操作直接调用远端 `tools/list` 返回的独立 `kichi_*` 工具，参数放在 `request` 内，具体字段和动作目录以服务端 schema 为准。使用 `kichi_leave({ request: { avatarId } })` 显式离开。房间天气、时间、灯光与音乐属于房间操作，和 MCP server URL 的环境选择无关。
 
-`emoji` 显示头像头顶的一个受支持表情：`emojiName` 必须是 `Heart`、`Like`、`Happy`、`Celebrate`、`Keep Going`、`Peeking`、`Laughing`、`Sleeping`、`Coffee` 或 `Waving`，可选 `requestId` 用于追踪。成功 ACK 表示服务端已接受并广播，不表示客户端已完成渲染，结果包含 `sent: true, confirmed: false`。
-
-`environment` 设置房间天气、时间、House 灯光、环境光和音乐播放：`weather` 为 `Sunny` / `Cloudy` / `Rainy` / `Snowy`，`time` 为 `Auto` / `Morning` / `Day` / `Evening` / `Night`，`Auto` 恢复自动时间。`lightingValue` 设置 House 灯光强度（`0.1–2`），`lightingEnabled` 控制 House 灯光总开关，关灯使用 `false`。环境光独立控制：`ambientLightIntensity` 为 `0.5–3` 的有限数值，`ambientLightEnabled` 为布尔开关。
-
-`musicPaused: true` 暂停当前音乐，`false` 恢复；`musicAction` 使用 `Next` / `Previous` 切换曲目，`musicPlayType` 使用 `Loop`（顺序播放）/ `Random`（随机播放）。指定音乐使用 `musicAlbumTitle`、`musicTitle` 或两者，按精确专辑名和曲名匹配；`kichi_describe({ action: "environment" })` 的参数说明列出曲库 `album` / `name` 字段中的已知内置名称，用户精选专辑和曲目也可按实际精确名称指定。名称会 trim，不能留空；任一指定音乐字段都不能与 `musicPaused`（包括 `false`）或 `musicAction` 同传，但可与 `musicPlayType` 组合。至少提供一个设置，房间权限由服务端校验。成功 ACK 表示服务端已转发控制，返回 `sent: true`。
-
-工具参数严格检查，错误设置 `isError`，成功结果保持简短。
+只有用户明确请求 Kichi 操作时才调用世界工具。成功转发或广播结果不代表客户端完成渲染；按服务端返回的确认范围报告。错误结果明确报告。
 
 不提供 KichiClaw 专属日程或 OpenClaw 的 session / SOUL / 文件约定；也不自动回复 Kichi 入站消息。
 
@@ -114,13 +133,13 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 默认 profile 为 `default`；可通过 `KICHI_CODEX_PROFILE` 选择。profile 只接受 1-64 个字母、数字、下划线或连字符。App 与后台服务需要继承同一个 profile 和 CODEX_HOME。
 
-身份和日志位于 `$CODEX_HOME/kichi-codex/<profile>`，CODEX_HOME 未设置时使用用户目录下的 `.codex`。本地通信使用 Windows named pipe / Unix socket 和该目录中的随机认证令牌。
+配置和日志位于 `$CODEX_HOME/kichi-codex/<profile>`，CODEX_HOME 未设置时使用用户目录下的 `.codex`。`connection.json` 保存 MCP URL 和 token。本地通信使用 Windows named pipe / Unix socket 和该目录中的随机认证令牌。
 
-`runtime.ts` 独占 `KichiForwarderService` 和存储目录；`hooks.ts` 负责状态聚合和用户消息预览；`mcp.ts/tools.ts` 负责按需工具。连接、身份、ACK、重连及既有协议继续由 Core 管理。
+`runtime.ts` 持有 profile 唯一的远端 MCP client 和当前 avatar；`hooks.ts` 负责状态聚合和短预览；`mcp.ts` 将远端工具定义和调用结果透传给 App。Hook 动作与消息也使用这个 MCP client。角色与世界操作由远端服务负责，不依赖 Kichi Core。
 
 ## 验证边界
 
-安装并信任后，最直接的验收是：在新任务中直接 Join，提交任务、执行一个本地工具、结束或中断一次，再观察 avatar；另开一个并行任务确认状态不会提前回到 Idle。自包含构建不能替代真实 App 加载与 Kichi Join 验证。
+配置、安装并信任后，最直接的验收是：在新任务中 Join，提交任务、执行一个本地工具、结束或中断一次，再观察 avatar，最后显式 Leave；另开一个并行任务确认状态不会提前回到 Idle。自包含构建不能替代真实 App 加载与 MCP 操作验证。
 
 ## 随机动作
 

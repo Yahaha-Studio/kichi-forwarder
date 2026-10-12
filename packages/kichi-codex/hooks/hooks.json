@@ -17,7 +17,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
@@ -28,7 +28,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
@@ -39,7 +39,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
@@ -50,7 +50,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
@@ -61,7 +61,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
@@ -72,7 +72,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
@@ -83,7 +83,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
@@ -94,7 +94,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
@@ -105,7 +105,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
@@ -116,7 +116,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
@@ -127,7 +127,7 @@
           {
             "type": "command",
             "command": "node -e \"const entry=require('node:path').join(process.env.PLUGIN_ROOT,'dist','cli.js');process.argv=[process.execPath,entry,'hook'];import(require('node:url').pathToFileURL(entry).href)\"",
-            "timeout": 3
+            "timeout": 15
           }
         ]
       }
