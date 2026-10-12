@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 import { createRequire as __kichiCreateRequire } from "node:module"; const require = __kichiCreateRequire(import.meta.url);
 import {
+  DEFAULT_MCP_URL,
+  configureConnection,
   parseHook
-} from "./chunk-OZRIPEJV.js";
+} from "./chunk-SZZF527N.js";
 import {
   BridgeNotReadyError,
   callBridge,
   errorMessage,
   getBridgeConfig
-} from "./chunk-C5B3JRUS.js";
+} from "./chunk-F3QS47XT.js";
 
 // src/cli.ts
 import { spawn } from "node:child_process";
@@ -17,7 +19,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 async function bridgeState(config) {
   try {
-    await callBridge(config, "/ping", {}, 1e3);
+    const status = await callBridge(config, "/ping", {}, 1e3);
+    if (status.transport !== "streamable-http") throw new Error("Stop the existing Kichi bridge before starting the MCP bridge.");
     return "ready";
   } catch (error) {
     if (error instanceof BridgeNotReadyError) return "starting";
@@ -78,11 +81,40 @@ async function launch(config) {
 async function main() {
   const command = process.argv[2];
   if (command === "--help" || command === "help" || command === void 0) {
-    process.stdout.write("kichi-codex start | stop | status | mcp | hook\nProfile: KICHI_CODEX_PROFILE (default: default).\n");
+    process.stdout.write(`kichi-codex configure --token-file PATH [--server-url URL]
+kichi-codex start | stop | status | mcp | hook
+Default MCP: ${DEFAULT_MCP_URL}
+Profile: KICHI_CODEX_PROFILE (default: default).
+`);
+    return;
+  }
+  const config = getBridgeConfig();
+  if (command === "configure") {
+    const options = /* @__PURE__ */ new Map();
+    for (let index = 3; index < process.argv.length; index += 2) {
+      const key = process.argv[index];
+      const value = process.argv[index + 1];
+      if (!["--server-url", "--token-file"].includes(key) || !value || options.has(key)) {
+        throw new Error("Use configure --token-file PATH [--server-url URL].");
+      }
+      options.set(key, value);
+    }
+    const tokenFile = options.get("--token-file");
+    if (!tokenFile) throw new Error("--token-file is required.");
+    try {
+      await callBridge(config, "/ping", {}, 1e3);
+      throw new Error("Stop the bridge before changing its MCP connection configuration.");
+    } catch (error) {
+      const code = error.code;
+      if (code !== "ENOENT" && code !== "ECONNREFUSED") throw error;
+    }
+    const serverUrl = options.get("--server-url") ?? DEFAULT_MCP_URL;
+    await configureConnection(config, serverUrl, tokenFile);
+    process.stdout.write(`MCP connection configured (${config.profile}): ${serverUrl}
+`);
     return;
   }
   if (process.argv.length !== 3) throw new Error("Unexpected arguments. Use kichi-codex --help.");
-  const config = getBridgeConfig();
   switch (command) {
     case "start":
       await start(config);
@@ -90,7 +122,7 @@ async function main() {
 `);
       return;
     case "serve": {
-      const { serve } = await import("./runtime-GVCWDRI2.js");
+      const { serve } = await import("./runtime-2IMMKUSB.js");
       const runtime = await serve(config);
       process.send?.({ ready: true });
       const stop = () => {
@@ -106,7 +138,7 @@ async function main() {
     }
     case "mcp": {
       await start(config);
-      const { runMcp } = await import("./mcp-AMY2B535.js");
+      const { runMcp } = await import("./mcp-X3GECK5J.js");
       await runMcp(config);
       return;
     }
@@ -116,12 +148,12 @@ async function main() {
       for await (const chunk of process.stdin) input += chunk;
       const event = parseHook(JSON.parse(input));
       if (event?.event === "SessionStart") await start(config);
-      if (event) await callBridge(config, "/hook", event, 1500);
+      if (event) await callBridge(config, "/hook", event, 12e3);
       process.stdout.write("{}\n");
       return;
     }
     case "status":
-      process.stdout.write(`${JSON.stringify(await callBridge(config, "/tool", { action: "connection_status", parameters: {} }))}
+      process.stdout.write(`${JSON.stringify(await callBridge(config, "/status"))}
 `);
       return;
     case "stop":

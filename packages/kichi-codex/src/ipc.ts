@@ -10,6 +10,7 @@ export interface BridgeConfig {
   socketPath: string;
   tokenPath: string;
   logPath: string;
+  connectionPath: string;
 }
 
 export class BridgeNotReadyError extends Error {}
@@ -28,12 +29,13 @@ export function getBridgeConfig(): BridgeConfig {
     socketPath: process.platform === 'win32' ? `\\\\.\\pipe\\kichi-codex-${hash}` : join(runtimeDir, 'bridge.sock'),
     tokenPath: join(runtimeDir, 'bridge-token'),
     logPath: join(runtimeDir, 'bridge.log'),
+    connectionPath: join(runtimeDir, 'connection.json'),
   };
 }
 
 export async function callBridge(
   config: BridgeConfig,
-  path: '/ping' | '/hook' | '/tool' | '/stop',
+  path: '/ping' | '/hook' | '/tools/list' | '/tool' | '/status' | '/stop',
   data: unknown = {},
   timeout = 60_000,
 ): Promise<unknown> {

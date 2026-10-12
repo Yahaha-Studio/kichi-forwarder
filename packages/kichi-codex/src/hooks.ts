@@ -56,7 +56,7 @@ function requiredText(input: Record<string, unknown>, field: string): string {
 }
 
 function isKichiTool(name: string): boolean {
-  return name === 'mcp__kichi__kichi_join' || name === 'mcp__kichi__kichi' || name === 'mcp__kichi__kichi_describe';
+  return name.startsWith('mcp__kichi__');
 }
 
 function toolTitleInput(input: unknown): { title: string } | undefined {

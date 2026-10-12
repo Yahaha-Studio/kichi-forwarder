@@ -108,7 +108,7 @@ function requiredText(input, field) {
   return value;
 }
 function isKichiTool(name) {
-  return name === "mcp__kichi__kichi_join" || name === "mcp__kichi__kichi" || name === "mcp__kichi__kichi_describe";
+  return name.startsWith("mcp__kichi__");
 }
 function toolTitleInput(input) {
   if (typeof input !== "object" || input === null || Array.isArray(input)) return void 0;
@@ -383,7 +383,49 @@ var HookTracker = class {
   }
 };
 
+// src/connection.ts
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+var DEFAULT_MCP_URL = "https://focus-steam-playtest-int.yahaha.com/mcp";
+function validateConnection(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("MCP connection configuration must be an object.");
+  }
+  const config = value;
+  if (Object.keys(config).some((key) => key !== "serverUrl" && key !== "token")) {
+    throw new Error("Unknown MCP connection configuration field.");
+  }
+  if (typeof config.serverUrl !== "string" || typeof config.token !== "string" || !config.token.trim()) {
+    throw new Error("MCP serverUrl and a non-empty token are required.");
+  }
+  const url = new URL(config.serverUrl);
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.hash) {
+    throw new Error("MCP serverUrl must be an HTTP(S) URL without embedded credentials or a fragment.");
+  }
+  return { serverUrl: url.href, token: config.token.trim() };
+}
+async function readConnectionConfig(config) {
+  let text;
+  try {
+    text = await readFile(config.connectionPath, "utf8");
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw new Error("MCP connection is not configured. Run kichi-codex configure --token-file PATH [--server-url URL].");
+    }
+    throw error;
+  }
+  return validateConnection(JSON.parse(text));
+}
+async function configureConnection(config, serverUrl, tokenFile) {
+  const connection = validateConnection({ serverUrl, token: await readFile(tokenFile, "utf8") });
+  await mkdir(config.runtimeDir, { recursive: true, mode: 448 });
+  await writeFile(config.connectionPath, `${JSON.stringify(connection, null, 2)}
+`, { mode: 384 });
+}
+
 export {
   parseHook,
-  HookTracker
+  HookTracker,
+  DEFAULT_MCP_URL,
+  readConnectionConfig,
+  configureConnection
 };

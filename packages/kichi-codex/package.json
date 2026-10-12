@@ -4,7 +4,7 @@
   "description": "Low-token Kichi avatar feedback and tools for Codex",
   "type": "module",
   "bin": { "kichi-codex": "dist/cli.js" },
-  "files": [".codex-plugin/", ".mcp.json", "hooks/", "skills/", "assets/", "dist/", "config/", "README.md", "DATA_HANDLING.md"],
+  "files": [".codex-plugin/", ".mcp.json", "hooks/", "skills/", "assets/", "dist/", "README.md", "DATA_HANDLING.md"],
   "engines": { "node": ">=22.19.0" },
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -12,7 +12,6 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "@yahaha-studio/kichi-core": "0.2.0-beta.6",
     "esbuild": "^0.28.2"
   }
 }
