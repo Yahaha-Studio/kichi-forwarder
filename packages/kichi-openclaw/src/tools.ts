@@ -10,7 +10,7 @@ import {
 } from "@yahaha-studio/kichi-core";
 import type {
   ActionPlayback, ClockConfig, MateDailySchedule, PoseType, PresenceScope, QueryStatusResultPayload,
-  TodoTaskCreateInput, TodoTaskUpdateInput, TodoTaskReorderInput, TodoTaskDeleteInput,
+  TodoTaskCreateInput, TodoTaskUpdateInput, TodoTaskReorderInput, TodoTaskDeleteInput, TodoTaskCompleteInput,
   RoutineCreateInput, RoutineDeleteInput, RoutineBatchUpdateInput,
 } from "@yahaha-studio/kichi-core";
 import { KICHI_WORLD_ROOT_DIR, KichiRuntimeManager, resolveToolLocator, trimOptionalString } from "./runtime-manager.js";
@@ -1575,6 +1575,14 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
     { id: SERVER_DATA_ID_SCHEMA },
     ["id"],
     (service, input: TodoTaskDeleteInput, requestId) => service.deleteTodoTask(input, requestId),
+  );
+
+  registerServerDataTool(
+    api, runtimeManager, "kichi_todo_task_complete",
+    "Complete a Kichi todo task by ID, removing it from the todo list. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms server-side completion; clientRefreshNotified only reports whether the refresh notification was sent.",
+    { id: SERVER_DATA_ID_SCHEMA },
+    ["id"],
+    (service, input: TodoTaskCompleteInput, requestId) => service.completeTodoTask(input, requestId),
   );
 
   registerServerDataTool(

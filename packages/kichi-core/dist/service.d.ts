@@ -1,4 +1,4 @@
-import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, EnvironmentControlAckPayload, EmojiAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, RoutineBatchUpdateAckPayload, RoutineBatchUpdateInput, RoutineCreateAckPayload, RoutineCreateInput, RoutineDeleteAckPayload, RoutineDeleteInput, RoutineListAckPayload, StatusAckPayload, TodoTaskCreateAckPayload, TodoTaskCreateInput, TodoTaskDeleteAckPayload, TodoTaskDeleteInput, TodoTaskListAckPayload, TodoTaskReorderAckPayload, TodoTaskReorderInput, TodoTaskUpdateAckPayload, TodoTaskUpdateInput } from "./types.js";
+import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, EnvironmentControlAckPayload, EmojiAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, RoutineBatchUpdateAckPayload, RoutineBatchUpdateInput, RoutineCreateAckPayload, RoutineCreateInput, RoutineDeleteAckPayload, RoutineDeleteInput, RoutineListAckPayload, StatusAckPayload, TodoTaskCompleteAckPayload, TodoTaskCompleteInput, TodoTaskCreateAckPayload, TodoTaskCreateInput, TodoTaskDeleteAckPayload, TodoTaskDeleteInput, TodoTaskListAckPayload, TodoTaskReorderAckPayload, TodoTaskReorderInput, TodoTaskUpdateAckPayload, TodoTaskUpdateInput } from "./types.js";
 type AckFailureResult = {
     success: false;
     error: string;
@@ -57,6 +57,7 @@ export declare class KichiForwarderService {
     updateTodoTask(input: TodoTaskUpdateInput, requestId?: string): Promise<TodoTaskUpdateAckPayload>;
     reorderTodoTasks(input: TodoTaskReorderInput, requestId?: string): Promise<TodoTaskReorderAckPayload>;
     deleteTodoTask(input: TodoTaskDeleteInput, requestId?: string): Promise<TodoTaskDeleteAckPayload>;
+    completeTodoTask(input: TodoTaskCompleteInput, requestId?: string): Promise<TodoTaskCompleteAckPayload>;
     listRoutines(requestId?: string): Promise<RoutineListAckPayload>;
     createRoutine(input: RoutineCreateInput, requestId?: string): Promise<RoutineCreateAckPayload>;
     deleteRoutine(input: RoutineDeleteInput, requestId?: string): Promise<RoutineDeleteAckPayload>;

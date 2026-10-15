@@ -4,7 +4,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema, type CallToolResult, typ
 import { callBridge, errorMessage, type BridgeConfig } from './ipc.js';
 
 export async function runMcp(config: BridgeConfig): Promise<void> {
-  const server = new Server({ name: 'kichi', version: '0.2.0-beta.6' }, { capabilities: { tools: {} } });
+  const server = new Server({ name: 'kichi', version: '0.2.0-beta.8' }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async ({ params }) =>
     await callBridge(config, '/tools/list', params ?? {}) as ListToolsResult);
   server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {

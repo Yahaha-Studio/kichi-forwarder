@@ -51,6 +51,8 @@ import type {
   StatusPayload,
   SyncMateDailySchedulePayload,
   TaskRoutineRequestPayload,
+  TodoTaskCompleteAckPayload,
+  TodoTaskCompleteInput,
   TodoTaskCreateAckPayload,
   TodoTaskCreateInput,
   TodoTaskDeleteAckPayload,
@@ -489,6 +491,10 @@ export class KichiForwarderService {
 
   deleteTodoTask(input: TodoTaskDeleteInput, requestId?: string): Promise<TodoTaskDeleteAckPayload> {
     return this.sendTaskRoutineRequest("todo_task_delete", input, requestId);
+  }
+
+  completeTodoTask(input: TodoTaskCompleteInput, requestId?: string): Promise<TodoTaskCompleteAckPayload> {
+    return this.sendTaskRoutineRequest("todo_task_complete", input, requestId);
   }
 
   listRoutines(requestId?: string): Promise<RoutineListAckPayload> {

@@ -318,6 +318,9 @@ export class KichiForwarderService {
     deleteTodoTask(input, requestId) {
         return this.sendTaskRoutineRequest("todo_task_delete", input, requestId);
     }
+    completeTodoTask(input, requestId) {
+        return this.sendTaskRoutineRequest("todo_task_complete", input, requestId);
+    }
     listRoutines(requestId) {
         return this.sendTaskRoutineRequest("routine_list", {}, requestId);
     }

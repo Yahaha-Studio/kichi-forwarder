@@ -239,15 +239,17 @@ Use these tools for the user's Kichi tasks and routines. List when the user asks
 | `kichi_todo_task_update` | `id`, `title`, `colorIndex`, optional `deadline`; returns `todoTask` |
 | `kichi_todo_task_reorder` | Non-empty `tasks` array of `{id, sortOrder}` |
 | `kichi_todo_task_delete` | `id` |
+| `kichi_todo_task_complete` | `id`; completes the task and removes it from the todo list |
 | `kichi_routine_list` | No business parameters; returns `routines` |
 | `kichi_routine_create` | `title`, optional `checkedDates` and `timeZoneId`; returns `routine` |
 | `kichi_routine_delete` | `id` |
 | `kichi_routine_batch_update` | Non-empty `updates`, and `timeZoneId` when any date array is non-empty |
 
-All nine tools accept optional `requestId` for acknowledgement correlation and reuse the joined identity. Lists do not require the game client online. Writes require the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write.
+All ten tools accept optional `requestId` for acknowledgement correlation and reuse the joined identity. Lists do not require the game client online. Writes require the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write.
 
 - Task titles are non-empty and at most 50 characters; routine titles are non-empty and at most 20 characters.
 - `kichi_todo_task_update` replaces the complete editable state. Preserve the current `colorIndex` and `deadline` when the user only changes the title. Omitting `deadline` or passing `null` clears it. Use ISO 8601 date-time strings for deadlines.
+- Use `kichi_todo_task_complete` for explicit completion requests and `kichi_todo_task_delete` for explicit deletion requests. Completion removes the task from the todo list; it does not retain a completed-state flag or offer undo-completion.
 - Each routine batch item has `id`, optional `isNew`, `isDeleted`, `title`, and `sortOrder`, plus required `datesToAdd` and `datesToRemove`. Include both date arrays even when empty. New routines need a new caller-provided `id` and `title`; never set both `isNew` and `isDeleted` to true.
 - Routine input dates are local calendar dates in `yyyy-MM-dd` format. Non-empty `checkedDates`, `datesToAdd`, or `datesToRemove` require `timeZoneId` matching the user's Kichi device, such as `Asia/Shanghai`. Do not convert these inputs to UTC. The server returns `checkedDates` as UTC timestamps; interpret those timestamps in the device time zone.
 - Writes await the server acknowledgement. `success: true` confirms persistence; `clientRefreshNotified` only confirms that a refresh notification was sent. Do not claim the game has displayed the change from this flag.

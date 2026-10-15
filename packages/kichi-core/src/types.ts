@@ -507,6 +507,10 @@ export type TodoTaskDeleteInput = {
   id: string;
 };
 
+export type TodoTaskCompleteInput = {
+  id: string;
+};
+
 export type RoutineCreateInput = {
   title: string;
   /** Local calendar dates in yyyy-MM-dd format. */
@@ -548,6 +552,7 @@ export type TodoTaskCreatePayload = TaskRoutineRequestIdentity & TodoTaskCreateI
 export type TodoTaskUpdatePayload = TaskRoutineRequestIdentity & TodoTaskUpdateInput & { type: "todo_task_update" };
 export type TodoTaskReorderPayload = TaskRoutineRequestIdentity & TodoTaskReorderInput & { type: "todo_task_reorder" };
 export type TodoTaskDeletePayload = TaskRoutineRequestIdentity & TodoTaskDeleteInput & { type: "todo_task_delete" };
+export type TodoTaskCompletePayload = TaskRoutineRequestIdentity & TodoTaskCompleteInput & { type: "todo_task_complete" };
 export type RoutineListPayload = TaskRoutineRequestIdentity & { type: "routine_list" };
 export type RoutineCreatePayload = TaskRoutineRequestIdentity & RoutineCreateInput & { type: "routine_create" };
 export type RoutineDeletePayload = TaskRoutineRequestIdentity & RoutineDeleteInput & { type: "routine_delete" };
@@ -559,6 +564,7 @@ export type TaskRoutineRequestPayload =
   | TodoTaskUpdatePayload
   | TodoTaskReorderPayload
   | TodoTaskDeletePayload
+  | TodoTaskCompletePayload
   | RoutineListPayload
   | RoutineCreatePayload
   | RoutineDeletePayload
@@ -580,6 +586,7 @@ export type TodoTaskCreateAckPayload = TaskRoutineAckPayload<"todo_task_create_a
 export type TodoTaskUpdateAckPayload = TaskRoutineAckPayload<"todo_task_update_ack", TaskRoutineMutationResult & { todoTask: TodoTask }>;
 export type TodoTaskReorderAckPayload = TaskRoutineAckPayload<"todo_task_reorder_ack", TaskRoutineMutationResult>;
 export type TodoTaskDeleteAckPayload = TaskRoutineAckPayload<"todo_task_delete_ack", TaskRoutineMutationResult>;
+export type TodoTaskCompleteAckPayload = TaskRoutineAckPayload<"todo_task_complete_ack", TaskRoutineMutationResult>;
 export type RoutineListAckPayload = TaskRoutineAckPayload<"routine_list_ack", { routines: Routine[] }>;
 export type RoutineCreateAckPayload = TaskRoutineAckPayload<"routine_create_ack", TaskRoutineMutationResult & { routine: Routine }>;
 export type RoutineDeleteAckPayload = TaskRoutineAckPayload<"routine_delete_ack", TaskRoutineMutationResult>;
