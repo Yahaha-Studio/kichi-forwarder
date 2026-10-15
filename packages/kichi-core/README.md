@@ -58,6 +58,16 @@ Core validates the patch and sends `kichi_environment` with an `environment` obj
 
 Call `await service.sendEmoji("Heart", requestId?)` to show one supported emoji above the avatar's head. `emojiName` must be one of `Heart`, `Like`, `Happy`, `Celebrate`, `Keep Going`, `Peeking`, `Laughing`, `Sleeping`, `Coffee`, or `Waving`. Core sends `kichi_emoji` and waits for `kichi_emoji_ack`; a successful ACK confirms that the server accepted and broadcast the emoji, not that the client has rendered it.
 
+## Tasks and routines
+
+Core exposes `listTodoTasks`, `createTodoTask`, `updateTodoTask`, `reorderTodoTasks`, `deleteTodoTask`, `listRoutines`, `createRoutine`, `deleteRoutine`, and `batchUpdateRoutines`. List methods accept an optional request ID; write methods accept their exported input object followed by an optional request ID. All methods use the saved avatar identity and authenticated WebSocket, wait for the corresponding ACK, and throw on a rejected request. The returned value is the complete successful ACK, including task or routine data where applicable.
+
+Task creation requires `title` and `colorIndex`. Task updates require `id`, `title`, and `colorIndex` and replace the task state: an omitted or null `deadline` clears the existing deadline. Reordering sends `tasks: [{ id, sortOrder }]`; deleting sends `{ id }`.
+
+Routine creation accepts `title` and optional `checkedDates`. Batch updates send `updates`, with `datesToAdd` and `datesToRemove` required on every item, including empty arrays. Date inputs use `yyyy-MM-dd`; any non-empty date array requires `timeZoneId` so the server can convert local dates to its stored UTC timestamps. Returned routine `checkedDates` are UTC timestamps. A batch item with `isNew: true` requires a title and uses its supplied `id`; it cannot also have `isDeleted: true`.
+
+The server permits listing without an online game client. Writes require the owning user's game client to be online and reject injected agents. A successful write ACK confirms the server-side operation; `clientRefreshNotified` only reports whether the server sent the client refresh notification, not whether the client has applied it.
+
 ## Incoming messages
 
 `onBotMessageReceived` has the signature `(service, message) => void`. Core dispatches `bot_message_received` payloads to it and records the incoming bot message. The adapter routes the message to the matching platform session and decides how that platform processes or replies to it. Receiving a bot message is distinct from receiving a user's platform input.

@@ -892,6 +892,484 @@
           "error": "toAvatarId is required"
         }
       }
+    },
+    {
+      "registration": {
+        "name": "kichi_todo_task_list"
+      },
+      "definition": {
+        "name": "kichi_todo_task_list",
+        "label": "kichi_todo_task_list",
+        "description": "List the user's Kichi todo tasks when requested or needed for the current request. Requires the joined plugin connection; the game client may be offline.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            }
+          },
+          "required": []
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_todo_task_create"
+      },
+      "definition": {
+        "name": "kichi_todo_task_create",
+        "label": "kichi_todo_task_create",
+        "description": "Create a Kichi todo task with a non-empty title of at most 50 characters. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "description": "Complete task title, at most 50 characters."
+            },
+            "colorIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Task color index. Preserve the current value when updating only the title or deadline."
+            },
+            "deadline": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time",
+              "description": "Optional ISO 8601 deadline. Omitting it or passing null clears the deadline when updating a task."
+            }
+          },
+          "required": [
+            "title",
+            "colorIndex"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_todo_task_update"
+      },
+      "definition": {
+        "name": "kichi_todo_task_update",
+        "label": "kichi_todo_task_update",
+        "description": "Replace a Kichi todo task's complete editable state by ID. Supply title and colorIndex and preserve deadline when keeping it; omitting deadline or passing null clears it. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Task or routine ID returned by a list or create operation; for batch creation, provide a new unique ID."
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "description": "Complete task title, at most 50 characters."
+            },
+            "colorIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Task color index. Preserve the current value when updating only the title or deadline."
+            },
+            "deadline": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time",
+              "description": "Optional ISO 8601 deadline. Omitting it or passing null clears the deadline when updating a task."
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "colorIndex"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_todo_task_reorder"
+      },
+      "definition": {
+        "name": "kichi_todo_task_reorder",
+        "label": "kichi_todo_task_reorder",
+        "description": "Reorder Kichi todo tasks using their IDs and non-negative sort orders. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "tasks": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Task or routine ID returned by a list or create operation; for batch creation, provide a new unique ID."
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "id",
+                  "sortOrder"
+                ]
+              }
+            }
+          },
+          "required": [
+            "tasks"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_todo_task_delete"
+      },
+      "definition": {
+        "name": "kichi_todo_task_delete",
+        "label": "kichi_todo_task_delete",
+        "description": "Delete a Kichi todo task by ID. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Task or routine ID returned by a list or create operation; for batch creation, provide a new unique ID."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_routine_list"
+      },
+      "definition": {
+        "name": "kichi_routine_list",
+        "label": "kichi_routine_list",
+        "description": "List the user's Kichi routines when requested or needed for the current request. Requires the joined plugin connection; the game client may be offline. Returned checkedDates are UTC timestamps; interpret them in the user's Kichi device time zone.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            }
+          },
+          "required": []
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_routine_create"
+      },
+      "definition": {
+        "name": "kichi_routine_create",
+        "label": "kichi_routine_create",
+        "description": "Create a Kichi routine with a non-empty title of at most 20 characters. checkedDates use local yyyy-MM-dd dates; a non-empty array requires timeZoneId matching the user's Kichi device. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20,
+              "description": "Routine title, at most 20 characters."
+            },
+            "checkedDates": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "description": "Local calendar dates in yyyy-MM-dd format. A non-empty array requires timeZoneId matching the user's Kichi device."
+            },
+            "timeZoneId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "IANA time zone of the user's Kichi device, such as Asia/Shanghai. Required when any date array is non-empty."
+            }
+          },
+          "required": [
+            "title"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_routine_delete"
+      },
+      "definition": {
+        "name": "kichi_routine_delete",
+        "label": "kichi_routine_delete",
+        "description": "Delete a Kichi routine by ID. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Task or routine ID returned by a list or create operation; for batch creation, provide a new unique ID."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_routine_batch_update"
+      },
+      "definition": {
+        "name": "kichi_routine_batch_update",
+        "label": "kichi_routine_batch_update",
+        "description": "Create, edit, check, uncheck, reorder, or delete Kichi routines. Every update requires datesToAdd and datesToRemove; use [] when unchanged. Input dates use yyyy-MM-dd; non-empty date arrays require timeZoneId matching the user's Kichi device. New routines require a new unique id and title. The batch is not atomic; inspect current routines after a failure before deciding how to continue. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "updates": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Task or routine ID returned by a list or create operation; for batch creation, provide a new unique ID."
+                  },
+                  "isNew": {
+                    "type": "boolean",
+                    "description": "Create a routine using this new unique ID. Requires title and cannot be combined with isDeleted."
+                  },
+                  "isDeleted": {
+                    "type": "boolean",
+                    "description": "Delete this routine. Cannot be combined with isNew."
+                  },
+                  "title": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 20,
+                    "description": "New title; required for isNew. Omit or pass null to keep an existing title."
+                  },
+                  "sortOrder": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "description": "New sort order. Omit or pass null to keep the existing order; new routines default to 0."
+                  },
+                  "datesToAdd": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    "description": "Required local dates to check in yyyy-MM-dd format; use [] for no additions. Non-empty values require timeZoneId."
+                  },
+                  "datesToRemove": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    "description": "Required local dates to uncheck in yyyy-MM-dd format; use [] for no removals. Non-empty values require timeZoneId."
+                  }
+                },
+                "required": [
+                  "id",
+                  "datesToAdd",
+                  "datesToRemove"
+                ]
+              }
+            },
+            "timeZoneId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "IANA time zone of the user's Kichi device, such as Asia/Shanghai. Required when any date array is non-empty."
+            }
+          },
+          "required": [
+            "updates"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
     }
   ]
 }

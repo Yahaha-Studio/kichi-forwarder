@@ -397,4 +397,135 @@ export type BotMessageReceivedPayload = {
     bubble: string;
     history?: BotMessageHistoryEntry[];
 };
+export type CommandErrorPayload = {
+    type: "command_error";
+    requestId: string;
+    errorCode: string;
+    errorMessage: string;
+};
+export type TodoTask = {
+    id: string;
+    ownerId: string;
+    createTime: string;
+    updateTime: string;
+    title: string;
+    deadline: string | null;
+    colorIndex: number;
+    sortOrder: number;
+};
+export type Routine = {
+    id: string;
+    ownerId: string;
+    createTime: string;
+    updateTime: string;
+    title: string;
+    /** UTC timestamps returned by the server. Date inputs use yyyy-MM-dd instead. */
+    checkedDates: string[];
+    sortOrder: number;
+};
+export type TodoTaskCreateInput = {
+    title: string;
+    colorIndex: number;
+    deadline?: string | null;
+};
+/** Updates replace the task state; an omitted or null deadline clears it. */
+export type TodoTaskUpdateInput = TodoTaskCreateInput & {
+    id: string;
+};
+export type TodoTaskReorderInput = {
+    tasks: {
+        id: string;
+        sortOrder: number;
+    }[];
+};
+export type TodoTaskDeleteInput = {
+    id: string;
+};
+export type RoutineCreateInput = {
+    title: string;
+    /** Local calendar dates in yyyy-MM-dd format. */
+    checkedDates?: string[];
+    /** Required when checkedDates contains dates. */
+    timeZoneId?: string;
+};
+export type RoutineDeleteInput = {
+    id: string;
+};
+export type RoutineUpdate = {
+    id: string;
+    isNew?: boolean;
+    isDeleted?: boolean;
+    title?: string | null;
+    sortOrder?: number | null;
+    /** Required, including when no dates are added. Uses yyyy-MM-dd. */
+    datesToAdd: string[];
+    /** Required, including when no dates are removed. Uses yyyy-MM-dd. */
+    datesToRemove: string[];
+};
+export type RoutineBatchUpdateInput = {
+    updates: RoutineUpdate[];
+    /** Required when any update adds or removes dates. */
+    timeZoneId?: string;
+};
+type TaskRoutineRequestIdentity = {
+    requestId: string;
+    avatarId: string;
+    authKey: string;
+};
+export type TodoTaskListPayload = TaskRoutineRequestIdentity & {
+    type: "todo_task_list";
+};
+export type TodoTaskCreatePayload = TaskRoutineRequestIdentity & TodoTaskCreateInput & {
+    type: "todo_task_create";
+};
+export type TodoTaskUpdatePayload = TaskRoutineRequestIdentity & TodoTaskUpdateInput & {
+    type: "todo_task_update";
+};
+export type TodoTaskReorderPayload = TaskRoutineRequestIdentity & TodoTaskReorderInput & {
+    type: "todo_task_reorder";
+};
+export type TodoTaskDeletePayload = TaskRoutineRequestIdentity & TodoTaskDeleteInput & {
+    type: "todo_task_delete";
+};
+export type RoutineListPayload = TaskRoutineRequestIdentity & {
+    type: "routine_list";
+};
+export type RoutineCreatePayload = TaskRoutineRequestIdentity & RoutineCreateInput & {
+    type: "routine_create";
+};
+export type RoutineDeletePayload = TaskRoutineRequestIdentity & RoutineDeleteInput & {
+    type: "routine_delete";
+};
+export type RoutineBatchUpdatePayload = TaskRoutineRequestIdentity & RoutineBatchUpdateInput & {
+    type: "routine_batch_update";
+};
+export type TaskRoutineRequestPayload = TodoTaskListPayload | TodoTaskCreatePayload | TodoTaskUpdatePayload | TodoTaskReorderPayload | TodoTaskDeletePayload | RoutineListPayload | RoutineCreatePayload | RoutineDeletePayload | RoutineBatchUpdatePayload;
+type TaskRoutineAckPayload<TType extends string, TResult extends object> = {
+    type: TType;
+    requestId: string;
+    success: true;
+} & TResult;
+type TaskRoutineMutationResult = {
+    /** Whether the server sent a refresh notification, not confirmation of client application. */
+    clientRefreshNotified: boolean;
+};
+export type TodoTaskListAckPayload = TaskRoutineAckPayload<"todo_task_list_ack", {
+    todoTasks: TodoTask[];
+}>;
+export type TodoTaskCreateAckPayload = TaskRoutineAckPayload<"todo_task_create_ack", TaskRoutineMutationResult & {
+    todoTask: TodoTask;
+}>;
+export type TodoTaskUpdateAckPayload = TaskRoutineAckPayload<"todo_task_update_ack", TaskRoutineMutationResult & {
+    todoTask: TodoTask;
+}>;
+export type TodoTaskReorderAckPayload = TaskRoutineAckPayload<"todo_task_reorder_ack", TaskRoutineMutationResult>;
+export type TodoTaskDeleteAckPayload = TaskRoutineAckPayload<"todo_task_delete_ack", TaskRoutineMutationResult>;
+export type RoutineListAckPayload = TaskRoutineAckPayload<"routine_list_ack", {
+    routines: Routine[];
+}>;
+export type RoutineCreateAckPayload = TaskRoutineAckPayload<"routine_create_ack", TaskRoutineMutationResult & {
+    routine: Routine;
+}>;
+export type RoutineDeleteAckPayload = TaskRoutineAckPayload<"routine_delete_ack", TaskRoutineMutationResult>;
+export type RoutineBatchUpdateAckPayload = TaskRoutineAckPayload<"routine_batch_update_ack", TaskRoutineMutationResult>;
 export {};

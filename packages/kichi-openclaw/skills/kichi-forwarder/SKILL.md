@@ -1,12 +1,12 @@
 ---
 name: kichi-forwarder
-description: Use Kichi websocket tools to connect an OpenClaw companion to Kichi, directly control its avatar poses and actions, change scene weather and time, sync activity and timers, and handle note board or music workflows; prioritize explicit user requests to act inside Kichi and skip background sync when the user opts out.
+description: Use Kichi websocket tools to connect an OpenClaw companion to Kichi, directly control its avatar poses and actions, change scene weather and time, sync activity and timers, manage todo tasks and routine check-ins, and handle note board or music workflows; prioritize explicit user requests to act inside Kichi and skip background sync when the user opts out.
 metadata: {"openclaw":{"skillKey":"kichi-forwarder","homepage":"https://github.com/Yahaha-Studio/kichi-forwarder"}}
 ---
 
 # Kichi Forwarder
 
-Kichi Forwarder provides websocket tools for connecting an OpenClaw agent to Kichi, directly controlling the Kichi avatar, syncing companion status, and handling Kichi notes, timers, and music workflows.
+Kichi Forwarder provides websocket tools for connecting an OpenClaw agent to Kichi, directly controlling the Kichi avatar, syncing companion status, managing todo tasks and routine check-ins, and handling Kichi notes, timers, and music workflows.
 
 ## Pre-install Remote Discovery
 
@@ -227,6 +227,36 @@ kichi_music_album_create(albumTitle: "Deep Focus Mix", musicTitles: ["Calm Time"
 - `requestId`: optional
 
 `musicTitles` must use exact track names injected into the tool schema from the static config bundled with the plugin package.
+
+### Todo Tasks and Routine Check-ins
+
+Use these tools for the user's Kichi tasks and routines. List when the user asks or the current request needs existing IDs; write only at the user's request. Do not create or modify tasks or routine check-ins through heartbeat, lifecycle hooks, or ordinary work-status synchronization.
+
+| Tool | Parameters |
+| --- | --- |
+| `kichi_todo_task_list` | No business parameters; returns `todoTasks` |
+| `kichi_todo_task_create` | `title`, `colorIndex`, optional `deadline`; returns `todoTask` |
+| `kichi_todo_task_update` | `id`, `title`, `colorIndex`, optional `deadline`; returns `todoTask` |
+| `kichi_todo_task_reorder` | Non-empty `tasks` array of `{id, sortOrder}` |
+| `kichi_todo_task_delete` | `id` |
+| `kichi_routine_list` | No business parameters; returns `routines` |
+| `kichi_routine_create` | `title`, optional `checkedDates` and `timeZoneId`; returns `routine` |
+| `kichi_routine_delete` | `id` |
+| `kichi_routine_batch_update` | Non-empty `updates`, and `timeZoneId` when any date array is non-empty |
+
+All nine tools accept optional `requestId` for acknowledgement correlation and reuse the joined identity. Lists do not require the game client online. Writes require the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write.
+
+- Task titles are non-empty and at most 50 characters; routine titles are non-empty and at most 20 characters.
+- `kichi_todo_task_update` replaces the complete editable state. Preserve the current `colorIndex` and `deadline` when the user only changes the title. Omitting `deadline` or passing `null` clears it. Use ISO 8601 date-time strings for deadlines.
+- Each routine batch item has `id`, optional `isNew`, `isDeleted`, `title`, and `sortOrder`, plus required `datesToAdd` and `datesToRemove`. Include both date arrays even when empty. New routines need a new caller-provided `id` and `title`; never set both `isNew` and `isDeleted` to true.
+- Routine input dates are local calendar dates in `yyyy-MM-dd` format. Non-empty `checkedDates`, `datesToAdd`, or `datesToRemove` require `timeZoneId` matching the user's Kichi device, such as `Asia/Shanghai`. Do not convert these inputs to UTC. The server returns `checkedDates` as UTC timestamps; interpret those timestamps in the device time zone.
+- Writes await the server acknowledgement. `success: true` confirms persistence; `clientRefreshNotified` only confirms that a refresh notification was sent. Do not claim the game has displayed the change from this flag.
+- Batch updates are not atomic. After a failure, list the current routines before deciding how to continue; do not blindly resend a batch containing creates or deletes.
+
+```text
+kichi_todo_task_create(title: "Read chapter 3", colorIndex: 0)
+kichi_routine_batch_update(timeZoneId: "Asia/Shanghai", updates: [{id: "existing-routine-id", datesToAdd: ["2026-10-15"], datesToRemove: []}])
+```
 
 ## Music Album Policy
 

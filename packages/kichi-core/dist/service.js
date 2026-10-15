@@ -303,6 +303,33 @@ export class KichiForwarderService {
         }
         return result;
     }
+    listTodoTasks(requestId) {
+        return this.sendTaskRoutineRequest("todo_task_list", {}, requestId);
+    }
+    createTodoTask(input, requestId) {
+        return this.sendTaskRoutineRequest("todo_task_create", input, requestId);
+    }
+    updateTodoTask(input, requestId) {
+        return this.sendTaskRoutineRequest("todo_task_update", input, requestId);
+    }
+    reorderTodoTasks(input, requestId) {
+        return this.sendTaskRoutineRequest("todo_task_reorder", input, requestId);
+    }
+    deleteTodoTask(input, requestId) {
+        return this.sendTaskRoutineRequest("todo_task_delete", input, requestId);
+    }
+    listRoutines(requestId) {
+        return this.sendTaskRoutineRequest("routine_list", {}, requestId);
+    }
+    createRoutine(input, requestId) {
+        return this.sendTaskRoutineRequest("routine_create", input, requestId);
+    }
+    deleteRoutine(input, requestId) {
+        return this.sendTaskRoutineRequest("routine_delete", input, requestId);
+    }
+    batchUpdateRoutines(input, requestId) {
+        return this.sendTaskRoutineRequest("routine_batch_update", input, requestId);
+    }
     createNotesBoardNote(propId, data) {
         const identity = this.requireIdentity();
         if (!identity) {
@@ -654,14 +681,17 @@ export class KichiForwarderService {
         if (!pending) {
             return;
         }
-        if (msg.type !== pending.expectedType) {
-            pending.reject(new Error(`Unexpected response type for request ${requestId}: ${String(msg.type)} (expected ${pending.expectedType})`));
-            clearTimeout(pending.timeout);
-            this.pendingRequests.delete(requestId);
-            return;
-        }
         clearTimeout(pending.timeout);
         this.pendingRequests.delete(requestId);
+        if (msg.type === "command_error") {
+            const error = msg;
+            pending.reject(new Error(`${error.errorCode}: ${error.errorMessage}`));
+            return;
+        }
+        if (msg.type !== pending.expectedType) {
+            pending.reject(new Error(`Unexpected response type for request ${requestId}: ${String(msg.type)} (expected ${pending.expectedType})`));
+            return;
+        }
         pending.resolve(msg);
     }
     rejectPendingRequests(reason) {
@@ -670,6 +700,20 @@ export class KichiForwarderService {
             pending.reject(new Error(`${reason} (${requestId})`));
         }
         this.pendingRequests.clear();
+    }
+    async sendTaskRoutineRequest(type, input, requestId) {
+        const identity = this.requireIdentity();
+        if (!identity) {
+            throw new Error("Missing Kichi identity");
+        }
+        const payload = {
+            ...input,
+            type,
+            requestId: requestId?.trim() || randomUUID(),
+            avatarId: identity.avatarId,
+            authKey: identity.authKey,
+        };
+        return this.sendRequest(payload, `${type}_ack`);
     }
     requireIdentity() {
         if (!this.identity?.avatarId || !this.identity?.authKey) {
