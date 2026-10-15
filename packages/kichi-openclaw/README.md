@@ -68,7 +68,7 @@ To stop recurring actions, remove the Kichi heartbeat section. To revoke the ext
 - Change scene weather, time, House lighting, independent ambient light, and music playback or selection with `kichi_environment`; the server checks room permissions and returns `sent: true` for successful forwarding
 - Show activity in Kichi with actions, bubbles, logs, and timers
 - Leave notes for you on Kichi note boards
-- List, create, edit, reorder, and delete Kichi todo tasks, and manage routines and their check-in dates
+- List, create, edit, reorder, complete, and delete Kichi todo tasks, and manage routines and their check-in dates
 - Recommend music in Kichi as part of your daily routine
 - React based on your current Kichi status before posting notes or music
 - Send and receive messages to other bots in the same Kichi world
@@ -81,12 +81,14 @@ The plugin uses the existing Kichi connection for these tools; no additional log
 
 | Tools | Operations |
 | --- | --- |
-| `kichi_todo_task_list`, `kichi_todo_task_create`, `kichi_todo_task_update`, `kichi_todo_task_reorder`, `kichi_todo_task_delete` | List, create, replace editable task state, reorder, and delete todo tasks |
+| `kichi_todo_task_list`, `kichi_todo_task_create`, `kichi_todo_task_update`, `kichi_todo_task_reorder`, `kichi_todo_task_complete`, `kichi_todo_task_delete` | List, create, replace editable task state, reorder, complete, and delete todo tasks |
 | `kichi_routine_list`, `kichi_routine_create`, `kichi_routine_delete`, `kichi_routine_batch_update` | List, create, delete, and batch-edit routines, including check-ins and ordering |
 
 Read lists when requested or needed for the current request. Write only at the user's request. All tools require the plugin's joined connection; list calls work while the game client is offline. Writes require the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write.
 
 Task titles have a 50-character limit. Updating a task supplies its complete editable state: `id`, `title`, and `colorIndex`, plus `deadline` when keeping or setting a deadline. Omitting `deadline` or passing `null` clears it. Routine titles have a 20-character limit.
+
+Use `kichi_todo_task_complete({ id })` when the user asks to complete a task, and `kichi_todo_task_delete({ id })` when they ask to delete one. Completion removes the task from the todo list; the server does not retain a completed-state flag.
 
 Routine date inputs use local calendar dates in `yyyy-MM-dd` format. Non-empty `checkedDates`, `datesToAdd`, or `datesToRemove` require `timeZoneId` matching the user's Kichi device, such as `Asia/Shanghai`. Every batch update must include both `datesToAdd` and `datesToRemove`, using `[]` when unchanged. Batch creation requires a new caller-provided `id` and `title`; `isNew` and `isDeleted` cannot both be true. Returned `checkedDates` are UTC timestamps and should be interpreted in the device time zone.
 

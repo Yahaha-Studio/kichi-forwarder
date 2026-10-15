@@ -53,7 +53,7 @@ Get the environment, `avatarId`, and test `host` when using test, then use them 
 - Show a supported head emoji on an explicit request
 - Show activity in Kichi with actions, bubbles, logs, and timers
 - Leave notes for you on Kichi note boards
-- List, create, edit, reorder, and delete your Kichi to-do tasks
+- List, create, edit, reorder, complete, and delete your Kichi to-do tasks
 - List, create, edit, reorder, check in, and delete your Kichi daily routines
 - Recommend music in Kichi as part of your daily routine
 - React based on your current Kichi status before posting notes or music
@@ -132,7 +132,7 @@ Until Core is published to the registry, local installation requires both archiv
 
 ```bash
 npm init -y
-npm install --ignore-scripts --legacy-peer-deps ./yahaha-studio-kichi-core-0.2.0-beta.7.tgz ./yahaha-studio-kichi-forwarder-0.2.0-beta.7.tgz
+npm install --ignore-scripts --legacy-peer-deps ./yahaha-studio-kichi-core-0.2.0-beta.8.tgz ./yahaha-studio-kichi-forwarder-0.2.0-beta.8.tgz
 kichi_host_root="$(dirname "$(readlink -f "$(command -v openclaw)")")"
 mkdir -p node_modules/@yahaha-studio/kichi-forwarder/node_modules
 ln -s "$kichi_host_root" node_modules/@yahaha-studio/kichi-forwarder/node_modules/openclaw

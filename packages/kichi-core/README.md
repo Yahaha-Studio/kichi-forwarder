@@ -60,9 +60,11 @@ Call `await service.sendEmoji("Heart", requestId?)` to show one supported emoji 
 
 ## Tasks and routines
 
-Core exposes `listTodoTasks`, `createTodoTask`, `updateTodoTask`, `reorderTodoTasks`, `deleteTodoTask`, `listRoutines`, `createRoutine`, `deleteRoutine`, and `batchUpdateRoutines`. List methods accept an optional request ID; write methods accept their exported input object followed by an optional request ID. All methods use the saved avatar identity and authenticated WebSocket, wait for the corresponding ACK, and throw on a rejected request. The returned value is the complete successful ACK, including task or routine data where applicable.
+Core exposes `listTodoTasks`, `createTodoTask`, `updateTodoTask`, `reorderTodoTasks`, `deleteTodoTask`, `completeTodoTask`, `listRoutines`, `createRoutine`, `deleteRoutine`, and `batchUpdateRoutines`. List methods accept an optional request ID; write methods accept their exported input object followed by an optional request ID. All methods use the saved avatar identity and authenticated WebSocket, wait for the corresponding ACK, and throw on a rejected request. The returned value is the complete successful ACK, including task or routine data where applicable.
 
 Task creation requires `title` and `colorIndex`. Task updates require `id`, `title`, and `colorIndex` and replace the task state: an omitted or null `deadline` clears the existing deadline. Reordering sends `tasks: [{ id, sortOrder }]`; deleting sends `{ id }`.
+
+`completeTodoTask({ id }, requestId?)` sends `todo_task_complete` and awaits `todo_task_complete_ack`. Use it for explicit completion requests and `deleteTodoTask` for deletion requests. Completion currently removes the task from the todo list; it does not store a completed-state flag. The ACK contains `success` and `clientRefreshNotified`.
 
 Routine creation accepts `title` and optional `checkedDates`. Batch updates send `updates`, with `datesToAdd` and `datesToRemove` required on every item, including empty arrays. Date inputs use `yyyy-MM-dd`; any non-empty date array requires `timeZoneId` so the server can convert local dates to its stored UTC timestamps. Returned routine `checkedDates` are UTC timestamps. A batch item with `isNew: true` requires a title and uses its supplied `id`; it cannot also have `isDeleted: true`.
 

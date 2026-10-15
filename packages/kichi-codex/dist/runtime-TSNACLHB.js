@@ -2340,7 +2340,7 @@ var KichiMcpClient = class {
   }
   config;
   jsonSchemaValidator = new AjvJsonSchemaValidator();
-  client = new Client({ name: "kichi-codex", version: "0.2.0-beta.6" }, {
+  client = new Client({ name: "kichi-codex", version: "0.2.0-beta.8" }, {
     capabilities: {},
     jsonSchemaValidator: this.jsonSchemaValidator
   });
