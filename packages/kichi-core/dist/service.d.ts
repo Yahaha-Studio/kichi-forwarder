@@ -1,4 +1,4 @@
-import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, EnvironmentControlAckPayload, EmojiAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, StatusAckPayload } from "./types.js";
+import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, EnvironmentControlAckPayload, EmojiAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, RoutineBatchUpdateAckPayload, RoutineBatchUpdateInput, RoutineCreateAckPayload, RoutineCreateInput, RoutineDeleteAckPayload, RoutineDeleteInput, RoutineListAckPayload, StatusAckPayload, TodoTaskCreateAckPayload, TodoTaskCreateInput, TodoTaskDeleteAckPayload, TodoTaskDeleteInput, TodoTaskListAckPayload, TodoTaskReorderAckPayload, TodoTaskReorderInput, TodoTaskUpdateAckPayload, TodoTaskUpdateInput } from "./types.js";
 type AckFailureResult = {
     success: false;
     error: string;
@@ -52,6 +52,15 @@ export declare class KichiForwarderService {
         success: true;
     }>>;
     queryStatus(requestId?: string): Promise<QueryStatusResultPayload>;
+    listTodoTasks(requestId?: string): Promise<TodoTaskListAckPayload>;
+    createTodoTask(input: TodoTaskCreateInput, requestId?: string): Promise<TodoTaskCreateAckPayload>;
+    updateTodoTask(input: TodoTaskUpdateInput, requestId?: string): Promise<TodoTaskUpdateAckPayload>;
+    reorderTodoTasks(input: TodoTaskReorderInput, requestId?: string): Promise<TodoTaskReorderAckPayload>;
+    deleteTodoTask(input: TodoTaskDeleteInput, requestId?: string): Promise<TodoTaskDeleteAckPayload>;
+    listRoutines(requestId?: string): Promise<RoutineListAckPayload>;
+    createRoutine(input: RoutineCreateInput, requestId?: string): Promise<RoutineCreateAckPayload>;
+    deleteRoutine(input: RoutineDeleteInput, requestId?: string): Promise<RoutineDeleteAckPayload>;
+    batchUpdateRoutines(input: RoutineBatchUpdateInput, requestId?: string): Promise<RoutineBatchUpdateAckPayload>;
     createNotesBoardNote(propId: string, data: string): void;
     createMusicAlbum(albumTitle: string, musicTitles: string[], requestId?: string): string;
     sendBotMessage(toAvatarId: string, depth: number, bubble: string, options?: {
@@ -85,6 +94,7 @@ export declare class KichiForwarderService {
     private buildAckFailure;
     private tryResolvePendingRequest;
     private rejectPendingRequests;
+    private sendTaskRoutineRequest;
     private requireIdentity;
     private sendRequest;
     private loadIdentity;

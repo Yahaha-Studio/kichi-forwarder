@@ -36,12 +36,30 @@ import type {
   KichiState,
   LeaveAckPayload,
   MateDailySchedule,
+  CommandErrorPayload,
   PoseType,
   QueryStatusPayload,
   QueryStatusResultPayload,
+  RoutineBatchUpdateAckPayload,
+  RoutineBatchUpdateInput,
+  RoutineCreateAckPayload,
+  RoutineCreateInput,
+  RoutineDeleteAckPayload,
+  RoutineDeleteInput,
+  RoutineListAckPayload,
   StatusAckPayload,
   StatusPayload,
   SyncMateDailySchedulePayload,
+  TaskRoutineRequestPayload,
+  TodoTaskCreateAckPayload,
+  TodoTaskCreateInput,
+  TodoTaskDeleteAckPayload,
+  TodoTaskDeleteInput,
+  TodoTaskListAckPayload,
+  TodoTaskReorderAckPayload,
+  TodoTaskReorderInput,
+  TodoTaskUpdateAckPayload,
+  TodoTaskUpdateInput,
 } from "./types.js";
 import { buildKichiWebSocketUrl, normalizeKichiHost } from "./host.js";
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
@@ -453,6 +471,42 @@ export class KichiForwarderService {
     return result;
   }
 
+  listTodoTasks(requestId?: string): Promise<TodoTaskListAckPayload> {
+    return this.sendTaskRoutineRequest("todo_task_list", {}, requestId);
+  }
+
+  createTodoTask(input: TodoTaskCreateInput, requestId?: string): Promise<TodoTaskCreateAckPayload> {
+    return this.sendTaskRoutineRequest("todo_task_create", input, requestId);
+  }
+
+  updateTodoTask(input: TodoTaskUpdateInput, requestId?: string): Promise<TodoTaskUpdateAckPayload> {
+    return this.sendTaskRoutineRequest("todo_task_update", input, requestId);
+  }
+
+  reorderTodoTasks(input: TodoTaskReorderInput, requestId?: string): Promise<TodoTaskReorderAckPayload> {
+    return this.sendTaskRoutineRequest("todo_task_reorder", input, requestId);
+  }
+
+  deleteTodoTask(input: TodoTaskDeleteInput, requestId?: string): Promise<TodoTaskDeleteAckPayload> {
+    return this.sendTaskRoutineRequest("todo_task_delete", input, requestId);
+  }
+
+  listRoutines(requestId?: string): Promise<RoutineListAckPayload> {
+    return this.sendTaskRoutineRequest("routine_list", {}, requestId);
+  }
+
+  createRoutine(input: RoutineCreateInput, requestId?: string): Promise<RoutineCreateAckPayload> {
+    return this.sendTaskRoutineRequest("routine_create", input, requestId);
+  }
+
+  deleteRoutine(input: RoutineDeleteInput, requestId?: string): Promise<RoutineDeleteAckPayload> {
+    return this.sendTaskRoutineRequest("routine_delete", input, requestId);
+  }
+
+  batchUpdateRoutines(input: RoutineBatchUpdateInput, requestId?: string): Promise<RoutineBatchUpdateAckPayload> {
+    return this.sendTaskRoutineRequest("routine_batch_update", input, requestId);
+  }
+
   createNotesBoardNote(propId: string, data: string): void {
     const identity = this.requireIdentity();
     if (!identity) {
@@ -841,18 +895,21 @@ export class KichiForwarderService {
     if (!pending) {
       return;
     }
+    clearTimeout(pending.timeout);
+    this.pendingRequests.delete(requestId);
+    if (msg.type === "command_error") {
+      const error = msg as CommandErrorPayload;
+      pending.reject(new Error(`${error.errorCode}: ${error.errorMessage}`));
+      return;
+    }
     if (msg.type !== pending.expectedType) {
       pending.reject(
         new Error(
           `Unexpected response type for request ${requestId}: ${String(msg.type)} (expected ${pending.expectedType})`,
         ),
       );
-      clearTimeout(pending.timeout);
-      this.pendingRequests.delete(requestId);
       return;
     }
-    clearTimeout(pending.timeout);
-    this.pendingRequests.delete(requestId);
     pending.resolve(msg);
   }
 
@@ -862,6 +919,29 @@ export class KichiForwarderService {
       pending.reject(new Error(`${reason} (${requestId})`));
     }
     this.pendingRequests.clear();
+  }
+
+  private async sendTaskRoutineRequest<TSuccess extends { type: string; requestId: string; success: true }>(
+    type: TaskRoutineRequestPayload["type"],
+    input: object,
+    requestId?: string,
+  ): Promise<TSuccess> {
+    const identity = this.requireIdentity();
+    if (!identity) {
+      throw new Error("Missing Kichi identity");
+    }
+
+    const payload = {
+      ...input,
+      type,
+      requestId: requestId?.trim() || randomUUID(),
+      avatarId: identity.avatarId,
+      authKey: identity.authKey,
+    };
+    return this.sendRequest<TSuccess>(
+      payload,
+      `${type}_ack`,
+    );
   }
 
   private requireIdentity(): { avatarId: string; authKey: string } | null {

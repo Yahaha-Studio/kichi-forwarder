@@ -13,7 +13,7 @@
 - 生命周期反馈由本地 Hooks 固定映射，额外模型请求为 0；正常返回 `{}`，不注入 prompt、additionalContext 或 MCP instructions。
 - 附带短 `kichi` Skill，只说明连接和按需工具入口；不要求模型在每个步骤调用 Kichi，不轮询任务或要求模型总结。
 - Hooks 保留会话、回合、工具等关联标识。`UserPromptSubmit.prompt` 通过本地 IPC 传入 bridge，只将用户文本的短预览发送到 Kichi；工具参数仅保留 `tool_input.title` 的短预览。不持久化消息全文或保留其他工具参数、工具输出及 transcript。
-- 本地 MCP 动态返回远端 `tools/list`，当前服务暴露 18 个独立 `kichi_*` 工具。工具名称、参数 schema 和注解由服务端提供。
+- 本地 MCP 动态返回远端 `tools/list` 中的独立 `kichi_*` 工具。工具名称、参数 schema 和注解由服务端提供。
 - 工具 schema 和插件元数据有上下文开销，实际调用也会产生输入输出 token；不宣称整个插件零 token。
 - 相同动作和气泡去重；短 Hook 进程只发送本地 IPC。
 
@@ -101,7 +101,7 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 | --- | --- |
 | 生命周期 Hooks | 普通公开目录不接受含 Hooks 的插件；自动 avatar 反馈依赖 Hooks。 |
 | MCP 连接 | 所有操作已经发送到公网 HTTPS MCP，但桌面插件入口仍使用本地 stdio 代理和 bridge。普通公开提交需要满足远端 MCP 要求；本地执行需求仍需单独处理。 |
-| 工具暴露 | 透传服务端提供的独立工具、参数 schema 和注解，当前为 18 个 `kichi_*` 工具。 |
+| 工具暴露 | 动态透传服务端提供的独立 `kichi_*` 工具、参数 schema 和注解。 |
 | 身份授权 | 当前环境 token 是共享环境凭据，不是用户级身份授权；面向公众需要服务端提供适用的授权和身份隔离。 |
 | 展示材料 | 已补齐 30 字符以内的简介、能力标签、方形图标、示例提示和入门技能入口。发布者名称仍需与提交时验证的身份一致。 |
 | 运营与审核 | 需要真实的产品、支持、隐私政策、服务条款 HTTPS 链接，以及域名验证、适用的 OAuth、审核账号、5 个正向案例、3 个反向案例和演示视频。凭据只填审核后台，不打进包。 |
@@ -125,9 +125,13 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 所有操作直接调用远端 `tools/list` 返回的独立 `kichi_*` 工具，参数放在 `request` 内，具体字段和动作目录以服务端 schema 为准。使用 `kichi_leave({ request: { avatarId } })` 显式离开。房间天气、时间、灯光与音乐属于房间操作，和 MCP server URL 的环境选择无关。
 
+用户待办和日常习惯也通过服务端动态发现的工具操作，无需在 Codex 插件中重复定义 schema 或分发逻辑。`kichi_todo_task_*` 支持待办的查询、创建、更新、排序和删除；`kichi_routine_*` 支持日常习惯的查询、创建、删除和批量更新。这里的 task/routine 管理用户待办、习惯及打卡日期，不负责自动执行调度，与 MCP 的异步任务执行协议和 KichiClaw 专属日程功能分别独立。
+
+待办和日常习惯的写入要求用户游戏客户端在线，且所选角色不是 injected 类型。待办更新需提供完整的 `title` 和 `colorIndex`，省略或传入 null 的 `deadline` 会清空截止时间。routine 日期使用 `yyyy-MM-dd`；指定非空日期数组时必须同时提供 `timeZoneId`，批量更新每项都必须提供 `datesToAdd` 和 `datesToRemove`，没有变化时传空数组。待办工具没有完成操作，不要把更新或删除当成完成。
+
 只有用户明确请求 Kichi 操作时才调用世界工具。成功转发或广播结果不代表客户端完成渲染；按服务端返回的确认范围报告。错误结果明确报告。
 
-不提供 KichiClaw 专属日程或 OpenClaw 的 session / SOUL / 文件约定；也不自动回复 Kichi 入站消息。
+KichiClaw 专属日程和 OpenClaw 的 session / SOUL / 文件约定不属于本插件的能力；也不自动回复 Kichi 入站消息。
 
 ## 数据与模块边界
 

@@ -7,6 +7,86 @@ const MATE_DAILY_SCHEDULE_PATH = path.join(KICHI_WORLD_ROOT_DIR, "agents", "main
 function jsonResult(payload) {
     return { content: [{ type: "text", text: JSON.stringify(payload) }], details: payload };
 }
+function registerServerDataTool(api, runtimeManager, name, description, properties, required, execute) {
+    api.registerTool((ctx) => ({
+        name,
+        label: name,
+        description,
+        parameters: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                requestId: { type: "string", description: "Optional request ID for correlating the server acknowledgement." },
+                ...properties,
+            },
+            required,
+        },
+        execute: async (_toolCallId, params) => {
+            const locator = resolveToolLocator(ctx);
+            const agentId = runtimeManager.resolveRuntimeAgentId(locator);
+            if (!agentId) {
+                return jsonResult({ success: false, error: "Failed to resolve agent-scoped Kichi runtime" });
+            }
+            const service = runtimeManager.getRuntime(locator) ?? runtimeManager.createRuntimeForAgent(agentId);
+            if (!service.hasValidIdentity() || !service.isConnected()) {
+                return jsonResult({ success: false, error: "Not connected to Kichi world" });
+            }
+            try {
+                const { requestId, ...input } = params;
+                return jsonResult(await execute(service, input, requestId));
+            }
+            catch (error) {
+                return jsonResult({ success: false, error: error instanceof Error ? error.message : String(error) });
+            }
+        },
+    }), { name });
+}
+const SERVER_DATA_ID_SCHEMA = {
+    type: "string",
+    minLength: 1,
+    description: "Task or routine ID returned by a list or create operation; for batch creation, provide a new unique ID."
+};
+const TODO_TASK_FIELDS = {
+    title: {
+        type: "string",
+        minLength: 1,
+        maxLength: 50,
+        description: "Complete task title, at most 50 characters."
+    },
+    colorIndex: {
+        type: "integer",
+        minimum: 0,
+        description: "Task color index. Preserve the current value when updating only the title or deadline."
+    },
+    deadline: {
+        type: [
+            "string",
+            "null"
+        ],
+        format: "date-time",
+        description: "Optional ISO 8601 deadline. Omitting it or passing null clears the deadline when updating a task."
+    }
+};
+const ROUTINE_TITLE_SCHEMA = {
+    type: "string",
+    minLength: 1,
+    maxLength: 20,
+    description: "Routine title, at most 20 characters."
+};
+const ROUTINE_DATE_ARRAY_SCHEMA = {
+    type: "array",
+    items: {
+        type: "string",
+        format: "date",
+        pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    description: "Local calendar dates in yyyy-MM-dd format. A non-empty array requires timeZoneId matching the user's Kichi device."
+};
+const ROUTINE_TIME_ZONE_SCHEMA = {
+    type: "string",
+    minLength: 1,
+    description: "IANA time zone of the user's Kichi device, such as Asia/Shanghai. Required when any date array is non-empty."
+};
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
 const DEFAULT_BOT_MESSAGE_HISTORY_LIMIT = 10;
@@ -1269,4 +1349,106 @@ export function registerPluginTools(api, runtimeManager, musicTitleEnum) {
             }
         },
     }), { name: "kichi_bot_message" });
+    registerServerDataTool(api, runtimeManager, "kichi_todo_task_list", "List the user's Kichi todo tasks when requested or needed for the current request. Requires the joined plugin connection; the game client may be offline.", {}, [], (service, _input, requestId) => service.listTodoTasks(requestId));
+    registerServerDataTool(api, runtimeManager, "kichi_todo_task_create", "Create a Kichi todo task with a non-empty title of at most 50 characters. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.", TODO_TASK_FIELDS, ["title", "colorIndex"], (service, input, requestId) => service.createTodoTask(input, requestId));
+    registerServerDataTool(api, runtimeManager, "kichi_todo_task_update", "Replace a Kichi todo task's complete editable state by ID. Supply title and colorIndex and preserve deadline when keeping it; omitting deadline or passing null clears it. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.", { id: SERVER_DATA_ID_SCHEMA, ...TODO_TASK_FIELDS }, ["id", "title", "colorIndex"], (service, input, requestId) => service.updateTodoTask(input, requestId));
+    registerServerDataTool(api, runtimeManager, "kichi_todo_task_reorder", "Reorder Kichi todo tasks using their IDs and non-negative sort orders. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.", {
+        tasks: {
+            type: "array",
+            minItems: 1,
+            items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                    id: {
+                        type: "string",
+                        minLength: 1,
+                        description: "Task or routine ID returned by a list or create operation; for batch creation, provide a new unique ID."
+                    },
+                    sortOrder: {
+                        type: "integer",
+                        minimum: 0
+                    }
+                },
+                required: [
+                    "id",
+                    "sortOrder"
+                ]
+            }
+        }
+    }, ["tasks"], (service, input, requestId) => service.reorderTodoTasks(input, requestId));
+    registerServerDataTool(api, runtimeManager, "kichi_todo_task_delete", "Delete a Kichi todo task by ID. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.", { id: SERVER_DATA_ID_SCHEMA }, ["id"], (service, input, requestId) => service.deleteTodoTask(input, requestId));
+    registerServerDataTool(api, runtimeManager, "kichi_routine_list", "List the user's Kichi routines when requested or needed for the current request. Requires the joined plugin connection; the game client may be offline. Returned checkedDates are UTC timestamps; interpret them in the user's Kichi device time zone.", {}, [], (service, _input, requestId) => service.listRoutines(requestId));
+    registerServerDataTool(api, runtimeManager, "kichi_routine_create", "Create a Kichi routine with a non-empty title of at most 20 characters. checkedDates use local yyyy-MM-dd dates; a non-empty array requires timeZoneId matching the user's Kichi device. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.", { title: ROUTINE_TITLE_SCHEMA, checkedDates: ROUTINE_DATE_ARRAY_SCHEMA, timeZoneId: ROUTINE_TIME_ZONE_SCHEMA }, ["title"], (service, input, requestId) => service.createRoutine(input, requestId));
+    registerServerDataTool(api, runtimeManager, "kichi_routine_delete", "Delete a Kichi routine by ID. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.", { id: SERVER_DATA_ID_SCHEMA }, ["id"], (service, input, requestId) => service.deleteRoutine(input, requestId));
+    registerServerDataTool(api, runtimeManager, "kichi_routine_batch_update", "Create, edit, check, uncheck, reorder, or delete Kichi routines. Every update requires datesToAdd and datesToRemove; use [] when unchanged. Input dates use yyyy-MM-dd; non-empty date arrays require timeZoneId matching the user's Kichi device. New routines require a new unique id and title. The batch is not atomic; inspect current routines after a failure before deciding how to continue. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.", {
+        updates: {
+            type: "array",
+            minItems: 1,
+            items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                    id: {
+                        type: "string",
+                        minLength: 1,
+                        description: "Task or routine ID returned by a list or create operation; for batch creation, provide a new unique ID."
+                    },
+                    isNew: {
+                        type: "boolean",
+                        description: "Create a routine using this new unique ID. Requires title and cannot be combined with isDeleted."
+                    },
+                    isDeleted: {
+                        type: "boolean",
+                        description: "Delete this routine. Cannot be combined with isNew."
+                    },
+                    title: {
+                        type: [
+                            "string",
+                            "null"
+                        ],
+                        minLength: 1,
+                        maxLength: 20,
+                        description: "New title; required for isNew. Omit or pass null to keep an existing title."
+                    },
+                    sortOrder: {
+                        type: [
+                            "integer",
+                            "null"
+                        ],
+                        minimum: 0,
+                        description: "New sort order. Omit or pass null to keep the existing order; new routines default to 0."
+                    },
+                    datesToAdd: {
+                        type: "array",
+                        items: {
+                            type: "string",
+                            format: "date",
+                            pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        description: "Required local dates to check in yyyy-MM-dd format; use [] for no additions. Non-empty values require timeZoneId."
+                    },
+                    datesToRemove: {
+                        type: "array",
+                        items: {
+                            type: "string",
+                            format: "date",
+                            pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        description: "Required local dates to uncheck in yyyy-MM-dd format; use [] for no removals. Non-empty values require timeZoneId."
+                    }
+                },
+                required: [
+                    "id",
+                    "datesToAdd",
+                    "datesToRemove"
+                ]
+            }
+        },
+        timeZoneId: {
+            type: "string",
+            minLength: 1,
+            description: "IANA time zone of the user's Kichi device, such as Asia/Shanghai. Required when any date array is non-empty."
+        }
+    }, ["updates"], (service, input, requestId) => service.batchUpdateRoutines(input, requestId));
 }

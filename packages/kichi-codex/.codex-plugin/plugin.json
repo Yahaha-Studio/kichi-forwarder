@@ -1,6 +1,6 @@
 {
   "name": "kichi-codex",
-  "version": "0.2.0-beta.6",
+  "version": "0.2.0-beta.7",
   "description": "Show Codex activity through a Kichi avatar and call Kichi tools.",
   "author": {
     "name": "Kichi",
@@ -15,7 +15,7 @@
     "longDescription": "Connect a Kichi avatar to local Codex and ChatGPT Work tasks on desktop through a remote MCP server. Trusted local hooks reflect task activity as avatar actions and short bubbles; on-demand tools are supplied by that same MCP server. Requires Node.js 22.19.0 or later and a configured MCP URL and token. The default server is Steam Playtest. After joining, local tasks sharing the same profile automatically send activity, short user-prompt previews, and short tool-title previews to the MCP server; these may be visible to room members. Leave Kichi to stop feedback for that profile. Local hooks do not add model requests. Web and cloud chats do not provide this local hook runtime. This package is for manual desktop installation and is not eligible for the ordinary public plugin directory submission flow.",
     "developerName": "Kichi",
     "category": "Productivity",
-    "capabilities": ["Local avatar activity", "Avatar and room controls", "Notes, music and bot messages"],
+    "capabilities": ["Local avatar activity", "Avatar and room controls", "Tasks and routines", "Notes, music and bot messages"],
     "websiteURL": "https://store.steampowered.com/app/4427550/Kichi_Focus_Together",
     "defaultPrompt": [
       "Connect my Kichi avatar using the connection details I provide.",

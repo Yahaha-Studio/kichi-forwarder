@@ -1,6 +1,6 @@
 {
   "name": "@yahaha-studio/kichi-core",
-  "version": "0.2.0-beta.6",
+  "version": "0.2.0-beta.7",
   "homepage": "https://github.com/Yahaha-Studio/kichi-forwarder#readme",
   "repository": {
     "type": "git",
@@ -11,7 +11,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Shared Kichi connection, avatar, clock, note, music, and bot messaging capabilities for platform adapters",
+  "description": "Shared Kichi connection, avatar, task, routine, clock, note, music, and bot messaging capabilities for platform adapters",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
