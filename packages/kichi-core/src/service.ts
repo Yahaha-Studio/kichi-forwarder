@@ -51,6 +51,9 @@ import type {
   StatusPayload,
   SyncMateDailySchedulePayload,
   TaskRoutineRequestPayload,
+  TimerControl,
+  TimerControlAckPayload,
+  TimerControlPayload,
   TodoTaskCompleteAckPayload,
   TodoTaskCompleteInput,
   TodoTaskCreateAckPayload,
@@ -469,6 +472,29 @@ export class KichiForwarderService {
     }
     if (result.RoomContext && typeof result.RoomContext === "object") {
       this.cachedRoomContext = result.RoomContext as Record<string, unknown>;
+    }
+    return result;
+  }
+
+  async sendTimerControl(
+    timer: TimerControl,
+    requestId?: string,
+  ): Promise<Extract<TimerControlAckPayload, { success: true }>> {
+    const identity = this.requireIdentity();
+    if (!identity) {
+      throw new Error("Missing Kichi identity");
+    }
+
+    const payload: TimerControlPayload = {
+      type: "kichi_timer",
+      requestId: requestId?.trim() || randomUUID(),
+      avatarId: identity.avatarId,
+      authKey: identity.authKey,
+      timer,
+    };
+    const result = await this.sendRequest<TimerControlAckPayload>(payload, "kichi_timer_ack");
+    if (result.success === false) {
+      throw new Error(`${result.errorCode}: ${result.errorMessage}`);
     }
     return result;
   }

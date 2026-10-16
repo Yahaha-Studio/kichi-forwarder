@@ -303,6 +303,24 @@ export class KichiForwarderService {
         }
         return result;
     }
+    async sendTimerControl(timer, requestId) {
+        const identity = this.requireIdentity();
+        if (!identity) {
+            throw new Error("Missing Kichi identity");
+        }
+        const payload = {
+            type: "kichi_timer",
+            requestId: requestId?.trim() || randomUUID(),
+            avatarId: identity.avatarId,
+            authKey: identity.authKey,
+            timer,
+        };
+        const result = await this.sendRequest(payload, "kichi_timer_ack");
+        if (result.success === false) {
+            throw new Error(`${result.errorCode}: ${result.errorMessage}`);
+        }
+        return result;
+    }
     listTodoTasks(requestId) {
         return this.sendTaskRoutineRequest("todo_task_list", {}, requestId);
     }

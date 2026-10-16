@@ -129,6 +129,16 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 待办和日常习惯的写入要求用户游戏客户端在线，且所选角色不是 injected 类型。待办更新需提供完整的 `title` 和 `colorIndex`，省略或传入 null 的 `deadline` 会清空截止时间。routine 日期使用 `yyyy-MM-dd`；指定非空日期数组时必须同时提供 `timeZoneId`，批量更新每项都必须提供 `datesToAdd` 和 `datesToRemove`，没有变化时传空数组。用户要求完成待办时调用 `kichi_todo_task_complete`，要求删除时调用 `kichi_todo_task_delete`，两者均使用任务 `id`。完成操作当前会从待办列表移除任务，不保留已完成状态，也没有取消完成入口。
 
+`kichi_timer` 控制人类玩家自己的计时器，支持 `Start`、`Pause` 和 `Stop`；`kichi_clock` 仍用于 Agent Avatar 的 clock。参数放在 `request` 中，角色参数遵循服务端 schema。`Start` 不带 `snapshot` 时恢复未完成的计时器，或使用玩家当前面板配置；带 `snapshot` 时创建新计时器，支持以下三种快照：
+
+| 类型 | `snapshot` 示例与范围 |
+| --- | --- |
+| 倒计时 | `{ "timerType": "CountDown", "totalTime": 1500 }`；`totalTime` 的范围为 1–5999 秒。 |
+| 正计时 | `{ "timerType": "CountUp" }`。 |
+| 番茄钟 | `{ "timerType": "Pomodoro", "focusTime": 1500, "shortBreakTime": 300, "longBreakTime": 900, "sessionCount": 4 }`；三个时间字段为 1–5940 的整数秒，`sessionCount` 为 1–99 的整数。 |
+
+`focusTag` 仅允许随带 `snapshot` 的 `Start` 提供，省略时沿用玩家面板标签，规范化由服务端负责。`Pause` 和 `Stop` 不传 `snapshot` 或 `focusTag`。不要传未知字段或运行态字段。timer 仅响应用户明确要求的计时器操作，不调度 Agent 唤醒或后台任务；成功结果表示服务端已转发，不能据此声称客户端已应用。
+
 只有用户明确请求 Kichi 操作时才调用世界工具。成功转发或广播结果不代表客户端完成渲染；按服务端返回的确认范围报告。错误结果明确报告。
 
 KichiClaw 专属日程和 OpenClaw 的 session / SOUL / 文件约定不属于本插件的能力；也不自动回复 Kichi 入站消息。

@@ -1,6 +1,6 @@
 ---
 name: kichi-forwarder
-description: Use Kichi websocket tools to connect an OpenClaw companion to Kichi, directly control its avatar poses and actions, change scene weather and time, sync activity and timers, manage todo tasks and routine check-ins, and handle note board or music workflows; prioritize explicit user requests to act inside Kichi and skip background sync when the user opts out.
+description: Use Kichi websocket tools to connect an OpenClaw companion to Kichi, directly control its avatar poses and actions, change scene weather and time, sync activity, control player timers, manage todo tasks and routine check-ins, and handle note board or music workflows; prioritize explicit user requests to act inside Kichi and skip background sync when the user opts out.
 metadata: {"openclaw":{"skillKey":"kichi-forwarder","homepage":"https://github.com/Yahaha-Studio/kichi-forwarder"}}
 ---
 
@@ -190,6 +190,30 @@ Use this for the avatar's heartbeat idle plan.
 - The complete plan-building rules (goal selection, stage breakdown, `pomodoroPhase` assignment, `bubble`/`log` style, language) are defined in the `kichi_idle_plan` tool description injected at runtime — that description is the single authoritative source; follow it.
 - Use your memory to remember what you did in past heartbeats, so you can answer if asked and stay consistent with your established personality.
 - Treat the idle plan as what your resident body is doing in Kichi World.
+
+### kichi_timer
+
+Control the human player's Kichi timer only when the user explicitly asks. Keep timer control out of heartbeat, idle plans, lifecycle hooks, and routine work-status synchronization. `kichi_clock` controls the Agent avatar's visual clock; `kichi_timer` does not schedule an agent wake-up or reminder.
+
+```text
+kichi_timer(action: "Start", snapshot: {timerType: "Pomodoro", focusTime: 1500, shortBreakTime: 300, longBreakTime: 900, sessionCount: 4}, focusTag: "Reading")
+kichi_timer(action: "Start", snapshot: {timerType: "CountDown", totalTime: 600})
+kichi_timer(action: "Start", snapshot: {timerType: "CountUp"})
+kichi_timer(action: "Pause")
+kichi_timer(action: "Start")
+kichi_timer(action: "Stop")
+```
+
+- `action`: required, exactly `Start`, `Pause`, or `Stop`.
+- `Start` without `snapshot` resumes an unfinished timer or uses the current panel configuration. `Start` with `snapshot` creates a new timer.
+- `snapshot`: optional and allowed only with `Start`. Supply exactly one complete configuration; all durations are seconds:
+  - `Pomodoro`: `timerType: "Pomodoro"`, integer `focusTime`, `shortBreakTime`, and `longBreakTime` from `1` to `5940`, plus integer `sessionCount` from `1` to `99`.
+  - `CountDown`: `timerType: "CountDown"` and numeric `totalTime` from `1` to `5999`.
+  - `CountUp`: only `timerType: "CountUp"`.
+- `focusTag`: optional, allowed only with `Start` and `snapshot`. Omitting it keeps the panel's current tag. The server trims it and limits it to 15 UTF-16 code units.
+- `Pause` and `Stop` accept neither `snapshot` nor `focusTag`. Do not include clock or timer runtime-state fields.
+- `requestId`: optional acknowledgement correlation ID.
+- A successful result confirms server forwarding, not that the game client applied the command.
 
 ### kichi_environment
 
