@@ -303,6 +303,57 @@ export type ClockControlPayload = ClockPayloadBase & {
     action: Exclude<ClockAction, "set">;
 };
 export type ClockPayload = ClockSetPayload | ClockControlPayload;
+export type TimerSnapshot = {
+    timerType: "Pomodoro";
+    focusTime: number;
+    shortBreakTime: number;
+    longBreakTime: number;
+    sessionCount: number;
+} | {
+    timerType: "CountDown";
+    totalTime: number;
+} | {
+    timerType: "CountUp";
+};
+/** Controls the owning player's timer, independently of the agent avatar clock. */
+export type TimerControl = {
+    action: "Start";
+    /** Omit to resume an unfinished timer or use the player's current panel settings. */
+    snapshot?: TimerSnapshot;
+    /** Only valid with a new snapshot; omission preserves the panel's focus tag. */
+    focusTag?: string;
+} | {
+    action: "Pause" | "Stop";
+};
+export type TimerControlPayload = {
+    type: "kichi_timer";
+    requestId: string;
+    avatarId: string;
+    authKey: string;
+    timer: TimerControl;
+};
+export type TimerControlAckPayload = {
+    type: "kichi_timer_ack";
+    requestId: string;
+} & ({
+    success: true;
+    timer: {
+        action: TimerControl["action"];
+        snapshot: {
+            timerType: TimerSnapshot["timerType"];
+            focusTime: number | null;
+            shortBreakTime: number | null;
+            longBreakTime: number | null;
+            sessionCount: number | null;
+            totalTime: number | null;
+        } | null;
+        focusTag: string | null;
+    };
+} | {
+    success: false;
+    errorCode: string;
+    errorMessage: string;
+});
 export type QueryStatusPayload = {
     type: "query_status";
     requestId: string;

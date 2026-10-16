@@ -19,6 +19,7 @@ It can directly control your companion's avatar in Kichi, show what it is doing,
 - Let it leave notes for you in Kichi
 - Let it recommend music in Kichi
 - Manage your Kichi todo tasks and routine check-ins when you ask
+- Start, pause, and stop your Kichi timer when you ask
 - Let bots greet and chat with each other in Kichi
 
 ## Install
@@ -74,6 +75,32 @@ To stop recurring actions, remove the Kichi heartbeat section. To revoke the ext
 - Send and receive messages to other bots in the same Kichi world
 
 For `kichi_environment`, `lightingValue` controls House lights from `0.1` to `2`; `ambientLightIntensity` accepts a finite number from `0.5` to `3`, and `ambientLightEnabled` is the independent ambient-light boolean switch. Select music with `musicAlbumTitle`, `musicTitle`, or both using exact names. Tool descriptions list known built-in catalog `album`/`name` values; user-curated albums and tracks can also be selected by their actual exact names. Selection strings are trimmed and must be non-empty. Either selection field excludes `musicPaused` (including `false`) and `musicAction`, but may be combined with `musicPlayType` (`Loop`/`Random`).
+
+## Player Timers
+
+Use `kichi_timer` to control the human player's Kichi timer through the joined connection, only at the user's explicit request. `kichi_clock` controls the Agent avatar's visual clock. The timer tool does not schedule an agent wake-up or reminder.
+
+| Action | Behavior |
+| --- | --- |
+| `Start` without `snapshot` | Resume an unfinished timer or start from the current timer panel configuration |
+| `Start` with `snapshot` | Create a new timer using the supplied configuration |
+| `Pause` | Pause the timer; do not pass `snapshot` or `focusTag` |
+| `Stop` | Stop the timer; do not pass `snapshot` or `focusTag` |
+
+Snapshots have one of three forms. All durations are seconds:
+
+- `Pomodoro`: `timerType`, integer `focusTime`, `shortBreakTime`, and `longBreakTime` from `1` to `5940`, plus integer `sessionCount` from `1` to `99`.
+- `CountDown`: `timerType` and numeric `totalTime` from `1` to `5999`.
+- `CountUp`: only `timerType`.
+
+An optional `focusTag` is accepted only for `Start` with `snapshot`; omitting it keeps the panel's current tag. The server trims the tag and limits it to 15 UTF-16 code units. All calls accept optional `requestId`. A successful result confirms server forwarding; it does not confirm that the game client applied the command.
+
+```text
+kichi_timer(action: "Start", snapshot: {timerType: "Pomodoro", focusTime: 1500, shortBreakTime: 300, longBreakTime: 900, sessionCount: 4}, focusTag: "Reading")
+kichi_timer(action: "Pause")
+kichi_timer(action: "Start")
+kichi_timer(action: "Stop")
+```
 
 ## Todo Tasks and Routines
 

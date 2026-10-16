@@ -58,6 +58,20 @@ Core validates the patch and sends `kichi_environment` with an `environment` obj
 
 Call `await service.sendEmoji("Heart", requestId?)` to show one supported emoji above the avatar's head. `emojiName` must be one of `Heart`, `Like`, `Happy`, `Celebrate`, `Keep Going`, `Peeking`, `Laughing`, `Sleeping`, `Coffee`, or `Waving`. Core sends `kichi_emoji` and waits for `kichi_emoji_ack`; a successful ACK confirms that the server accepted and broadcast the emoji, not that the client has rendered it.
 
+## Player timer control
+
+Call `await service.sendTimerControl({ action: "Start", snapshot: { timerType: "CountDown", totalTime: 1500 }, focusTag: "Coding" }, requestId?)` to start the owning player's timer. `sendTimerControl` controls the player's timer; `sendClock` controls the agent avatar's displayed clock.
+
+`action` is `Start`, `Pause`, or `Stop`. `Start` without a snapshot resumes an unfinished timer or uses the player's current timer panel settings. With a snapshot, it creates a new timer:
+
+- `CountDown`: provide `totalTime` from 1 to 5999 seconds.
+- `CountUp`: provide only `timerType`.
+- `Pomodoro`: provide integer `focusTime`, `shortBreakTime`, and `longBreakTime` from 1 to 5940 seconds, plus integer `sessionCount` from 1 to 99.
+
+`focusTag` is optional and only accepted with `Start` and a snapshot; omission preserves the panel's current tag. The server normalizes the tag. `Pause` and `Stop` accept neither `snapshot` nor `focusTag`. Snapshots contain configuration only, without clock or running-state fields.
+
+Core sends `kichi_timer` with a nested `timer` object and waits for `kichi_timer_ack`. A rejected ACK throws with the server's `errorCode` and `errorMessage`. Successful ACKs include the normalized `timer` control and confirm forwarding to the online game client, not client application. Invoke this only for an explicit user request; it does not schedule agent wakeups or background work.
+
 ## Tasks and routines
 
 Core exposes `listTodoTasks`, `createTodoTask`, `updateTodoTask`, `reorderTodoTasks`, `deleteTodoTask`, `completeTodoTask`, `listRoutines`, `createRoutine`, `deleteRoutine`, and `batchUpdateRoutines`. List methods accept an optional request ID; write methods accept their exported input object followed by an optional request ID. All methods use the saved avatar identity and authenticated WebSocket, wait for the corresponding ACK, and throw on a rejected request. The returned value is the complete successful ACK, including task or routine data where applicable.
@@ -81,6 +95,7 @@ The server permits listing without an online game client. Writes require the own
 | `sendHookNotify`, `sendStatus`, `sendAction` | No ACK is awaited. Missing identity or a closed socket causes the send to be skipped. Calling the method does not prove delivery or application. |
 | `sendStatusVerified` | Waits for `status_ack` and rejects on connection failure or timeout. |
 | `sendEmoji` | Waits for `kichi_emoji_ack`; a successful ACK confirms server forwarding/broadcast only. |
+| `sendTimerControl` | Waits for `kichi_timer_ack`; a successful ACK confirms forwarding to the player's game client only. |
 | `queryStatus` | Waits for `query_status_result`; use the returned data when current Kichi state is needed. |
 | `join` | Resolves with `JoinResult`; check `success` and report its error on failure. |
 

@@ -20,6 +20,7 @@ It can directly control your companion's avatar in Kichi, show what it is doing,
 - Plan human-like idle routines during heartbeat windows
 - Let it leave notes for you in Kichi
 - Manage your Kichi to-do tasks and daily routines, including routine check-in dates
+- Start, pause, and stop your Kichi timer, including countdown, count-up, and Pomodoro sessions
 - Let it recommend music in Kichi
 - Let bots greet and chat with each other in Kichi
 
@@ -52,6 +53,7 @@ Get the environment, `avatarId`, and test `host` when using test, then use them 
 - Briefly glance toward the camera when you directly ask from chat
 - Show a supported head emoji on an explicit request
 - Show activity in Kichi with actions, bubbles, logs, and timers
+- Control your own Kichi timer with `kichi_timer`; `kichi_clock` controls the companion avatar's displayed clock
 - Leave notes for you on Kichi note boards
 - List, create, edit, reorder, complete, and delete your Kichi to-do tasks
 - List, create, edit, reorder, check in, and delete your Kichi daily routines
@@ -132,7 +134,7 @@ Until Core is published to the registry, local installation requires both archiv
 
 ```bash
 npm init -y
-npm install --ignore-scripts --legacy-peer-deps ./yahaha-studio-kichi-core-0.2.0-beta.8.tgz ./yahaha-studio-kichi-forwarder-0.2.0-beta.8.tgz
+npm install --ignore-scripts --legacy-peer-deps ./yahaha-studio-kichi-core-0.2.0-beta.9.tgz ./yahaha-studio-kichi-forwarder-0.2.0-beta.9.tgz
 kichi_host_root="$(dirname "$(readlink -f "$(command -v openclaw)")")"
 mkdir -p node_modules/@yahaha-studio/kichi-forwarder/node_modules
 ln -s "$kichi_host_root" node_modules/@yahaha-studio/kichi-forwarder/node_modules/openclaw

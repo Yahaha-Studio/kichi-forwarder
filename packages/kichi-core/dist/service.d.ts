@@ -1,4 +1,4 @@
-import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, EnvironmentControlAckPayload, EmojiAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, RoutineBatchUpdateAckPayload, RoutineBatchUpdateInput, RoutineCreateAckPayload, RoutineCreateInput, RoutineDeleteAckPayload, RoutineDeleteInput, RoutineListAckPayload, StatusAckPayload, TodoTaskCompleteAckPayload, TodoTaskCompleteInput, TodoTaskCreateAckPayload, TodoTaskCreateInput, TodoTaskDeleteAckPayload, TodoTaskDeleteInput, TodoTaskListAckPayload, TodoTaskReorderAckPayload, TodoTaskReorderInput, TodoTaskUpdateAckPayload, TodoTaskUpdateInput } from "./types.js";
+import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, EnvironmentControlAckPayload, EmojiAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, RoutineBatchUpdateAckPayload, RoutineBatchUpdateInput, RoutineCreateAckPayload, RoutineCreateInput, RoutineDeleteAckPayload, RoutineDeleteInput, RoutineListAckPayload, StatusAckPayload, TimerControl, TimerControlAckPayload, TodoTaskCompleteAckPayload, TodoTaskCompleteInput, TodoTaskCreateAckPayload, TodoTaskCreateInput, TodoTaskDeleteAckPayload, TodoTaskDeleteInput, TodoTaskListAckPayload, TodoTaskReorderAckPayload, TodoTaskReorderInput, TodoTaskUpdateAckPayload, TodoTaskUpdateInput } from "./types.js";
 type AckFailureResult = {
     success: false;
     error: string;
@@ -52,6 +52,9 @@ export declare class KichiForwarderService {
         success: true;
     }>>;
     queryStatus(requestId?: string): Promise<QueryStatusResultPayload>;
+    sendTimerControl(timer: TimerControl, requestId?: string): Promise<Extract<TimerControlAckPayload, {
+        success: true;
+    }>>;
     listTodoTasks(requestId?: string): Promise<TodoTaskListAckPayload>;
     createTodoTask(input: TodoTaskCreateInput, requestId?: string): Promise<TodoTaskCreateAckPayload>;
     updateTodoTask(input: TodoTaskUpdateInput, requestId?: string): Promise<TodoTaskUpdateAckPayload>;

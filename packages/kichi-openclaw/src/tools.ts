@@ -9,7 +9,7 @@ import {
   ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES,
 } from "@yahaha-studio/kichi-core";
 import type {
-  ActionPlayback, ClockConfig, MateDailySchedule, PoseType, PresenceScope, QueryStatusResultPayload,
+  ActionPlayback, ClockConfig, MateDailySchedule, PoseType, PresenceScope, QueryStatusResultPayload, TimerControl,
   TodoTaskCreateInput, TodoTaskUpdateInput, TodoTaskReorderInput, TodoTaskDeleteInput, TodoTaskCompleteInput,
   RoutineCreateInput, RoutineDeleteInput, RoutineBatchUpdateInput,
 } from "@yahaha-studio/kichi-core";
@@ -1002,7 +1002,7 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
     name: "kichi_clock",
     label: "kichi_clock",
     description:
-      "Send clock commands to Kichi world. Supported actions are set and stop. It only draws the visual clock and does NOT fire any reminder or notification. To actually alert the user at a future time, schedule a cron job separately.",
+      "Send clock commands for the Agent avatar in Kichi world. Supported actions are set and stop. It only draws the visual clock and does NOT fire any reminder or notification. To actually alert the user at a future time, schedule a cron job separately. Use kichi_timer to control the human player's timer.",
     parameters: {
       type: "object",
       properties: {
@@ -1116,6 +1116,52 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
       });
     },
   }), { name: "kichi_clock" });
+
+  registerServerDataTool(
+    api, runtimeManager, "kichi_timer",
+    "Control the human player's Kichi timer only at the user's explicit request. Start without snapshot resumes an unfinished timer or uses the current panel configuration; Start with snapshot creates a new timer. focusTag is allowed only with Start and snapshot; omitting it preserves the panel's focus tag. Pause and Stop accept neither snapshot nor focusTag. Success confirms server forwarding, not client application. This tool does not schedule an agent wake-up or reminder. Use kichi_clock for the Agent avatar's visual clock.",
+    {
+      action: { type: "string", enum: ["Start", "Pause", "Stop"] },
+      snapshot: {
+        description: "Optional complete configuration for a new timer. Only allowed with Start. All durations are in seconds.",
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              timerType: { type: "string", enum: ["Pomodoro"] },
+              focusTime: { type: "integer", minimum: 1, maximum: 5940 },
+              shortBreakTime: { type: "integer", minimum: 1, maximum: 5940 },
+              longBreakTime: { type: "integer", minimum: 1, maximum: 5940 },
+              sessionCount: { type: "integer", minimum: 1, maximum: 99 },
+            },
+            required: ["timerType", "focusTime", "shortBreakTime", "longBreakTime", "sessionCount"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              timerType: { type: "string", enum: ["CountDown"] },
+              totalTime: { type: "number", minimum: 1, maximum: 5999 },
+            },
+            required: ["timerType", "totalTime"],
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: { timerType: { type: "string", enum: ["CountUp"] } },
+            required: ["timerType"],
+          },
+        ],
+      },
+      focusTag: {
+        type: "string",
+        description: "Optional focus tag for Start with snapshot. The server trims it and limits it to 15 UTF-16 code units; omitting it preserves the panel's focus tag.",
+      },
+    },
+    ["action"],
+    (service, input: TimerControl, requestId) => service.sendTimerControl(input, requestId),
+  );
 
   api.registerTool((ctx) => ({
     name: "kichi_environment",
