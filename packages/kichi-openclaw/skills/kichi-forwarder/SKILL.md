@@ -143,8 +143,13 @@ When the user explicitly asks to uninstall Kichi Forwarder:
 
 1. Call `kichi_leave` first when the plugin is connected.
 2. Run `openclaw plugins uninstall kichi-forwarder`.
-3. Remove the `~/.openclaw/kichi-world/` directory on Linux/macOS or `%USERPROFILE%\.openclaw\kichi-world\` on Windows.
-4. Remove the Kichi heartbeat section from workspace `HEARTBEAT.md`.
+3. Remove the Kichi heartbeat section from workspace `HEARTBEAT.md`.
+4. Preserve saved Kichi data by default. An uninstall request alone does not authorize deleting it.
+
+If the user also requests local Kichi data deletion, disclose the exact directory and deletion scope before acting:
+
+- Deleting `~/.openclaw/kichi-world/` on Linux/macOS or `%USERPROFILE%\.openclaw\kichi-world\` on Windows permanently removes **all agents' local Kichi data** stored under that OpenClaw user directory: runtime state, saved identities (`avatarId` and `authKey` for every host), and bot-to-bot message history. Explain this scope and recommend a backup before deletion. Delete the shared directory only with the user's explicit approval of this scope; approval already given for the same scope in this session is sufficient.
+- If the user requests deletion for only one agent, disclose and delete only that agent's `agents/<encoded-agent-id>/` subdirectory within the Kichi runtime directory. Preserve the shared directory and other agents' data.
 
 ### kichi_action
 

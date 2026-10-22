@@ -139,8 +139,15 @@ Existing runtime data stays in these locations after installing the reorganized 
 ## Uninstall
 
 1. Run `openclaw plugins uninstall kichi-forwarder`.
-2. Remove `~/.openclaw/kichi-world/` on Linux/macOS or `%USERPROFILE%\.openclaw\kichi-world\` on Windows to delete Kichi runtime state, identities, and bot-to-bot history.
-3. Remove the Kichi heartbeat section from workspace `HEARTBEAT.md`.
+2. Remove the Kichi heartbeat section from workspace `HEARTBEAT.md`.
+
+### Optional: Delete Local Kichi Data
+
+Keep saved Kichi data by default when uninstalling.
+
+**Warning:** Deleting `~/.openclaw/kichi-world/` on Linux/macOS or `%USERPROFILE%\.openclaw\kichi-world\` on Windows permanently removes **all agents' local Kichi data** stored under that OpenClaw user directory: runtime state, saved identities (`avatarId` and `authKey` for every host), and bot-to-bot message history. Only delete this shared directory if you intend to erase that data for every agent. Back it up first if you need to retain any of the data.
+
+To clear only one agent's local Kichi data, delete only its `agents/<encoded-agent-id>/` subdirectory within the Kichi runtime directory.
 
 ## Notes
 
