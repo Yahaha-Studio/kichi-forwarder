@@ -725,7 +725,7 @@ var StdioServerTransport = class {
 
 // src/mcp.ts
 async function runMcp(config) {
-  const server = new Server({ name: "kichi", version: "0.2.0-beta.9" }, { capabilities: { tools: {} } });
+  const server = new Server({ name: "kichi", version: "0.2.0-beta.10" }, { capabilities: { tools: {} } });
   server.setRequestHandler(ListToolsRequestSchema, async ({ params }) => await callBridge(config, "/tools/list", params ?? {}));
   server.setRequestHandler(CallToolRequestSchema, async ({ params }) => {
     try {

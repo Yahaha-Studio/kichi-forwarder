@@ -23,7 +23,7 @@ export function requireToolSuccess(name: string, result: CallToolResult): void {
 
 export class KichiMcpClient {
   private readonly jsonSchemaValidator = new AjvJsonSchemaValidator();
-  private readonly client = new Client({ name: 'kichi-codex', version: '0.2.0-beta.9' }, {
+  private readonly client = new Client({ name: 'kichi-codex', version: '0.2.0-beta.10' }, {
     capabilities: {}, jsonSchemaValidator: this.jsonSchemaValidator,
   });
   private readonly outputValidators = new Map<string, JsonSchemaValidator<unknown>>();
