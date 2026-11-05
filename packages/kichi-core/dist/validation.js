@@ -1,5 +1,5 @@
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES, } from "./types.js";
+import { AMBIENT_SOUND_ACTIONS, AMBIENT_SOUND_TITLES, ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES, } from "./types.js";
 export const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"];
 export const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"];
 export function normalizeEmojiName(value) {
@@ -15,18 +15,49 @@ export function normalizeEmojiName(value) {
 export function isPlainObject(value) {
     return !!value && typeof value === "object" && !Array.isArray(value);
 }
+const ENVIRONMENT_SETTING_FIELDS = [
+    "weather", "time", "lightingValue", "lightingEnabled", "ambientLightIntensity", "ambientLightEnabled",
+    "musicAlbumTitle", "musicTitle", "musicPaused", "musicAction", "musicPlayType", "ambientSoundOperations",
+];
+function validateAmbientSoundOperations(value) {
+    if (!Array.isArray(value)) {
+        throw new Error("ambientSoundOperations must be an array");
+    }
+    return Array.from(value, (operation, index) => {
+        const field = `ambientSoundOperations[${index}]`;
+        if (!isPlainObject(operation) || Object.keys(operation).length !== 2
+            || !Object.hasOwn(operation, "title") || !Object.hasOwn(operation, "action")) {
+            throw new Error(`${field} must be an object with title and action`);
+        }
+        const title = AMBIENT_SOUND_TITLES.find((name) => name === operation.title);
+        if (title === undefined) {
+            throw new Error(`${field}.title must exactly match an ambient sound in the catalog`);
+        }
+        const action = AMBIENT_SOUND_ACTIONS.find((name) => name === operation.action);
+        if (action === undefined) {
+            throw new Error(`${field}.action must be Play or Stop`);
+        }
+        return { title, action };
+    });
+}
 export function normalizeEnvironmentControl(value) {
     if (!isPlainObject(value)) {
         throw new Error("environment must be an object");
     }
     for (const key of Object.keys(value)) {
-        if (!["weather", "time", "lightingValue", "lightingEnabled", "ambientLightIntensity", "ambientLightEnabled", "musicAlbumTitle", "musicTitle", "musicPaused", "musicAction", "musicPlayType"].includes(key)) {
+        if (key !== "ambientSoundOverwrite" && !ENVIRONMENT_SETTING_FIELDS.includes(key)) {
             throw new Error(`Unsupported environment field: ${key}`);
         }
     }
-    const { weather, time, lightingValue, lightingEnabled, ambientLightIntensity, ambientLightEnabled, musicAlbumTitle, musicTitle, musicPaused, musicAction, musicPlayType } = value;
-    if (weather === undefined && time === undefined && lightingValue === undefined && lightingEnabled === undefined && ambientLightIntensity === undefined && ambientLightEnabled === undefined && musicAlbumTitle === undefined && musicTitle === undefined && musicPaused === undefined && musicAction === undefined && musicPlayType === undefined) {
-        throw new Error("environment must contain weather, time, lightingValue, lightingEnabled, ambientLightIntensity, ambientLightEnabled, musicAlbumTitle, musicTitle, musicPaused, musicAction, or musicPlayType");
+    const { weather, time, lightingValue, lightingEnabled, ambientLightIntensity, ambientLightEnabled, musicAlbumTitle, musicTitle, musicPaused, musicAction, musicPlayType, ambientSoundOperations, ambientSoundOverwrite, } = value;
+    if (ambientSoundOverwrite !== undefined && typeof ambientSoundOverwrite !== "boolean") {
+        throw new Error("ambientSoundOverwrite must be a boolean");
+    }
+    if (ambientSoundOverwrite !== undefined && ambientSoundOperations === undefined) {
+        throw new Error("ambientSoundOverwrite requires ambientSoundOperations");
+    }
+    if (!ENVIRONMENT_SETTING_FIELDS.some((field) => value[field] !== undefined)) {
+        throw new Error(`environment must contain at least one setting: ${ENVIRONMENT_SETTING_FIELDS.join(", ")}`);
     }
     if (weather !== undefined && (typeof weather !== "string" || !ENVIRONMENT_WEATHERS.includes(weather))) {
         throw new Error(`weather must be one of: ${ENVIRONMENT_WEATHERS.join(", ")}`);
@@ -76,6 +107,10 @@ export function normalizeEnvironmentControl(value) {
         ...(musicPaused !== undefined ? { musicPaused: musicPaused } : {}),
         ...(musicAction !== undefined ? { musicAction: musicAction } : {}),
         ...(musicPlayType !== undefined ? { musicPlayType: musicPlayType } : {}),
+        ...(ambientSoundOperations !== undefined
+            ? { ambientSoundOperations: validateAmbientSoundOperations(ambientSoundOperations) }
+            : {}),
+        ...(ambientSoundOverwrite !== undefined ? { ambientSoundOverwrite: ambientSoundOverwrite } : {}),
     };
 }
 function isNonNegativeInteger(value) {

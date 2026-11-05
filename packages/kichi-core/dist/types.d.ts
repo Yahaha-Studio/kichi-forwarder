@@ -160,10 +160,16 @@ export declare const ENVIRONMENT_WEATHERS: readonly ["Sunny", "Cloudy", "Rainy",
 export declare const ENVIRONMENT_TIMES: readonly ["Auto", "Morning", "Day", "Evening", "Night"];
 export declare const MUSIC_ACTIONS: readonly ["Next", "Previous"];
 export declare const MUSIC_PLAY_TYPES: readonly ["Loop", "Random"];
+export declare const AMBIENT_SOUND_ACTIONS: readonly ["Play", "Stop"];
+export declare const AMBIENT_SOUND_TITLES: readonly ["Birds", "Forest", "Frog", "Cicadas", "Insects", "Breeze", "Wind", "Light Rain", "Heavy Rain", "Rain with Thunder", "Waves", "River", "Traffic", "Cosmos", "Campfire", "Wind Chime", "Clock", "White Noise", "Pink Noise", "Airplane", "Waterfall", "Fan", "Train", "Steps on Snow"];
 export type EnvironmentWeather = typeof ENVIRONMENT_WEATHERS[number];
 export type EnvironmentTime = typeof ENVIRONMENT_TIMES[number];
 export type MusicAction = typeof MUSIC_ACTIONS[number];
 export type MusicPlayType = typeof MUSIC_PLAY_TYPES[number];
+export type AmbientSoundOperation = {
+    title: typeof AMBIENT_SOUND_TITLES[number];
+    action: typeof AMBIENT_SOUND_ACTIONS[number];
+};
 export type EnvironmentControl = {
     weather?: EnvironmentWeather;
     time?: EnvironmentTime;
@@ -182,6 +188,10 @@ export type EnvironmentControl = {
     musicAction?: MusicAction;
     /** Select sequential (Loop) or random track playback. */
     musicPlayType?: MusicPlayType;
+    /** Apply operations in order, with the last operation for each title taking effect. */
+    ambientSoundOperations?: AmbientSoundOperation[];
+    /** Requires ambientSoundOperations. True keeps only sounds whose final operation is Play. */
+    ambientSoundOverwrite?: boolean;
 };
 export type EnvironmentControlPayload = {
     type: "kichi_environment";

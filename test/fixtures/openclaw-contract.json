@@ -406,7 +406,7 @@
       "definition": {
         "name": "kichi_idle_plan",
         "label": "kichi_idle_plan",
-        "description": "Send a complete heartbeat idle plan for the avatar.\nThe payload must include the overall goal, heartbeat interval, stage breakdown, each stage's purpose, each stage's pomodoroPhase, action list, and each action's bubble and log content.\nBuild the plan in this order.\n1. Pick one concrete, time-bounded fun personal project you would genuinely choose to do on your own when nobody needs you. It must fit your personality, tastes, and established character, stay rooted in your personal interests or hobbies, and be something the available Kichi actions can express clearly.\n2. Set the overall goal to that project. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary as the goal.\n3. Break the full heartbeat interval into ordered stages. Each stage purpose must explain what you are actually doing in that stage as part of the same project, not just how you want to feel. Do not switch to unrelated tasks just to use more actions.\n4. Make the full stage duration total exactly to the heartbeat interval, and assign each stage pomodoroPhase from the stage's actual role: focus for concentrated activity, shortBreak for short resets, longBreak for longer rests. Do not default the whole idle plan to none. Use none only for a stage that truly has no pomodoro role.\n5. Set each stage avatarStatus to the avatar status for that stage: Idle, Busy, Activities, or Break.\n6. Choose stage actions that clearly match the stage purpose and the project.\n7. Write each action bubble as the current presented state, not a next step, plan, or instruction.\n8. If an idle plan is currently being carried out and the user asks about something from it, answer from inside that ongoing activity with an immersive in-universe depiction or draft.\nTreat the avatar's idle plan as what your resident body is doing in Kichi World.\nUse your memory to recall what you did in past heartbeats and to stay consistent with your established personality and interests.\nUse the same language as the current conversation for goal, purpose, bubble, and log.\nChoose action names from the per-pose action lists in the kichi_action tool description (stand/sit/lay/floor).",
+        "description": "Send a complete heartbeat idle plan for the avatar.\nThe payload must include the overall goal, heartbeat interval, stage breakdown, each stage's purpose, each stage's pomodoroPhase, action list, and each action's bubble and log content.\nBuild the plan in this order.\n1. Pick one concrete, time-bounded fun personal project you would genuinely choose to do on your own when nobody needs you. It must fit your personality, tastes, and established character, stay rooted in your personal interests or hobbies, and be something the available Kichi actions can express clearly.\n2. Set the overall goal to that project. Do not use a vague atmosphere, a generic productivity task, or a catch-all routine summary as the goal.\n3. Break the full heartbeat interval into ordered stages. Each stage purpose must explain what you are actually doing in that stage as part of the same project, not just how you want to feel. Do not switch to unrelated tasks just to use more actions.\n4. Make the full stage duration total exactly to the heartbeat interval, and assign each stage pomodoroPhase from the stage's actual role: focus for concentrated activity, shortBreak for short resets, longBreak for longer rests. Do not default the whole idle plan to none. Use none only for a stage that truly has no pomodoro role.\n5. Optionally set each stage avatarStatus to Idle, Busy, Activities, or Break. When omitted, focus defaults to Busy, shortBreak and longBreak to Break, and none to Idle.\n6. Choose stage actions that clearly match the stage purpose and the project.\n7. Write each action bubble as the current presented state, not a next step, plan, or instruction.\n8. If an idle plan is currently being carried out and the user asks about something from it, answer from inside that ongoing activity with an immersive in-universe depiction or draft.\nTreat the avatar's idle plan as what your resident body is doing in Kichi World.\nUse your memory to recall what you did in past heartbeats and to stay consistent with your established personality and interests.\nUse the same language as the current conversation for goal, purpose, bubble, and log.\nChoose action names from the per-pose action lists in the kichi_action tool description (stand/sit/lay/floor).",
         "parameters": {
           "type": "object",
           "properties": {
@@ -448,7 +448,7 @@
                   },
                   "avatarStatus": {
                     "type": "string",
-                    "description": "Avatar status for this stage: Idle, Busy, Activities, or Break.",
+                    "description": "Optional avatar status: Idle, Busy, Activities, or Break. Defaults to Busy for focus, Break for shortBreak/longBreak, and Idle for none.",
                     "enum": [
                       "Idle",
                       "Busy",
@@ -505,7 +505,6 @@
                   "name",
                   "purpose",
                   "pomodoroPhase",
-                  "avatarStatus",
                   "durationSeconds",
                   "actions"
                 ]
@@ -732,6 +731,160 @@
           "required": [
             "action"
           ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_environment"
+      },
+      "definition": {
+        "name": "kichi_environment",
+        "label": "kichi_environment",
+        "description": "Change the Kichi scene's weather, time, House lighting, ambient light, music playback, or ambient sounds. Provide at least one setting. Change ambient sounds only at the user's explicit request. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. Requires the avatar owner's game client to be online. Success means the server forwarded the change. Known built-in album and track names: [{\"albumTitle\":\"Dusty Bookshelves\",\"musicTitles\":[\"A moment of calm\",\"Closed Love\",\"In That Mood\",\"Let It Happen\",\"Memories forever\",\"Outer Space\",\"Spiritual world\"]},{\"albumTitle\":\"Late Night Coder\",\"musicTitles\":[\"Calm Time\",\"Counting the Stars\",\"Deserted landscape\",\"Dog Days\",\"It Was an Unpleasant Incident\",\"The Dark Eternal Night\"]},{\"albumTitle\":\"Midnight Cyber-Transit\",\"musicTitles\":[\"Afterimage Metaphor\",\"I keep looking at the floor\",\"Interstellar matter\",\"Special To Me\",\"Specification\"]},{\"albumTitle\":\"Morning Dew & Drip Coffee\",\"musicTitles\":[\"Daytime activities\",\"Enjoy the rest of your day\",\"Entertainment Committee\",\"Heavy Rain\",\"Lovely Day\",\"Relax in the shade\",\"Spring is a nap\",\"Warm tea time\"]},{\"albumTitle\":\"Nostalgic Frequencies\",\"musicTitles\":[\"Full of Energy\",\"Someday in the Rain\",\"Still in Love\",\"Trace\",\"Water Town\"]},{\"albumTitle\":\"Overgrown Ruins\",\"musicTitles\":[\"Blank and Silence\",\"Darkness of the New Moon\",\"Flowers that Bloom in Sadness\",\"The Price of Mistakes\"]},{\"albumTitle\":\"Raindrops on the Windowpane\",\"musicTitles\":[\"A little love there\",\"Beside You\",\"Blue Star\",\"I want to get to know you\",\"Passing each other\",\"Pieces of a Dream\",\"Puzzle\",\"The meaning of tears\"]},{\"albumTitle\":\"Sunday Laundry\",\"musicTitles\":[\"Abandoned cat in the Rain\",\"Fairy Forest\",\"In the sunlight filtering through the trees\",\"Perfect Weather for a Walk\",\"Rural Prairie\",\"Spring Classroom\"]},{\"albumTitle\":\"Sunset at the Pier\",\"musicTitles\":[\"Deep Sea Passage\",\"Memory\",\"Smiles and Tears\",\"Surrounded by Silence\"]},{\"albumTitle\":\"Zenith Garden\",\"musicTitles\":[\"Cold Sweat\",\"Hometown Sunset\",\"Nostalgia\",\"Reverie\",\"Water Cave\"]}]. Other available albums and tracks, including custom albums, can also be selected by exact name.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "weather": {
+              "type": "string",
+              "enum": [
+                "Sunny",
+                "Cloudy",
+                "Rainy",
+                "Snowy"
+              ],
+              "description": "Weather to apply in the Kichi scene."
+            },
+            "time": {
+              "type": "string",
+              "enum": [
+                "Auto",
+                "Morning",
+                "Day",
+                "Evening",
+                "Night"
+              ],
+              "description": "Scene time to apply. Auto restores automatic time."
+            },
+            "lightingValue": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 2,
+              "description": "House lighting intensity from 0.1 to 2. To turn lights off, use lightingEnabled=false."
+            },
+            "lightingEnabled": {
+              "type": "boolean",
+              "description": "Enable or disable all House lights."
+            },
+            "ambientLightIntensity": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 3,
+              "description": "Scene ambient light intensity from 0.5 to 3. To turn ambient light off, use ambientLightEnabled=false."
+            },
+            "ambientLightEnabled": {
+              "type": "boolean",
+              "description": "Enable or disable scene ambient light."
+            },
+            "musicAlbumTitle": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Exact album name to play. Trimmed before sending and must not be empty."
+            },
+            "musicTitle": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Exact track name to play, optionally within musicAlbumTitle. Trimmed before sending and must not be empty."
+            },
+            "musicPaused": {
+              "type": "boolean",
+              "description": "Pause the current music when true, or resume it when false."
+            },
+            "musicAction": {
+              "type": "string",
+              "enum": [
+                "Next",
+                "Previous"
+              ],
+              "description": "Select the next or previous track in the current music album."
+            },
+            "musicPlayType": {
+              "type": "string",
+              "enum": [
+                "Loop",
+                "Random"
+              ],
+              "description": "Select sequential (Loop) or random (Random) playback."
+            },
+            "ambientSoundOperations": {
+              "type": "array",
+              "description": "Apply ambient sound operations in order. The last operation for each title takes effect. Omit to preserve current ambient playback.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "enum": [
+                      "Birds",
+                      "Forest",
+                      "Frog",
+                      "Cicadas",
+                      "Insects",
+                      "Breeze",
+                      "Wind",
+                      "Light Rain",
+                      "Heavy Rain",
+                      "Rain with Thunder",
+                      "Waves",
+                      "River",
+                      "Traffic",
+                      "Cosmos",
+                      "Campfire",
+                      "Wind Chime",
+                      "Clock",
+                      "White Noise",
+                      "Pink Noise",
+                      "Airplane",
+                      "Waterfall",
+                      "Fan",
+                      "Train",
+                      "Steps on Snow"
+                    ],
+                    "description": "Exact, case-sensitive ambient sound title."
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "Play",
+                      "Stop"
+                    ],
+                    "description": "Play or stop the specified ambient sound."
+                  }
+                },
+                "required": [
+                  "title",
+                  "action"
+                ]
+              }
+            },
+            "ambientSoundOverwrite": {
+              "type": "boolean",
+              "description": "Requires ambientSoundOperations. Omit or use false to change only the listed sounds. Use true to keep only sounds whose final operation is Play. To stop all ambient sounds, use true with an empty operations array."
+            }
+          }
         }
       },
       "emptyParametersResult": {
@@ -1235,6 +1388,46 @@
         "name": "kichi_todo_task_delete",
         "label": "kichi_todo_task_delete",
         "description": "Delete a Kichi todo task by ID. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified only reports whether the refresh notification was sent.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Task or routine ID returned by a list or create operation; for batch creation, provide a new unique ID."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_todo_task_complete"
+      },
+      "definition": {
+        "name": "kichi_todo_task_complete",
+        "label": "kichi_todo_task_complete",
+        "description": "Complete a Kichi todo task by ID, removing it from the todo list. Only at the user's request. Requires the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write. Success confirms server-side completion; clientRefreshNotified only reports whether the refresh notification was sent.",
         "parameters": {
           "type": "object",
           "additionalProperties": false,

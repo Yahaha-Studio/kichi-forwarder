@@ -142,6 +142,11 @@ test("Core joins, correlates requests, persists identity and bot history, and re
           notes: [],
         }));
       }
+      if (message.type === "kichi_environment") {
+        socket.send(JSON.stringify({
+          type: "kichi_environment_ack", requestId: message.requestId, success: true, environment: message.environment,
+        }));
+      }
       if (message.type === "bot_message") socket.send(JSON.stringify({ type: "bot_message_ack", requestId: message.requestId, success: true }));
       if (message.type === "leave") socket.send(JSON.stringify({ type: "leave_ack", success: true }));
     });
@@ -170,6 +175,37 @@ test("Core joins, correlates requests, persists identity and bot history, and re
   assert.equal(queryPayload.authKey, "test-key");
   await assert.rejects(service.queryStatus("wrong-response"), /Unexpected response type/);
   assert.equal(service.getConnectionStatus().pendingRequestCount, 0);
+
+  const ambientPatch = {
+    ambientSoundOperations: [
+      { title: "Light Rain", action: "Play" },
+      { title: "Forest", action: "Play" },
+      { title: "Light Rain", action: "Stop" },
+    ],
+    ambientSoundOverwrite: false,
+    musicPaused: false,
+  };
+  const stopAll = { ambientSoundOperations: [], ambientSoundOverwrite: true };
+  for (const [requestId, environment] of [["ambient-patch", ambientPatch], ["ambient-stop-all", stopAll]]) {
+    const sent = once(received, "kichi_environment");
+    assert.deepEqual(await service.sendEnvironmentControl(environment, requestId), {
+      type: "kichi_environment_ack", requestId, success: true, environment,
+    });
+    assert.deepEqual((await sent)[0], {
+      type: "kichi_environment", requestId, avatarId: "self", authKey: "test-key", environment,
+    });
+  }
+
+  for (const operation of [
+    { title: "light rain", action: "Play" },
+    { title: " Light Rain", action: "Play" },
+    { title: "Light Rain", action: "play" },
+    { title: "Light Rain", action: "Play", volume: 0.5 },
+  ]) {
+    await assert.rejects(service.sendEnvironmentControl({ ambientSoundOperations: [operation] }), /ambientSoundOperations/);
+  }
+  await assert.rejects(service.sendEnvironmentControl({ ambientSoundOverwrite: false }), /ambientSoundOverwrite/);
+  await assert.rejects(service.sendEnvironmentControl({ ambientSoundOperations: [], ambientSoundOverwrite: "true" }), /ambientSoundOverwrite/);
 
   const ack = await service.sendBotMessage("peer", 1, "Hello back");
   assert.equal(ack.success, true);
