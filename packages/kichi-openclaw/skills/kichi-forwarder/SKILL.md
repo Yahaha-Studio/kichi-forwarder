@@ -222,7 +222,7 @@ kichi_timer(action: "Stop")
 
 ### kichi_environment
 
-Change the Kichi scene's weather, time, House lighting, independent ambient light, or music playback and selection:
+Change the Kichi scene's weather, time, House lighting, independent ambient light, music, or ambient sounds.
 
 ```text
 kichi_environment(weather: "Rainy", time: "Evening")
@@ -230,6 +230,8 @@ kichi_environment(time: "Auto")
 kichi_environment(lightingEnabled: false, musicPaused: true)
 kichi_environment(ambientLightIntensity: 1.5, ambientLightEnabled: true)
 kichi_environment(musicAction: "Next", musicPlayType: "Random")
+kichi_environment(ambientSoundOperations: [{title: "Light Rain", action: "Play"}, {title: "Wind", action: "Stop"}])
+kichi_environment(ambientSoundOperations: [], ambientSoundOverwrite: true)
 ```
 
 - `weather`: optional. `Sunny`, `Cloudy`, `Rainy`, or `Snowy`.
@@ -242,8 +244,10 @@ kichi_environment(musicAction: "Next", musicPlayType: "Random")
 - `musicAction`: optional `Next` or `Previous`; selects a track in the current music album.
 - `musicPlayType`: optional `Loop` (sequential) or `Random` playback mode.
 - `musicAlbumTitle` / `musicTitle`: optional music selection strings. Use exact names; tool descriptions list known built-in catalog `album` / `name` values, and user-curated albums and tracks can also use their actual exact names. Strings are trimmed and must be non-empty. Provide either or both. Either selection field excludes `musicPaused` (including `false`) and `musicAction`, but may accompany `musicPlayType`.
-- Provide at least one setting. The server checks room permissions.
-- `sent: true` means the Kichi server forwarded the change.
+- `ambientSoundOperations`: optional array of `{title, action}` entries. Use only for an explicit ambient sound request. Use exact titles from the tool schema and case-sensitive actions `Play` or `Stop`. If a title appears more than once, its last action wins.
+- `ambientSoundOverwrite`: optional boolean that requires `ambientSoundOperations`. By default, only listed sounds change. Set it to `true` to keep only sounds whose final action is `Play`. Use `true` with an empty array to stop all ambient sounds.
+- Provide at least one setting. The server checks session ownership and forwards changes to the avatar owner's online game client.
+- `sent: true` confirms server forwarding only.
 
 ### kichi_music_album_create
 

@@ -192,11 +192,24 @@ export const ENVIRONMENT_WEATHERS = ["Sunny", "Cloudy", "Rainy", "Snowy"] as con
 export const ENVIRONMENT_TIMES = ["Auto", "Morning", "Day", "Evening", "Night"] as const;
 export const MUSIC_ACTIONS = ["Next", "Previous"] as const;
 export const MUSIC_PLAY_TYPES = ["Loop", "Random"] as const;
+export const AMBIENT_SOUND_ACTIONS = ["Play", "Stop"] as const;
+// Keep these titles aligned with FocusProject's AgentWorldCatalog.AmbientSounds.
+export const AMBIENT_SOUND_TITLES = [
+  "Birds", "Forest", "Frog", "Cicadas", "Insects", "Breeze", "Wind",
+  "Light Rain", "Heavy Rain", "Rain with Thunder", "Waves", "River",
+  "Traffic", "Cosmos", "Campfire", "Wind Chime", "Clock",
+  "White Noise", "Pink Noise", "Airplane", "Waterfall", "Fan",
+  "Train", "Steps on Snow",
+] as const;
 
 export type EnvironmentWeather = typeof ENVIRONMENT_WEATHERS[number];
 export type EnvironmentTime = typeof ENVIRONMENT_TIMES[number];
 export type MusicAction = typeof MUSIC_ACTIONS[number];
 export type MusicPlayType = typeof MUSIC_PLAY_TYPES[number];
+export type AmbientSoundOperation = {
+  title: typeof AMBIENT_SOUND_TITLES[number];
+  action: typeof AMBIENT_SOUND_ACTIONS[number];
+};
 
 export type EnvironmentControl = {
   weather?: EnvironmentWeather;
@@ -216,6 +229,10 @@ export type EnvironmentControl = {
   musicAction?: MusicAction;
   /** Select sequential (Loop) or random track playback. */
   musicPlayType?: MusicPlayType;
+  /** Apply operations in order, with the last operation for each title taking effect. */
+  ambientSoundOperations?: AmbientSoundOperation[];
+  /** Requires ambientSoundOperations. True keeps only sounds whose final operation is Play. */
+  ambientSoundOverwrite?: boolean;
 };
 
 export type EnvironmentControlPayload = {

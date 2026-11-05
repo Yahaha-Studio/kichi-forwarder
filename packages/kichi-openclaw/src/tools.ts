@@ -7,6 +7,7 @@ import {
   IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig,
   PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule,
   ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES,
+  AMBIENT_SOUND_ACTIONS, AMBIENT_SOUND_TITLES,
 } from "@yahaha-studio/kichi-core";
 import type {
   ActionPlayback, ClockConfig, MateDailySchedule, PoseType, PresenceScope, QueryStatusResultPayload, TimerControl,
@@ -1167,7 +1168,7 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
     name: "kichi_environment",
     label: "kichi_environment",
     description:
-      "Change the Kichi scene's weather, time, House lighting, ambient light, or music playback. Provide at least one setting. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. The server checks room permissions. Success means the server forwarded the change. " +
+      "Change the Kichi scene's weather, time, House lighting, ambient light, music playback, or ambient sounds. Provide at least one setting. Change ambient sounds only at the user's explicit request. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. Requires the avatar owner's game client to be online. Success means the server forwarded the change. " +
       `Known built-in album and track names: ${JSON.stringify(getMusicSelectionCatalog())}. Other available albums and tracks, including custom albums, can also be selected by exact name.`,
     parameters: {
       type: "object",
@@ -1225,6 +1226,31 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
           type: "string",
           enum: [...MUSIC_PLAY_TYPES],
           description: "Select sequential (Loop) or random (Random) playback.",
+        },
+        ambientSoundOperations: {
+          type: "array",
+          description: "Apply ambient sound operations in order. The last operation for each title takes effect. Omit to preserve current ambient playback.",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              title: {
+                type: "string",
+                enum: [...AMBIENT_SOUND_TITLES],
+                description: "Exact, case-sensitive ambient sound title.",
+              },
+              action: {
+                type: "string",
+                enum: [...AMBIENT_SOUND_ACTIONS],
+                description: "Play or stop the specified ambient sound.",
+              },
+            },
+            required: ["title", "action"],
+          },
+        },
+        ambientSoundOverwrite: {
+          type: "boolean",
+          description: "Requires ambientSoundOperations. Omit or use false to change only the listed sounds. Use true to keep only sounds whose final operation is Play. To stop all ambient sounds, use true with an empty operations array.",
         },
       },
     },
