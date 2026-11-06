@@ -7,12 +7,13 @@ import {
   IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig,
   PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule,
   ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES,
-  AMBIENT_SOUND_ACTIONS, AMBIENT_SOUND_TITLES,
+  AMBIENT_SOUND_ACTIONS, AMBIENT_SOUND_TITLES, DIARY_MOODS,
 } from "@yahaha-studio/kichi-core";
 import type {
   ActionPlayback, ClockConfig, MateDailySchedule, PoseType, PresenceScope, QueryStatusResultPayload, TimerControl,
   TodoTaskCreateInput, TodoTaskUpdateInput, TodoTaskReorderInput, TodoTaskDeleteInput, TodoTaskCompleteInput,
   RoutineCreateInput, RoutineDeleteInput, RoutineBatchUpdateInput,
+  DiaryListInput, DiaryGetInput, DiaryCreateInput, DiaryUpdateInput, DiaryDeleteInput,
 } from "@yahaha-studio/kichi-core";
 import { KICHI_WORLD_ROOT_DIR, KichiRuntimeManager, resolveToolLocator, trimOptionalString } from "./runtime-manager.js";
 import { isOfficialOpenClawSource, readConfiguredJoinSource } from "./source.js";
@@ -114,6 +115,30 @@ const ROUTINE_TIME_ZONE_SCHEMA = {
   type: "string",
   minLength: 1,
   description: "IANA time zone of the user's Kichi device, such as Asia/Shanghai. Required when any date array is non-empty."
+};
+
+const DIARY_ID_SCHEMA = {
+  type: "string",
+  minLength: 1,
+  description: "Diary ID returned by kichi_diary_list, kichi_diary_get, or kichi_diary_create."
+};
+
+const DIARY_FIELDS = {
+  title: {
+    type: "string",
+    maxLength: 20,
+    description: "Complete diary title, at most 20 UTF-16 code units. Empty strings are allowed; whitespace is preserved."
+  },
+  content: {
+    type: "string",
+    maxLength: 1000,
+    description: "Complete diary content, at most 1000 UTF-16 code units. Empty strings are allowed; whitespace is preserved."
+  },
+  mood: {
+    type: "string",
+    enum: DIARY_MOODS,
+    description: "Diary mood; use one of the exact case-sensitive values."
+  }
 };
 
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
@@ -1756,5 +1781,70 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
     },
     ["updates"],
     (service, input: RoutineBatchUpdateInput, requestId) => service.batchUpdateRoutines(input, requestId),
+  );
+
+  registerServerDataTool(
+    api, runtimeManager, "kichi_diary_list",
+    "List the user's personal Kichi diaries when requested or needed for the current request, newest first by createTime and id. Supports offset or cursor pagination. For the next cursor page, supply the previous page's last diary's exact createTime and id as cursorCreateTime and cursorId; do not reformat the timestamp. total is the user's full diary count. Requires the joined plugin connection; the game client may be offline.",
+    {
+      start: {
+        type: "integer",
+        minimum: 0,
+        maximum: 2147483647,
+        default: 0,
+        description: "Zero-based pagination offset. Ignored when a cursor is supplied."
+      },
+      count: {
+        type: "integer",
+        minimum: 1,
+        maximum: 200,
+        default: 20,
+        description: "Number of diaries per page."
+      },
+      cursorCreateTime: {
+        type: "string",
+        format: "date-time",
+        description: "Exact createTime from the previous page's last diary, as ISO 8601 with a time zone. Must be supplied together with cursorId; preserve the original timestamp precision."
+      },
+      cursorId: {
+        type: "string",
+        minLength: 1,
+        description: "ID from the previous page's last diary. Must be supplied together with cursorCreateTime."
+      }
+    },
+    [],
+    (service, input: DiaryListInput, requestId) => service.listDiaries(input, requestId),
+  );
+
+  registerServerDataTool(
+    api, runtimeManager, "kichi_diary_get",
+    "Read one of the user's personal Kichi diaries by ID when requested or needed for the current request. Requires the joined plugin connection; the game client may be offline.",
+    { id: DIARY_ID_SCHEMA },
+    ["id"],
+    (service, input: DiaryGetInput, requestId) => service.getDiary(input, requestId),
+  );
+
+  registerServerDataTool(
+    api, runtimeManager, "kichi_diary_create",
+    "Create a personal Kichi diary only at the user's request. Supply title, content and mood; title and content may be empty. Requires the joined plugin connection, the user's Kichi game client online, and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified reports whether the diary notification was sent, without confirming client application.",
+    DIARY_FIELDS,
+    ["title", "content", "mood"],
+    (service, input: DiaryCreateInput, requestId) => service.createDiary(input, requestId),
+  );
+
+  registerServerDataTool(
+    api, runtimeManager, "kichi_diary_update",
+    "Update a personal Kichi diary by ID only at the user's request. Supply the complete title, content and mood; these replace the saved values, so preserve fields the user did not ask to change. Title and content may be empty. Requires the joined plugin connection, the user's Kichi game client online, and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified reports whether the diary notification was sent, without confirming client application.",
+    { id: DIARY_ID_SCHEMA, ...DIARY_FIELDS },
+    ["id", "title", "content", "mood"],
+    (service, input: DiaryUpdateInput, requestId) => service.updateDiary(input, requestId),
+  );
+
+  registerServerDataTool(
+    api, runtimeManager, "kichi_diary_delete",
+    "Delete a personal Kichi diary by ID only at the user's request. Requires the joined plugin connection, the user's Kichi game client online, and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified reports whether the deletion notification was sent, without confirming client application.",
+    { id: DIARY_ID_SCHEMA },
+    ["id"],
+    (service, input: DiaryDeleteInput, requestId) => service.deleteDiary(input, requestId),
   );
 }

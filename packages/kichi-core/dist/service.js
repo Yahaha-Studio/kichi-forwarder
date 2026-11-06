@@ -4,7 +4,7 @@ import * as path from "path";
 import { randomUUID } from "node:crypto";
 import { buildKichiWebSocketUrl, normalizeKichiHost } from "./host.js";
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { normalizeEnvironmentControl, normalizeEmojiName } from "./validation.js";
+import { normalizeEnvironmentControl, normalizeEmojiName, normalizeDiaryListInput, normalizeDiaryIdInput, normalizeDiaryCreateInput, normalizeDiaryUpdateInput, } from "./validation.js";
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
 const DEFAULT_GLANCE_DURATION_SECONDS = 1.8;
@@ -322,34 +322,49 @@ export class KichiForwarderService {
         return result;
     }
     listTodoTasks(requestId) {
-        return this.sendTaskRoutineRequest("todo_task_list", {}, requestId);
+        return this.sendServerDataRequest("todo_task_list", {}, requestId);
     }
     createTodoTask(input, requestId) {
-        return this.sendTaskRoutineRequest("todo_task_create", input, requestId);
+        return this.sendServerDataRequest("todo_task_create", input, requestId);
     }
     updateTodoTask(input, requestId) {
-        return this.sendTaskRoutineRequest("todo_task_update", input, requestId);
+        return this.sendServerDataRequest("todo_task_update", input, requestId);
     }
     reorderTodoTasks(input, requestId) {
-        return this.sendTaskRoutineRequest("todo_task_reorder", input, requestId);
+        return this.sendServerDataRequest("todo_task_reorder", input, requestId);
     }
     deleteTodoTask(input, requestId) {
-        return this.sendTaskRoutineRequest("todo_task_delete", input, requestId);
+        return this.sendServerDataRequest("todo_task_delete", input, requestId);
     }
     completeTodoTask(input, requestId) {
-        return this.sendTaskRoutineRequest("todo_task_complete", input, requestId);
+        return this.sendServerDataRequest("todo_task_complete", input, requestId);
     }
     listRoutines(requestId) {
-        return this.sendTaskRoutineRequest("routine_list", {}, requestId);
+        return this.sendServerDataRequest("routine_list", {}, requestId);
     }
     createRoutine(input, requestId) {
-        return this.sendTaskRoutineRequest("routine_create", input, requestId);
+        return this.sendServerDataRequest("routine_create", input, requestId);
     }
     deleteRoutine(input, requestId) {
-        return this.sendTaskRoutineRequest("routine_delete", input, requestId);
+        return this.sendServerDataRequest("routine_delete", input, requestId);
     }
     batchUpdateRoutines(input, requestId) {
-        return this.sendTaskRoutineRequest("routine_batch_update", input, requestId);
+        return this.sendServerDataRequest("routine_batch_update", input, requestId);
+    }
+    async listDiaries(input = {}, requestId) {
+        return this.sendServerDataRequest("diary_list", normalizeDiaryListInput(input), requestId);
+    }
+    async getDiary(input, requestId) {
+        return this.sendServerDataRequest("diary_get", normalizeDiaryIdInput(input), requestId);
+    }
+    async createDiary(input, requestId) {
+        return this.sendServerDataRequest("diary_create", normalizeDiaryCreateInput(input), requestId);
+    }
+    async updateDiary(input, requestId) {
+        return this.sendServerDataRequest("diary_update", normalizeDiaryUpdateInput(input), requestId);
+    }
+    async deleteDiary(input, requestId) {
+        return this.sendServerDataRequest("diary_delete", normalizeDiaryIdInput(input), requestId);
     }
     createNotesBoardNote(propId, data) {
         const identity = this.requireIdentity();
@@ -722,7 +737,7 @@ export class KichiForwarderService {
         }
         this.pendingRequests.clear();
     }
-    async sendTaskRoutineRequest(type, input, requestId) {
+    async sendServerDataRequest(type, input, requestId) {
         const identity = this.requireIdentity();
         if (!identity) {
             throw new Error("Missing Kichi identity");

@@ -129,6 +129,22 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 待办和日常习惯的写入要求用户游戏客户端在线，且所选角色不是 injected 类型。待办更新需提供完整的 `title` 和 `colorIndex`，省略或传入 null 的 `deadline` 会清空截止时间。routine 日期使用 `yyyy-MM-dd`；指定非空日期数组时必须同时提供 `timeZoneId`，批量更新每项都必须提供 `datesToAdd` 和 `datesToRemove`，没有变化时传空数组。用户要求完成待办时调用 `kichi_todo_task_complete`，要求删除时调用 `kichi_todo_task_delete`，两者均使用任务 `id`。完成操作当前会从待办列表移除任务，不保留已完成状态，也没有取消完成入口。
 
+个人日记同样使用服务端动态发现的五个工具，本地插件不重复注册 schema。仅在用户要求或当前请求需要日记信息时读取；创建、修改和删除必须来自用户请求，不通过生命周期 Hook、普通状态同步或后台活动自动写日记。参数放在 `request` 对象中，角色字段以远端 schema 为准：
+
+| 工具 | 业务参数 | 成功响应数据 |
+| --- | --- | --- |
+| `kichi_diary_list` | 可选 `start`、`count`、`cursorCreateTime`、`cursorId` | `diaries`、`total` |
+| `kichi_diary_get` | `id` | `diary` |
+| `kichi_diary_create` | `title`、`content`、`mood` | `diary`、`clientRefreshNotified` |
+| `kichi_diary_update` | `id`、`title`、`content`、`mood` | `diary`、`clientRefreshNotified` |
+| `kichi_diary_delete` | `id` | `clientRefreshNotified` |
+
+`start` 为非负整数，默认 0；`count` 为 1–200 的整数，默认 20。列表按创建时间和 ID 倒序排列。下一页游标必须同时提供 `cursorCreateTime` 和非空的 `cursorId`，直接使用上一页最后一条日记的原始 `createTime` 和 `id`，保留时间中的时区和小数精度，不要解析后重新格式化。游标优先于 `start`；`total` 表示用户的全部日记数量，不是游标之后的剩余数量。
+
+创建和更新都必须提供 `title`、`content` 和 `mood`。标题和正文允许空字符串、保留空白，分别最多 20 和 1000 个 UTF-16 code unit；`mood` 严格使用 `Happy`、`Adore`、`Amaze`、`Bored`、`Upset` 或 `Mad`。更新会替换全部三个字段；只改部分内容时，先读取日记并保留其他字段。查询、更新和删除使用服务端返回的日记 `id`，创建时由服务端生成 ID。返回的日记包含 `id`、`ownerId`、`createTime`、`updateTime`、`title`、`content` 和 `mood`。
+
+MCP 日记读取不连接 avatar，也不要求游戏客户端在线；写入要求用户游戏客户端在线且所选角色不是 injected 类型。与此不同，OpenClaw / Core 的 WebSocket 日记读写都需要已 Join 的插件连接。读取 `structuredContent` 的 `requestId`、`success` 和 `response`，按服务端确认范围报告。写入成功说明已经持久化，`clientRefreshNotified` 只表示日记快照或删除通知是否已发送，不证明客户端已经应用。示例：`kichi_diary_create({ request: { title: "今天", content: "读完了一本书。", mood: "Happy" } })`；如果远端 schema 要求角色字段，同时按 schema 提供。
+
 `kichi_timer` 控制人类玩家自己的计时器，支持 `Start`、`Pause` 和 `Stop`；`kichi_clock` 仍用于 Agent Avatar 的 clock。参数放在 `request` 中，角色参数遵循服务端 schema。`Start` 不带 `snapshot` 时恢复未完成的计时器，或使用玩家当前面板配置；带 `snapshot` 时创建新计时器，支持以下三种快照：
 
 | 类型 | `snapshot` 示例与范围 |

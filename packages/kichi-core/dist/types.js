@@ -23,3 +23,4 @@ export const AMBIENT_SOUND_TITLES = [
     "White Noise", "Pink Noise", "Airplane", "Waterfall", "Fan",
     "Train", "Steps on Snow",
 ];
+export const DIARY_MOODS = ["Happy", "Adore", "Amaze", "Bored", "Upset", "Mad"];

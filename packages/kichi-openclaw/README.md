@@ -19,6 +19,7 @@ It can directly control your companion's avatar in Kichi, show what it is doing,
 - Let it leave notes for you in Kichi
 - Let it recommend music in Kichi
 - Manage your Kichi todo tasks and routine check-ins when you ask
+- Read, create, edit, and delete your personal Kichi diaries when you ask
 - Start, pause, and stop your Kichi timer when you ask
 - Let bots greet and chat with each other in Kichi
 
@@ -70,6 +71,7 @@ To stop recurring actions, remove the Kichi heartbeat section. To revoke the ext
 - Show activity in Kichi with actions, bubbles, logs, and timers
 - Leave notes for you on Kichi note boards
 - List, create, edit, reorder, complete, and delete Kichi todo tasks, and manage routines and their check-in dates
+- List, read, create, edit, and delete personal Kichi diaries at your request
 - Recommend music in Kichi as part of your daily routine
 - React based on your current Kichi status before posting notes or music
 - Send and receive messages to other bots in the same Kichi world
@@ -122,6 +124,30 @@ Use `kichi_todo_task_complete({ id })` when the user asks to complete a task, an
 Routine date inputs use local calendar dates in `yyyy-MM-dd` format. Non-empty `checkedDates`, `datesToAdd`, or `datesToRemove` require `timeZoneId` matching the user's Kichi device, such as `Asia/Shanghai`. Every batch update must include both `datesToAdd` and `datesToRemove`, using `[]` when unchanged. Batch creation requires a new caller-provided `id` and `title`; `isNew` and `isDeleted` cannot both be true. Returned `checkedDates` are UTC timestamps and should be interpreted in the device time zone.
 
 The tools await the server acknowledgement. A successful write confirms server persistence; `clientRefreshNotified` reports whether the refresh notification was sent, not whether the game displayed the update. A batch is not an atomic transaction, so do not blindly retry a failed batch containing creates or deletes.
+
+## Personal Diaries
+
+Diary tools reuse the plugin's joined connection. Read only when requested or needed for the current request, and write only at the user's request. Heartbeat, lifecycle hooks, and ordinary activity synchronization must not write diaries. Reads work while the game client is offline; writes require the user's game client online and a regular game-client avatar. Server-injected avatars cannot write.
+
+| Tool | Parameters | Result data |
+| --- | --- | --- |
+| `kichi_diary_list` | Optional `start`, `count`, `cursorCreateTime`, `cursorId` | `diaries`, `total` |
+| `kichi_diary_get` | `id` | `diary` |
+| `kichi_diary_create` | `title`, `content`, `mood` | `diary`, `clientRefreshNotified` |
+| `kichi_diary_update` | `id`, `title`, `content`, `mood` | `diary`, `clientRefreshNotified` |
+| `kichi_diary_delete` | `id` | `clientRefreshNotified` |
+
+All five accept optional `requestId` for acknowledgement correlation. `start` defaults to 0 and must be a non-negative integer; `count` defaults to 20 and must be an integer from 1 to 200. The list is newest first, ordered by creation time and ID. For the next cursor page, supply both `cursorCreateTime` and `cursorId` using the previous page's last diary's exact `createTime` and `id`. Preserve the original time string, including its time zone and fractional precision, rather than parsing and reformatting it. A cursor overrides `start`. `total` counts all the user's diaries, not the remaining cursor results.
+
+Creation and updates require all of `title`, `content`, and `mood`. Title and content allow empty strings, preserve whitespace, and are limited to 20 and 1000 UTF-16 code units respectively. Mood must be exactly `Happy`, `Adore`, `Amaze`, `Bored`, `Upset`, or `Mad`. Updates replace the complete editable state: fetch the diary and preserve fields the user did not ask to change. Use returned diary IDs for get, update, and delete; the server generates IDs for new diaries.
+
+```text
+kichi_diary_list(count: 20)
+kichi_diary_get(id: "existing-diary-id")
+kichi_diary_create(title: "A good day", content: "Finished the book.", mood: "Happy")
+```
+
+A returned diary contains `id`, `ownerId`, `createTime`, `updateTime`, `title`, `content`, and `mood`. Tools await the server ACK. Successful writes confirm persistence; `clientRefreshNotified` reports whether the diary snapshot or deletion notification was sent, not whether the game client applied it.
 
 ## Runtime State
 

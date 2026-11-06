@@ -1690,6 +1690,267 @@
           "error": "Not connected to Kichi world"
         }
       }
+    },
+    {
+      "registration": {
+        "name": "kichi_diary_list"
+      },
+      "definition": {
+        "name": "kichi_diary_list",
+        "label": "kichi_diary_list",
+        "description": "List the user's personal Kichi diaries when requested or needed for the current request, newest first by createTime and id. Supports offset or cursor pagination. For the next cursor page, supply the previous page's last diary's exact createTime and id as cursorCreateTime and cursorId; do not reformat the timestamp. total is the user's full diary count. Requires the joined plugin connection; the game client may be offline.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "start": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647,
+              "default": 0,
+              "description": "Zero-based pagination offset. Ignored when a cursor is supplied."
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 20,
+              "description": "Number of diaries per page."
+            },
+            "cursorCreateTime": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Exact createTime from the previous page's last diary, as ISO 8601 with a time zone. Must be supplied together with cursorId; preserve the original timestamp precision."
+            },
+            "cursorId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "ID from the previous page's last diary. Must be supplied together with cursorCreateTime."
+            }
+          },
+          "required": []
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_diary_get"
+      },
+      "definition": {
+        "name": "kichi_diary_get",
+        "label": "kichi_diary_get",
+        "description": "Read one of the user's personal Kichi diaries by ID when requested or needed for the current request. Requires the joined plugin connection; the game client may be offline.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Diary ID returned by kichi_diary_list, kichi_diary_get, or kichi_diary_create."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_diary_create"
+      },
+      "definition": {
+        "name": "kichi_diary_create",
+        "label": "kichi_diary_create",
+        "description": "Create a personal Kichi diary only at the user's request. Supply title, content and mood; title and content may be empty. Requires the joined plugin connection, the user's Kichi game client online, and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified reports whether the diary notification was sent, without confirming client application.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 20,
+              "description": "Complete diary title, at most 20 UTF-16 code units. Empty strings are allowed; whitespace is preserved."
+            },
+            "content": {
+              "type": "string",
+              "maxLength": 1000,
+              "description": "Complete diary content, at most 1000 UTF-16 code units. Empty strings are allowed; whitespace is preserved."
+            },
+            "mood": {
+              "type": "string",
+              "enum": [
+                "Happy",
+                "Adore",
+                "Amaze",
+                "Bored",
+                "Upset",
+                "Mad"
+              ],
+              "description": "Diary mood; use one of the exact case-sensitive values."
+            }
+          },
+          "required": [
+            "title",
+            "content",
+            "mood"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_diary_update"
+      },
+      "definition": {
+        "name": "kichi_diary_update",
+        "label": "kichi_diary_update",
+        "description": "Update a personal Kichi diary by ID only at the user's request. Supply the complete title, content and mood; these replace the saved values, so preserve fields the user did not ask to change. Title and content may be empty. Requires the joined plugin connection, the user's Kichi game client online, and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified reports whether the diary notification was sent, without confirming client application.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Diary ID returned by kichi_diary_list, kichi_diary_get, or kichi_diary_create."
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 20,
+              "description": "Complete diary title, at most 20 UTF-16 code units. Empty strings are allowed; whitespace is preserved."
+            },
+            "content": {
+              "type": "string",
+              "maxLength": 1000,
+              "description": "Complete diary content, at most 1000 UTF-16 code units. Empty strings are allowed; whitespace is preserved."
+            },
+            "mood": {
+              "type": "string",
+              "enum": [
+                "Happy",
+                "Adore",
+                "Amaze",
+                "Bored",
+                "Upset",
+                "Mad"
+              ],
+              "description": "Diary mood; use one of the exact case-sensitive values."
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "content",
+            "mood"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
+    },
+    {
+      "registration": {
+        "name": "kichi_diary_delete"
+      },
+      "definition": {
+        "name": "kichi_diary_delete",
+        "label": "kichi_diary_delete",
+        "description": "Delete a personal Kichi diary by ID only at the user's request. Requires the joined plugin connection, the user's Kichi game client online, and a regular game-client avatar; server-injected avatars cannot write. Success confirms persistence; clientRefreshNotified reports whether the deletion notification was sent, without confirming client application.",
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "description": "Optional request ID for correlating the server acknowledgement."
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Diary ID returned by kichi_diary_list, kichi_diary_get, or kichi_diary_create."
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      "emptyParametersResult": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":\"Not connected to Kichi world\"}"
+          }
+        ],
+        "details": {
+          "success": false,
+          "error": "Not connected to Kichi world"
+        }
+      }
     }
   ]
 }

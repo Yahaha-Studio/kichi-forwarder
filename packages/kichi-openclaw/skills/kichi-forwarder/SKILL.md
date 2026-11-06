@@ -1,12 +1,12 @@
 ---
 name: kichi-forwarder
-description: Use Kichi websocket tools to connect an OpenClaw companion to Kichi, directly control its avatar poses and actions, change scene weather and time, sync activity, control player timers, manage todo tasks and routine check-ins, and handle note board or music workflows; prioritize explicit user requests to act inside Kichi and skip background sync when the user opts out.
+description: Use Kichi websocket tools to connect an OpenClaw companion to Kichi, directly control its avatar poses and actions, change scene weather and time, sync activity, control player timers, manage todo tasks, routine check-ins, and personal diaries, and handle note board or music workflows; prioritize explicit user requests to act inside Kichi and skip background sync when the user opts out.
 metadata: {"openclaw":{"skillKey":"kichi-forwarder","homepage":"https://github.com/Yahaha-Studio/kichi-forwarder"}}
 ---
 
 # Kichi Forwarder
 
-Kichi Forwarder provides websocket tools for connecting an OpenClaw agent to Kichi, directly controlling the Kichi avatar, syncing companion status, managing todo tasks and routine check-ins, and handling Kichi notes, timers, and music workflows.
+Kichi Forwarder provides websocket tools for connecting an OpenClaw agent to Kichi, directly controlling the Kichi avatar, syncing companion status, managing todo tasks, routine check-ins, and personal diaries, and handling Kichi notes, timers, and music workflows.
 
 ## Pre-install Remote Discovery
 
@@ -291,6 +291,32 @@ All ten tools accept optional `requestId` for acknowledgement correlation and re
 ```text
 kichi_todo_task_create(title: "Read chapter 3", colorIndex: 0)
 kichi_routine_batch_update(timeZoneId: "Asia/Shanghai", updates: [{id: "existing-routine-id", datesToAdd: ["2026-10-15"], datesToRemove: []}])
+```
+
+### Personal Diaries
+
+Use diary tools when the user asks or their current request needs existing diary information. Create, update, or delete diaries only at the user's request. Never write diaries through heartbeat, idle plans, lifecycle hooks, bot-message runs, or ordinary work-status synchronization.
+
+| Tool | Parameters | Result data |
+| --- | --- | --- |
+| `kichi_diary_list` | Optional `start`, `count`, `cursorCreateTime`, `cursorId` | `diaries`, `total` |
+| `kichi_diary_get` | `id` | `diary` |
+| `kichi_diary_create` | `title`, `content`, `mood` | `diary`, `clientRefreshNotified` |
+| `kichi_diary_update` | `id`, `title`, `content`, `mood` | `diary`, `clientRefreshNotified` |
+| `kichi_diary_delete` | `id` | `clientRefreshNotified` |
+
+All five tools accept optional `requestId` and require the plugin's joined connection. Reads work without an online game client. Writes require the user's Kichi game client online and a regular game-client avatar; server-injected avatars cannot write.
+
+- `start` is a non-negative integer offset, defaulting to 0. `count` is an integer from 1 to 200, defaulting to 20. Results are newest first, ordered by creation time and ID.
+- To continue with a cursor, supply `cursorCreateTime` and non-empty `cursorId` together, using the previous page's last diary's exact `createTime` and `id`. Preserve the original timestamp's time zone and fractional precision; do not parse and reformat it. Cursor pagination ignores `start`. `total` counts all the user's diaries, not the remaining cursor results.
+- Create and update require all three editable fields. `title` and `content` allow empty strings, preserve whitespace, and have limits of 20 and 1000 UTF-16 code units respectively. `mood` is exactly `Happy`, `Adore`, `Amaze`, `Bored`, `Upset`, or `Mad`.
+- Update replaces the complete editable state. Fetch the existing diary and preserve its title, content, or mood whenever the user did not request changing that field. Use returned IDs for get, update, and delete; new IDs are assigned by the server.
+- Returned diaries contain `id`, `ownerId`, `createTime`, `updateTime`, `title`, `content`, and `mood`. Await the ACK and report errors directly. Write success confirms persistence; `clientRefreshNotified` only reports whether a diary snapshot or deletion notification was sent, without proving client application.
+
+```text
+kichi_diary_list(count: 20)
+kichi_diary_get(id: "existing-diary-id")
+kichi_diary_create(title: "A good day", content: "Finished the book.", mood: "Happy")
 ```
 
 ## Music Album Policy
