@@ -86,6 +86,24 @@ Routine creation accepts `title` and optional `checkedDates`. Batch updates send
 
 The server permits listing without an online game client. Writes require the owning user's game client to be online and reject injected agents. A successful write ACK confirms the server-side operation; `clientRefreshNotified` only reports whether the server sent the client refresh notification, not whether the client has applied it.
 
+## Personal diaries
+
+Core exposes `listDiaries(input = {}, requestId?)`, `getDiary(input, requestId?)`, `createDiary(input, requestId?)`, `updateDiary(input, requestId?)`, and `deleteDiary(input, requestId?)`. They send the corresponding `diary_list`, `diary_get`, `diary_create`, `diary_update`, and `diary_delete` commands over the authenticated, joined WebSocket connection and await the matching ACK. Rejected requests throw explicitly.
+
+| Method | Input | Successful ACK data |
+| --- | --- | --- |
+| `listDiaries` | Optional `start`, `count`, `cursorCreateTime`, `cursorId` | `diaries`, `total` |
+| `getDiary` | `id` | `diary` |
+| `createDiary` | `title`, `content`, `mood` | `diary`, `clientRefreshNotified` |
+| `updateDiary` | `id`, `title`, `content`, `mood` | `diary`, `clientRefreshNotified` |
+| `deleteDiary` | `id` | `clientRefreshNotified` |
+
+`start` is a non-negative integer offset, defaulting to 0; `count` is an integer from 1 to 200, defaulting to 20. Diaries are ordered by creation time and ID, newest first. Supply `cursorCreateTime` and a non-empty `cursorId` together to continue after a page's last diary. Reuse that diary's exact `createTime` string, including its time zone and fractional precision; do not parse and reformat it. A cursor takes precedence over `start`. `total` counts all the user's diaries, not only those remaining after the cursor.
+
+`title` and `content` are required strings, allow empty strings, and are limited to 20 and 1000 UTF-16 code units respectively. They are sent without trimming. `mood` must be exactly `Happy`, `Adore`, `Amaze`, `Bored`, `Upset`, or `Mad`. Update replaces all three editable fields; read the current diary and preserve any field the user did not request changing. Use IDs returned by list, get, or create; creation assigns its ID on the server. Returned diaries contain `id`, `ownerId`, `createTime`, `updateTime`, `title`, `content`, and `mood`.
+
+Read diaries only when requested or needed for the current request; write only at the user's request. Do not write diaries from heartbeat, lifecycle hooks, or work-status synchronization. All five methods require the joined plugin connection. Reads work while the game client is offline; writes require the owning user's game client online and a regular game-client avatar, and reject injected avatars. A successful write ACK confirms persistence; `clientRefreshNotified` only reports whether the diary snapshot or deletion notification was sent, without confirming client application.
+
 ## Incoming messages
 
 `onBotMessageReceived` has the signature `(service, message) => void`. Core dispatches `bot_message_received` payloads to it and records the incoming bot message. The adapter routes the message to the matching platform session and decides how that platform processes or replies to it. Receiving a bot message is distinct from receiving a user's platform input.

@@ -1,4 +1,4 @@
-import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, EnvironmentControlAckPayload, EmojiAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, RoutineBatchUpdateAckPayload, RoutineBatchUpdateInput, RoutineCreateAckPayload, RoutineCreateInput, RoutineDeleteAckPayload, RoutineDeleteInput, RoutineListAckPayload, StatusAckPayload, TimerControl, TimerControlAckPayload, TodoTaskCompleteAckPayload, TodoTaskCompleteInput, TodoTaskCreateAckPayload, TodoTaskCreateInput, TodoTaskDeleteAckPayload, TodoTaskDeleteInput, TodoTaskListAckPayload, TodoTaskReorderAckPayload, TodoTaskReorderInput, TodoTaskUpdateAckPayload, TodoTaskUpdateInput } from "./types.js";
+import type { ActionPlayback, ActionResult, AvatarStatus, BotMessageHistoryEntry, BotMessageReceivedPayload, BotMessageTranscriptEntry, ClockAction, ClockConfig, DiaryCreateAckPayload, DiaryCreateInput, DiaryDeleteAckPayload, DiaryDeleteInput, DiaryGetAckPayload, DiaryGetInput, DiaryListAckPayload, DiaryListInput, DiaryUpdateAckPayload, DiaryUpdateInput, EnvironmentControlAckPayload, EmojiAckPayload, GlanceAckPayload, GlanceTarget, HookNotifyType, IdlePlanContent, KichiConnectionStatus, KichiEnvironment, KichiLogger, MateDailySchedule, PoseType, QueryStatusResultPayload, RoutineBatchUpdateAckPayload, RoutineBatchUpdateInput, RoutineCreateAckPayload, RoutineCreateInput, RoutineDeleteAckPayload, RoutineDeleteInput, RoutineListAckPayload, StatusAckPayload, TimerControl, TimerControlAckPayload, TodoTaskCompleteAckPayload, TodoTaskCompleteInput, TodoTaskCreateAckPayload, TodoTaskCreateInput, TodoTaskDeleteAckPayload, TodoTaskDeleteInput, TodoTaskListAckPayload, TodoTaskReorderAckPayload, TodoTaskReorderInput, TodoTaskUpdateAckPayload, TodoTaskUpdateInput } from "./types.js";
 type AckFailureResult = {
     success: false;
     error: string;
@@ -65,6 +65,11 @@ export declare class KichiForwarderService {
     createRoutine(input: RoutineCreateInput, requestId?: string): Promise<RoutineCreateAckPayload>;
     deleteRoutine(input: RoutineDeleteInput, requestId?: string): Promise<RoutineDeleteAckPayload>;
     batchUpdateRoutines(input: RoutineBatchUpdateInput, requestId?: string): Promise<RoutineBatchUpdateAckPayload>;
+    listDiaries(input?: DiaryListInput, requestId?: string): Promise<DiaryListAckPayload>;
+    getDiary(input: DiaryGetInput, requestId?: string): Promise<DiaryGetAckPayload>;
+    createDiary(input: DiaryCreateInput, requestId?: string): Promise<DiaryCreateAckPayload>;
+    updateDiary(input: DiaryUpdateInput, requestId?: string): Promise<DiaryUpdateAckPayload>;
+    deleteDiary(input: DiaryDeleteInput, requestId?: string): Promise<DiaryDeleteAckPayload>;
     createNotesBoardNote(propId: string, data: string): void;
     createMusicAlbum(albumTitle: string, musicTitles: string[], requestId?: string): string;
     sendBotMessage(toAvatarId: string, depth: number, bubble: string, options?: {
@@ -98,7 +103,7 @@ export declare class KichiForwarderService {
     private buildAckFailure;
     private tryResolvePendingRequest;
     private rejectPendingRequests;
-    private sendTaskRoutineRequest;
+    private sendServerDataRequest;
     private requireIdentity;
     private sendRequest;
     private loadIdentity;

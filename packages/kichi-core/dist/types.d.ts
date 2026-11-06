@@ -531,69 +531,136 @@ export type RoutineBatchUpdateInput = {
     /** Required when any update adds or removes dates. */
     timeZoneId?: string;
 };
-type TaskRoutineRequestIdentity = {
+export declare const DIARY_MOODS: readonly ["Happy", "Adore", "Amaze", "Bored", "Upset", "Mad"];
+export type DiaryMood = typeof DIARY_MOODS[number];
+export type Diary = {
+    id: string;
+    ownerId: string;
+    createTime: string;
+    updateTime: string;
+    title: string;
+    content: string;
+    mood: DiaryMood;
+};
+export type DiaryListInput = {
+    /** Zero-based offset, defaults to 0. Ignored when a cursor is supplied. */
+    start?: number;
+    /** Page size, defaults to 20; maximum 200. */
+    count?: number;
+    /** Exact createTime from the previous page's last diary; requires cursorId. */
+    cursorCreateTime?: string;
+    cursorId?: string;
+};
+export type DiaryGetInput = {
+    id: string;
+};
+export type DiaryCreateInput = {
+    /** Up to 20 UTF-16 code units; empty strings are allowed and whitespace is preserved. */
+    title: string;
+    /** Up to 1000 UTF-16 code units; empty strings are allowed and whitespace is preserved. */
+    content: string;
+    mood: DiaryMood;
+};
+/** Updates replace all three editable fields; preserve values that should not change. */
+export type DiaryUpdateInput = DiaryCreateInput & {
+    id: string;
+};
+export type DiaryDeleteInput = {
+    id: string;
+};
+type ServerDataRequestIdentity = {
     requestId: string;
     avatarId: string;
     authKey: string;
 };
-export type TodoTaskListPayload = TaskRoutineRequestIdentity & {
+export type TodoTaskListPayload = ServerDataRequestIdentity & {
     type: "todo_task_list";
 };
-export type TodoTaskCreatePayload = TaskRoutineRequestIdentity & TodoTaskCreateInput & {
+export type TodoTaskCreatePayload = ServerDataRequestIdentity & TodoTaskCreateInput & {
     type: "todo_task_create";
 };
-export type TodoTaskUpdatePayload = TaskRoutineRequestIdentity & TodoTaskUpdateInput & {
+export type TodoTaskUpdatePayload = ServerDataRequestIdentity & TodoTaskUpdateInput & {
     type: "todo_task_update";
 };
-export type TodoTaskReorderPayload = TaskRoutineRequestIdentity & TodoTaskReorderInput & {
+export type TodoTaskReorderPayload = ServerDataRequestIdentity & TodoTaskReorderInput & {
     type: "todo_task_reorder";
 };
-export type TodoTaskDeletePayload = TaskRoutineRequestIdentity & TodoTaskDeleteInput & {
+export type TodoTaskDeletePayload = ServerDataRequestIdentity & TodoTaskDeleteInput & {
     type: "todo_task_delete";
 };
-export type TodoTaskCompletePayload = TaskRoutineRequestIdentity & TodoTaskCompleteInput & {
+export type TodoTaskCompletePayload = ServerDataRequestIdentity & TodoTaskCompleteInput & {
     type: "todo_task_complete";
 };
-export type RoutineListPayload = TaskRoutineRequestIdentity & {
+export type RoutineListPayload = ServerDataRequestIdentity & {
     type: "routine_list";
 };
-export type RoutineCreatePayload = TaskRoutineRequestIdentity & RoutineCreateInput & {
+export type RoutineCreatePayload = ServerDataRequestIdentity & RoutineCreateInput & {
     type: "routine_create";
 };
-export type RoutineDeletePayload = TaskRoutineRequestIdentity & RoutineDeleteInput & {
+export type RoutineDeletePayload = ServerDataRequestIdentity & RoutineDeleteInput & {
     type: "routine_delete";
 };
-export type RoutineBatchUpdatePayload = TaskRoutineRequestIdentity & RoutineBatchUpdateInput & {
+export type RoutineBatchUpdatePayload = ServerDataRequestIdentity & RoutineBatchUpdateInput & {
     type: "routine_batch_update";
 };
+export type DiaryListPayload = ServerDataRequestIdentity & DiaryListInput & {
+    type: "diary_list";
+};
+export type DiaryGetPayload = ServerDataRequestIdentity & DiaryGetInput & {
+    type: "diary_get";
+};
+export type DiaryCreatePayload = ServerDataRequestIdentity & DiaryCreateInput & {
+    type: "diary_create";
+};
+export type DiaryUpdatePayload = ServerDataRequestIdentity & DiaryUpdateInput & {
+    type: "diary_update";
+};
+export type DiaryDeletePayload = ServerDataRequestIdentity & DiaryDeleteInput & {
+    type: "diary_delete";
+};
+export type DiaryRequestPayload = DiaryListPayload | DiaryGetPayload | DiaryCreatePayload | DiaryUpdatePayload | DiaryDeletePayload;
 export type TaskRoutineRequestPayload = TodoTaskListPayload | TodoTaskCreatePayload | TodoTaskUpdatePayload | TodoTaskReorderPayload | TodoTaskDeletePayload | TodoTaskCompletePayload | RoutineListPayload | RoutineCreatePayload | RoutineDeletePayload | RoutineBatchUpdatePayload;
-type TaskRoutineAckPayload<TType extends string, TResult extends object> = {
+type ServerDataAckPayload<TType extends string, TResult extends object> = {
     type: TType;
     requestId: string;
     success: true;
 } & TResult;
-type TaskRoutineMutationResult = {
+type ServerDataMutationResult = {
     /** Whether the server sent a refresh notification, not confirmation of client application. */
     clientRefreshNotified: boolean;
 };
-export type TodoTaskListAckPayload = TaskRoutineAckPayload<"todo_task_list_ack", {
+export type TodoTaskListAckPayload = ServerDataAckPayload<"todo_task_list_ack", {
     todoTasks: TodoTask[];
 }>;
-export type TodoTaskCreateAckPayload = TaskRoutineAckPayload<"todo_task_create_ack", TaskRoutineMutationResult & {
+export type TodoTaskCreateAckPayload = ServerDataAckPayload<"todo_task_create_ack", ServerDataMutationResult & {
     todoTask: TodoTask;
 }>;
-export type TodoTaskUpdateAckPayload = TaskRoutineAckPayload<"todo_task_update_ack", TaskRoutineMutationResult & {
+export type TodoTaskUpdateAckPayload = ServerDataAckPayload<"todo_task_update_ack", ServerDataMutationResult & {
     todoTask: TodoTask;
 }>;
-export type TodoTaskReorderAckPayload = TaskRoutineAckPayload<"todo_task_reorder_ack", TaskRoutineMutationResult>;
-export type TodoTaskDeleteAckPayload = TaskRoutineAckPayload<"todo_task_delete_ack", TaskRoutineMutationResult>;
-export type TodoTaskCompleteAckPayload = TaskRoutineAckPayload<"todo_task_complete_ack", TaskRoutineMutationResult>;
-export type RoutineListAckPayload = TaskRoutineAckPayload<"routine_list_ack", {
+export type TodoTaskReorderAckPayload = ServerDataAckPayload<"todo_task_reorder_ack", ServerDataMutationResult>;
+export type TodoTaskDeleteAckPayload = ServerDataAckPayload<"todo_task_delete_ack", ServerDataMutationResult>;
+export type TodoTaskCompleteAckPayload = ServerDataAckPayload<"todo_task_complete_ack", ServerDataMutationResult>;
+export type RoutineListAckPayload = ServerDataAckPayload<"routine_list_ack", {
     routines: Routine[];
 }>;
-export type RoutineCreateAckPayload = TaskRoutineAckPayload<"routine_create_ack", TaskRoutineMutationResult & {
+export type RoutineCreateAckPayload = ServerDataAckPayload<"routine_create_ack", ServerDataMutationResult & {
     routine: Routine;
 }>;
-export type RoutineDeleteAckPayload = TaskRoutineAckPayload<"routine_delete_ack", TaskRoutineMutationResult>;
-export type RoutineBatchUpdateAckPayload = TaskRoutineAckPayload<"routine_batch_update_ack", TaskRoutineMutationResult>;
+export type RoutineDeleteAckPayload = ServerDataAckPayload<"routine_delete_ack", ServerDataMutationResult>;
+export type RoutineBatchUpdateAckPayload = ServerDataAckPayload<"routine_batch_update_ack", ServerDataMutationResult>;
+export type DiaryListAckPayload = ServerDataAckPayload<"diary_list_ack", {
+    diaries: Diary[];
+    total: number;
+}>;
+export type DiaryGetAckPayload = ServerDataAckPayload<"diary_get_ack", {
+    diary: Diary;
+}>;
+export type DiaryCreateAckPayload = ServerDataAckPayload<"diary_create_ack", ServerDataMutationResult & {
+    diary: Diary;
+}>;
+export type DiaryUpdateAckPayload = ServerDataAckPayload<"diary_update_ack", ServerDataMutationResult & {
+    diary: Diary;
+}>;
+export type DiaryDeleteAckPayload = ServerDataAckPayload<"diary_delete_ack", ServerDataMutationResult>;
 export {};

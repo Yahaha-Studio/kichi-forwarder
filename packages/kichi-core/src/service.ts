@@ -16,6 +16,17 @@ import type {
   ClockPayload,
   CreateMusicAlbumPayload,
   CreateNotesBoardNotePayload,
+  DiaryCreateAckPayload,
+  DiaryCreateInput,
+  DiaryDeleteAckPayload,
+  DiaryDeleteInput,
+  DiaryGetAckPayload,
+  DiaryGetInput,
+  DiaryListAckPayload,
+  DiaryListInput,
+  DiaryRequestPayload,
+  DiaryUpdateAckPayload,
+  DiaryUpdateInput,
   EnvironmentControlAckPayload,
   EnvironmentControlPayload,
   EmojiAckPayload,
@@ -68,7 +79,10 @@ import type {
 } from "./types.js";
 import { buildKichiWebSocketUrl, normalizeKichiHost } from "./host.js";
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { normalizeEnvironmentControl, normalizeEmojiName } from "./validation.js";
+import {
+  normalizeEnvironmentControl, normalizeEmojiName,
+  normalizeDiaryListInput, normalizeDiaryIdInput, normalizeDiaryCreateInput, normalizeDiaryUpdateInput,
+} from "./validation.js";
 
 const MAX_NOTEBOARD_TEXT_LENGTH = 200;
 const DEFAULT_LLM_RUNTIME_ENABLED = true;
@@ -500,43 +514,63 @@ export class KichiForwarderService {
   }
 
   listTodoTasks(requestId?: string): Promise<TodoTaskListAckPayload> {
-    return this.sendTaskRoutineRequest("todo_task_list", {}, requestId);
+    return this.sendServerDataRequest("todo_task_list", {}, requestId);
   }
 
   createTodoTask(input: TodoTaskCreateInput, requestId?: string): Promise<TodoTaskCreateAckPayload> {
-    return this.sendTaskRoutineRequest("todo_task_create", input, requestId);
+    return this.sendServerDataRequest("todo_task_create", input, requestId);
   }
 
   updateTodoTask(input: TodoTaskUpdateInput, requestId?: string): Promise<TodoTaskUpdateAckPayload> {
-    return this.sendTaskRoutineRequest("todo_task_update", input, requestId);
+    return this.sendServerDataRequest("todo_task_update", input, requestId);
   }
 
   reorderTodoTasks(input: TodoTaskReorderInput, requestId?: string): Promise<TodoTaskReorderAckPayload> {
-    return this.sendTaskRoutineRequest("todo_task_reorder", input, requestId);
+    return this.sendServerDataRequest("todo_task_reorder", input, requestId);
   }
 
   deleteTodoTask(input: TodoTaskDeleteInput, requestId?: string): Promise<TodoTaskDeleteAckPayload> {
-    return this.sendTaskRoutineRequest("todo_task_delete", input, requestId);
+    return this.sendServerDataRequest("todo_task_delete", input, requestId);
   }
 
   completeTodoTask(input: TodoTaskCompleteInput, requestId?: string): Promise<TodoTaskCompleteAckPayload> {
-    return this.sendTaskRoutineRequest("todo_task_complete", input, requestId);
+    return this.sendServerDataRequest("todo_task_complete", input, requestId);
   }
 
   listRoutines(requestId?: string): Promise<RoutineListAckPayload> {
-    return this.sendTaskRoutineRequest("routine_list", {}, requestId);
+    return this.sendServerDataRequest("routine_list", {}, requestId);
   }
 
   createRoutine(input: RoutineCreateInput, requestId?: string): Promise<RoutineCreateAckPayload> {
-    return this.sendTaskRoutineRequest("routine_create", input, requestId);
+    return this.sendServerDataRequest("routine_create", input, requestId);
   }
 
   deleteRoutine(input: RoutineDeleteInput, requestId?: string): Promise<RoutineDeleteAckPayload> {
-    return this.sendTaskRoutineRequest("routine_delete", input, requestId);
+    return this.sendServerDataRequest("routine_delete", input, requestId);
   }
 
   batchUpdateRoutines(input: RoutineBatchUpdateInput, requestId?: string): Promise<RoutineBatchUpdateAckPayload> {
-    return this.sendTaskRoutineRequest("routine_batch_update", input, requestId);
+    return this.sendServerDataRequest("routine_batch_update", input, requestId);
+  }
+
+  async listDiaries(input: DiaryListInput = {}, requestId?: string): Promise<DiaryListAckPayload> {
+    return this.sendServerDataRequest("diary_list", normalizeDiaryListInput(input), requestId);
+  }
+
+  async getDiary(input: DiaryGetInput, requestId?: string): Promise<DiaryGetAckPayload> {
+    return this.sendServerDataRequest("diary_get", normalizeDiaryIdInput(input), requestId);
+  }
+
+  async createDiary(input: DiaryCreateInput, requestId?: string): Promise<DiaryCreateAckPayload> {
+    return this.sendServerDataRequest("diary_create", normalizeDiaryCreateInput(input), requestId);
+  }
+
+  async updateDiary(input: DiaryUpdateInput, requestId?: string): Promise<DiaryUpdateAckPayload> {
+    return this.sendServerDataRequest("diary_update", normalizeDiaryUpdateInput(input), requestId);
+  }
+
+  async deleteDiary(input: DiaryDeleteInput, requestId?: string): Promise<DiaryDeleteAckPayload> {
+    return this.sendServerDataRequest("diary_delete", normalizeDiaryIdInput(input), requestId);
   }
 
   createNotesBoardNote(propId: string, data: string): void {
@@ -953,8 +987,8 @@ export class KichiForwarderService {
     this.pendingRequests.clear();
   }
 
-  private async sendTaskRoutineRequest<TSuccess extends { type: string; requestId: string; success: true }>(
-    type: TaskRoutineRequestPayload["type"],
+  private async sendServerDataRequest<TSuccess extends { type: string; requestId: string; success: true }>(
+    type: TaskRoutineRequestPayload["type"] | DiaryRequestPayload["type"],
     input: object,
     requestId?: string,
   ): Promise<TSuccess> {

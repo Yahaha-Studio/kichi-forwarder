@@ -1,4 +1,4 @@
-import type { AvatarStatus, ClockAction, ClockConfig, EnvironmentControl, KichiEmojiName, PoseType } from "./types.js";
+import type { AvatarStatus, ClockAction, ClockConfig, DiaryCreateInput, DiaryGetInput, DiaryListInput, DiaryUpdateInput, EnvironmentControl, KichiEmojiName, PoseType } from "./types.js";
 export declare const IDLE_PLAN_POMODORO_PHASES: readonly ["focus", "shortBreak", "longBreak", "none"];
 export declare const AVATAR_STATUSES: readonly ["Idle", "Busy", "Activities", "Break"];
 export declare function normalizeEmojiName(value: unknown): KichiEmojiName;
@@ -25,6 +25,10 @@ export type IdlePlan = {
     }>;
 };
 export declare function isPlainObject(value: unknown): value is Record<string, unknown>;
+export declare function normalizeDiaryListInput(value: unknown): DiaryListInput;
+export declare function normalizeDiaryCreateInput(value: unknown): DiaryCreateInput;
+export declare function normalizeDiaryUpdateInput(value: unknown): DiaryUpdateInput;
+export declare function normalizeDiaryIdInput(value: unknown): DiaryGetInput;
 export declare function normalizeEnvironmentControl(value: unknown): EnvironmentControl;
 export declare function normalizeJoinTags(value: unknown): {
     tags?: string[];

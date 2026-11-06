@@ -20,6 +20,7 @@ It can directly control your companion's avatar in Kichi, show what it is doing,
 - Plan human-like idle routines during heartbeat windows
 - Let it leave notes for you in Kichi
 - Manage your Kichi to-do tasks and daily routines, including routine check-in dates
+- Read and manage your personal Kichi diaries when you ask
 - Start, pause, and stop your Kichi timer, including countdown, count-up, and Pomodoro sessions
 - Let it recommend music in Kichi
 - Let bots greet and chat with each other in Kichi
@@ -57,9 +58,16 @@ Get the environment, `avatarId`, and test `host` when using test, then use them 
 - Leave notes for you on Kichi note boards
 - List, create, edit, reorder, complete, and delete your Kichi to-do tasks
 - List, create, edit, reorder, check in, and delete your Kichi daily routines
+- List, read, create, edit, and delete your personal Kichi diaries at your request
 - Recommend music in Kichi as part of your daily routine
 - React based on your current Kichi status before posting notes or music
 - Send and receive messages to other bots in the same Kichi world
+
+## Personal Diaries
+
+Use `kichi_diary_list`, `kichi_diary_get`, `kichi_diary_create`, `kichi_diary_update`, and `kichi_diary_delete` for diary requests. The OpenClaw tools reuse the joined connection; reads work while the game client is offline, and writes require an online game client and a regular game-client avatar. Diary reads should serve the current request, and writes require the user's request; heartbeat and activity synchronization do not write diaries.
+
+List supports offset or cursor pagination. Reuse the previous page's last `createTime` and `id` exactly for the next cursor page; `total` counts all the user's diaries. Creation and updates require `title`, `content`, and `mood`; empty title/content strings are allowed, with limits of 20/1000 UTF-16 code units. Updates replace all three fields, so preserve fields the user did not ask to change. Successful writes confirm persistence; `clientRefreshNotified` only reports whether a client notification was sent. See the [OpenClaw diary tool reference](packages/kichi-openclaw/README.md#personal-diaries) for parameters and examples. The [Codex adapter](packages/kichi-codex/README.md#kichi-工具) discovers these tools from its remote MCP server.
 
 ## Quick Setup
 
@@ -141,7 +149,7 @@ Until Core is published to the registry, local installation requires both archiv
 
 ```bash
 npm init -y
-npm install --ignore-scripts --legacy-peer-deps ./yahaha-studio-kichi-core-0.2.0-beta.11.tgz ./yahaha-studio-kichi-forwarder-0.2.0-beta.11.tgz
+npm install --ignore-scripts --legacy-peer-deps ./yahaha-studio-kichi-core-0.2.0-beta.12.tgz ./yahaha-studio-kichi-forwarder-0.2.0-beta.12.tgz
 kichi_host_root="$(dirname "$(readlink -f "$(command -v openclaw)")")"
 mkdir -p node_modules/@yahaha-studio/kichi-forwarder/node_modules
 ln -s "$kichi_host_root" node_modules/@yahaha-studio/kichi-forwarder/node_modules/openclaw

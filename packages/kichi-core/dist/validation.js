@@ -1,5 +1,5 @@
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { AMBIENT_SOUND_ACTIONS, AMBIENT_SOUND_TITLES, ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES, } from "./types.js";
+import { AMBIENT_SOUND_ACTIONS, AMBIENT_SOUND_TITLES, DIARY_MOODS, ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES, } from "./types.js";
 export const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"];
 export const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"];
 export function normalizeEmojiName(value) {
@@ -14,6 +14,75 @@ export function normalizeEmojiName(value) {
 }
 export function isPlainObject(value) {
     return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function requireDiaryFields(value, fields) {
+    if (!isPlainObject(value)) {
+        throw new Error("diary input must be an object");
+    }
+    for (const field of Object.keys(value)) {
+        if (!fields.includes(field)) {
+            throw new Error(`Unknown diary field: ${field}`);
+        }
+    }
+    return value;
+}
+function requireDiaryId(value, field = "id") {
+    if (typeof value !== "string" || !value.trim()) {
+        throw new Error(`${field} must be a non-empty string`);
+    }
+    return value.trim();
+}
+export function normalizeDiaryListInput(value) {
+    const input = requireDiaryFields(value, ["start", "count", "cursorCreateTime", "cursorId"]);
+    const { start, count, cursorCreateTime, cursorId } = input;
+    if (start !== undefined && (typeof start !== "number" || !Number.isInteger(start) || start < 0 || start > 2147483647)) {
+        throw new Error("start must be an integer from 0 to 2147483647");
+    }
+    if (count !== undefined && (typeof count !== "number" || !Number.isInteger(count) || count < 1 || count > 200)) {
+        throw new Error("count must be an integer from 1 to 200");
+    }
+    if ((cursorCreateTime !== undefined) !== (cursorId !== undefined)) {
+        throw new Error("cursorCreateTime and cursorId must be provided together");
+    }
+    const result = {
+        ...(start !== undefined ? { start: start } : {}),
+        ...(count !== undefined ? { count: count } : {}),
+    };
+    if (cursorCreateTime !== undefined) {
+        if (typeof cursorCreateTime !== "string"
+            || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,7})?(?:Z|[+-]\d{2}:\d{2})$/.test(cursorCreateTime)
+            || !Number.isFinite(Date.parse(cursorCreateTime))) {
+            throw new Error("cursorCreateTime must be an ISO 8601 timestamp with a time zone");
+        }
+        // Keep the server's timestamp precision for stable cursor pagination.
+        result.cursorCreateTime = cursorCreateTime;
+        result.cursorId = requireDiaryId(cursorId, "cursorId");
+    }
+    return result;
+}
+function requireDiaryContent(input) {
+    if (typeof input.title !== "string" || input.title.length > 20) {
+        throw new Error("title must be a string of at most 20 UTF-16 code units; empty strings are allowed");
+    }
+    if (typeof input.content !== "string" || input.content.length > 1000) {
+        throw new Error("content must be a string of at most 1000 UTF-16 code units; empty strings are allowed");
+    }
+    const mood = DIARY_MOODS.find((name) => name === input.mood);
+    if (mood === undefined) {
+        throw new Error(`mood must be one of: ${DIARY_MOODS.join(", ")}`);
+    }
+    return { title: input.title, content: input.content, mood };
+}
+export function normalizeDiaryCreateInput(value) {
+    return requireDiaryContent(requireDiaryFields(value, ["title", "content", "mood"]));
+}
+export function normalizeDiaryUpdateInput(value) {
+    const input = requireDiaryFields(value, ["id", "title", "content", "mood"]);
+    return { id: requireDiaryId(input.id), ...requireDiaryContent(input) };
+}
+export function normalizeDiaryIdInput(value) {
+    const input = requireDiaryFields(value, ["id"]);
+    return { id: requireDiaryId(input.id) };
 }
 const ENVIRONMENT_SETTING_FIELDS = [
     "weather", "time", "lightingValue", "lightingEnabled", "ambientLightIntensity", "ambientLightEnabled",
