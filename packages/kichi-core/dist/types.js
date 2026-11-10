@@ -14,6 +14,7 @@ export const ENVIRONMENT_WEATHERS = ["Sunny", "Cloudy", "Rainy", "Snowy"];
 export const ENVIRONMENT_TIMES = ["Auto", "Morning", "Day", "Evening", "Night"];
 export const MUSIC_ACTIONS = ["Next", "Previous"];
 export const MUSIC_PLAY_TYPES = ["Loop", "Random"];
+export const SOUND_VOLUME_TYPES = ["Global", "Music", "AmbientSound", "UISound", "SceneSound"];
 export const AMBIENT_SOUND_ACTIONS = ["Play", "Stop"];
 // Keep these titles aligned with FocusProject's AgentWorldCatalog.AmbientSounds.
 export const AMBIENT_SOUND_TITLES = [

@@ -5,6 +5,7 @@ import path from "node:path";
 import { EventEmitter, once } from "node:events";
 import { registerHooks } from "node:module";
 import { after, test } from "node:test";
+import { normalizeGeminiToolSchemas } from "openclaw/plugin-sdk/provider-tools";
 import { WebSocketServer } from "ws";
 
 // Never load the user's OpenClaw runtime or read its home directory.
@@ -188,6 +189,31 @@ test("OpenClaw diary tools route parameters and preserve server confirmation and
   });
 });
 
+test("OpenClaw Gemini schema preserves the volume control fields", () => {
+  const { factory } = registeredTools.find(({ options }) => options.name === "kichi_environment");
+  const tool = factory(toolContext);
+  const [normalizedTool] = normalizeGeminiToolSchemas({ tools: [tool] });
+  const items = normalizedTool.parameters.properties.volumeControls.items;
+
+  assert.equal(items.type, "object");
+  assert.deepEqual(items.required, ["type"]);
+  assert.deepEqual(items.properties, tool.parameters.properties.volumeControls.items.properties);
+});
+
+test("OpenClaw environment tool routes volume controls and returns the forwarding acknowledgement", async (t) => {
+  t.mock.method(KichiForwarderService.prototype, "isConnected", () => true);
+  t.mock.method(KichiForwarderService.prototype, "hasValidIdentity", () => true);
+  const environment = { volumeControls: [{ type: "Music", mute: false, volume: 0 }] };
+  const requestId = "volume-ack";
+  const send = t.mock.method(KichiForwarderService.prototype, "sendEnvironmentControl", async () => ({
+    type: "kichi_environment_ack", requestId, success: true, environment,
+  }));
+  const { factory } = registeredTools.find(({ options }) => options.name === "kichi_environment");
+  const result = await factory(toolContext).execute("volume-adapter", environment);
+  assert.deepEqual(send.mock.calls.map(({ arguments: args }) => args), [[environment]]);
+  assert.deepEqual(result.details, { success: true, sent: true, requestId, environment });
+});
+
 test("Core joins, correlates requests, persists identity and bot history, and rejoins independently of OpenClaw", { timeout: 10000 }, async (t) => {
   const server = new WebSocketServer({ host: "127.0.0.1", port: 0 });
   const received = new EventEmitter();
@@ -277,9 +303,23 @@ test("Core joins, correlates requests, persists identity and bot history, and re
     musicPaused: false,
   };
   const stopAll = { ambientSoundOperations: [], ambientSoundOverwrite: true };
-  for (const [requestId, environment] of [["ambient-patch", ambientPatch], ["ambient-stop-all", stopAll]]) {
+  const volumePatch = {
+    volumeControls: [
+      { type: "Music", mute: true },
+      { type: "Global", volume: 0, mute: false },
+      { type: "AmbientSound", delta: -0.25 },
+      { type: "UISound", volume: 1.25 },
+      { type: "SceneSound", mute: true },
+      { type: "Music", delta: 0 },
+    ],
+  };
+  for (const [requestId, environment] of [
+    ["ambient-patch", ambientPatch],
+    ["ambient-stop-all", stopAll],
+    ["volume-only", volumePatch],
+  ]) {
     const sent = once(received, "kichi_environment");
-    assert.deepEqual(await service.sendEnvironmentControl(environment, requestId), {
+    assert.deepEqual(await service.sendEnvironmentControl(structuredClone(environment), requestId), {
       type: "kichi_environment_ack", requestId, success: true, environment,
     });
     assert.deepEqual((await sent)[0], {
@@ -297,6 +337,23 @@ test("Core joins, correlates requests, persists identity and bot history, and re
   }
   await assert.rejects(service.sendEnvironmentControl({ ambientSoundOverwrite: false }), /ambientSoundOverwrite/);
   await assert.rejects(service.sendEnvironmentControl({ ambientSoundOperations: [], ambientSoundOverwrite: "true" }), /ambientSoundOverwrite/);
+
+  for (const volumeControls of [
+    [],
+    null,
+    [null],
+    [{ type: "Music" }],
+    [{ type: "music", mute: true }],
+    [{ type: "Music", Mute: true }],
+    [{ type: "Music", mute: true, unexpected: false }],
+    [{ type: "Music", mute: null }],
+    [{ type: "Music", volume: "0.5" }],
+    [{ type: "Music", volume: 0, delta: 0 }],
+    [{ type: "Music", delta: 1e39 }],
+  ]) {
+    await assert.rejects(service.sendEnvironmentControl({ volumeControls }), /volumeControls/);
+  }
+  await assert.rejects(service.sendEnvironmentControl({ VolumeControls: volumePatch.volumeControls }), /volumeControls/i);
 
   const diaryText = { title: "", content: "  日记内容\n", mood: "Amaze" };
   for (const [operation, input, result] of [

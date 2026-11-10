@@ -1,5 +1,5 @@
 import { getActionDefinition, getActionPlayback } from "./catalog.js";
-import { AMBIENT_SOUND_ACTIONS, AMBIENT_SOUND_TITLES, DIARY_MOODS, ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES, } from "./types.js";
+import { AMBIENT_SOUND_ACTIONS, AMBIENT_SOUND_TITLES, DIARY_MOODS, ENVIRONMENT_TIMES, ENVIRONMENT_WEATHERS, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES, SOUND_VOLUME_TYPES, } from "./types.js";
 export const IDLE_PLAN_POMODORO_PHASES = ["focus", "shortBreak", "longBreak", "none"];
 export const AVATAR_STATUSES = ["Idle", "Busy", "Activities", "Break"];
 export function normalizeEmojiName(value) {
@@ -87,6 +87,7 @@ export function normalizeDiaryIdInput(value) {
 const ENVIRONMENT_SETTING_FIELDS = [
     "weather", "time", "lightingValue", "lightingEnabled", "ambientLightIntensity", "ambientLightEnabled",
     "musicAlbumTitle", "musicTitle", "musicPaused", "musicAction", "musicPlayType", "ambientSoundOperations",
+    "volumeControls",
 ];
 function validateAmbientSoundOperations(value) {
     if (!Array.isArray(value)) {
@@ -109,6 +110,53 @@ function validateAmbientSoundOperations(value) {
         return { title, action };
     });
 }
+const VOLUME_CONTROL_FIELDS = ["type", "mute", "volume", "delta"];
+function validateVolumeControls(value) {
+    if (!Array.isArray(value) || value.length === 0) {
+        throw new Error("volumeControls must be a non-empty array");
+    }
+    return Array.from(value, (entry, index) => {
+        const field = `volumeControls[${index}]`;
+        if (!isPlainObject(entry)) {
+            throw new Error(`${field} must be an object`);
+        }
+        const unsupportedField = Object.keys(entry).find((key) => !VOLUME_CONTROL_FIELDS.includes(key));
+        if (unsupportedField !== undefined) {
+            throw new Error(`${field}.${unsupportedField} is unsupported`);
+        }
+        const type = SOUND_VOLUME_TYPES.find((name) => name === entry.type);
+        if (type === undefined) {
+            throw new Error(`${field}.type must be one of: ${SOUND_VOLUME_TYPES.join(", ")}`);
+        }
+        const { mute, volume, delta } = entry;
+        if (mute === undefined && volume === undefined && delta === undefined) {
+            throw new Error(`${field} must contain mute, volume, or delta`);
+        }
+        if (volume !== undefined && delta !== undefined) {
+            throw new Error(`${field}.volume and ${field}.delta cannot be combined`);
+        }
+        const control = { type };
+        if (mute !== undefined) {
+            if (typeof mute !== "boolean") {
+                throw new Error(`${field}.mute must be a boolean`);
+            }
+            control.mute = mute;
+        }
+        if (volume !== undefined) {
+            if (typeof volume !== "number" || !Number.isFinite(Math.fround(volume))) {
+                throw new Error(`${field}.volume must be a finite single-precision number`);
+            }
+            control.volume = volume;
+        }
+        if (delta !== undefined) {
+            if (typeof delta !== "number" || !Number.isFinite(Math.fround(delta))) {
+                throw new Error(`${field}.delta must be a finite single-precision number`);
+            }
+            control.delta = delta;
+        }
+        return control;
+    });
+}
 export function normalizeEnvironmentControl(value) {
     if (!isPlainObject(value)) {
         throw new Error("environment must be an object");
@@ -118,7 +166,7 @@ export function normalizeEnvironmentControl(value) {
             throw new Error(`Unsupported environment field: ${key}`);
         }
     }
-    const { weather, time, lightingValue, lightingEnabled, ambientLightIntensity, ambientLightEnabled, musicAlbumTitle, musicTitle, musicPaused, musicAction, musicPlayType, ambientSoundOperations, ambientSoundOverwrite, } = value;
+    const { weather, time, lightingValue, lightingEnabled, ambientLightIntensity, ambientLightEnabled, musicAlbumTitle, musicTitle, musicPaused, musicAction, musicPlayType, ambientSoundOperations, ambientSoundOverwrite, volumeControls, } = value;
     if (ambientSoundOverwrite !== undefined && typeof ambientSoundOverwrite !== "boolean") {
         throw new Error("ambientSoundOverwrite must be a boolean");
     }
@@ -180,6 +228,7 @@ export function normalizeEnvironmentControl(value) {
             ? { ambientSoundOperations: validateAmbientSoundOperations(ambientSoundOperations) }
             : {}),
         ...(ambientSoundOverwrite !== undefined ? { ambientSoundOverwrite: ambientSoundOverwrite } : {}),
+        ...(volumeControls !== undefined ? { volumeControls: validateVolumeControls(volumeControls) } : {}),
     };
 }
 function isNonNegativeInteger(value) {
