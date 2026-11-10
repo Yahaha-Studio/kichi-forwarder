@@ -222,7 +222,7 @@ kichi_timer(action: "Stop")
 
 ### kichi_environment
 
-Change the Kichi scene's weather, time, House lighting, independent ambient light, music, or ambient sounds.
+Change the Kichi scene's weather, time, House lighting, independent ambient light, music, ambient sounds, volume, or mute settings.
 
 ```text
 kichi_environment(weather: "Rainy", time: "Evening")
@@ -232,6 +232,8 @@ kichi_environment(ambientLightIntensity: 1.5, ambientLightEnabled: true)
 kichi_environment(musicAction: "Next", musicPlayType: "Random")
 kichi_environment(ambientSoundOperations: [{title: "Light Rain", action: "Play"}, {title: "Wind", action: "Stop"}])
 kichi_environment(ambientSoundOperations: [], ambientSoundOverwrite: true)
+kichi_environment(volumeControls: [{type: "Music", volume: 0.4, mute: false}, {type: "UISound", mute: true}])
+kichi_environment(volumeControls: [{type: "Global", delta: -0.1}])
 ```
 
 - `weather`: optional. `Sunny`, `Cloudy`, `Rainy`, or `Snowy`.
@@ -246,6 +248,7 @@ kichi_environment(ambientSoundOperations: [], ambientSoundOverwrite: true)
 - `musicAlbumTitle` / `musicTitle`: optional music selection strings. Use exact names; tool descriptions list known built-in catalog `album` / `name` values, and user-curated albums and tracks can also use their actual exact names. Strings are trimmed and must be non-empty. Provide either or both. Either selection field excludes `musicPaused` (including `false`) and `musicAction`, but may accompany `musicPlayType`.
 - `ambientSoundOperations`: optional array of `{title, action}` entries. Use only for an explicit ambient sound request. Use exact titles from the tool schema and case-sensitive actions `Play` or `Stop`. If a title appears more than once, its last action wins.
 - `ambientSoundOverwrite`: optional boolean that requires `ambientSoundOperations`. By default, only listed sounds change. Set it to `true` to keep only sounds whose final action is `Play`. Use `true` with an empty array to stop all ambient sounds.
+- `volumeControls` takes a non-empty array only for explicit volume or mute requests. Use the case-sensitive types `Global`, `Music`, `AmbientSound`, `UISound`, and `SceneSound`. Each entry requires `type` and at least one of `mute`, `volume`, or `delta`. Use `volume` for an absolute level such as `0` or `0.4`, or a signed `delta` such as `-0.1` for a relative change. Supply at most one of `volume` and `delta` per entry. The game client clamps the result to 0–1. Pass `mute: true` to mute or `mute: false` to unmute. Volume changes preserve mute when `mute` is omitted. For repeated types, the last entry replaces the entire earlier entry.
 - Provide at least one setting. The server checks session ownership and forwards changes to the avatar owner's online game client.
 - `sent: true` confirms server forwarding only.
 

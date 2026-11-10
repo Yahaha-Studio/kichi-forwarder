@@ -753,7 +753,7 @@
       "definition": {
         "name": "kichi_environment",
         "label": "kichi_environment",
-        "description": "Change the Kichi scene's weather, time, House lighting, ambient light, music playback, or ambient sounds. Provide at least one setting. Change ambient sounds only at the user's explicit request. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. Requires the avatar owner's game client to be online. Success means the server forwarded the change. Known built-in album and track names: [{\"albumTitle\":\"Dusty Bookshelves\",\"musicTitles\":[\"A moment of calm\",\"Closed Love\",\"In That Mood\",\"Let It Happen\",\"Memories forever\",\"Outer Space\",\"Spiritual world\"]},{\"albumTitle\":\"Late Night Coder\",\"musicTitles\":[\"Calm Time\",\"Counting the Stars\",\"Deserted landscape\",\"Dog Days\",\"It Was an Unpleasant Incident\",\"The Dark Eternal Night\"]},{\"albumTitle\":\"Midnight Cyber-Transit\",\"musicTitles\":[\"Afterimage Metaphor\",\"I keep looking at the floor\",\"Interstellar matter\",\"Special To Me\",\"Specification\"]},{\"albumTitle\":\"Morning Dew & Drip Coffee\",\"musicTitles\":[\"Daytime activities\",\"Enjoy the rest of your day\",\"Entertainment Committee\",\"Heavy Rain\",\"Lovely Day\",\"Relax in the shade\",\"Spring is a nap\",\"Warm tea time\"]},{\"albumTitle\":\"Nostalgic Frequencies\",\"musicTitles\":[\"Full of Energy\",\"Someday in the Rain\",\"Still in Love\",\"Trace\",\"Water Town\"]},{\"albumTitle\":\"Overgrown Ruins\",\"musicTitles\":[\"Blank and Silence\",\"Darkness of the New Moon\",\"Flowers that Bloom in Sadness\",\"The Price of Mistakes\"]},{\"albumTitle\":\"Raindrops on the Windowpane\",\"musicTitles\":[\"A little love there\",\"Beside You\",\"Blue Star\",\"I want to get to know you\",\"Passing each other\",\"Pieces of a Dream\",\"Puzzle\",\"The meaning of tears\"]},{\"albumTitle\":\"Sunday Laundry\",\"musicTitles\":[\"Abandoned cat in the Rain\",\"Fairy Forest\",\"In the sunlight filtering through the trees\",\"Perfect Weather for a Walk\",\"Rural Prairie\",\"Spring Classroom\"]},{\"albumTitle\":\"Sunset at the Pier\",\"musicTitles\":[\"Deep Sea Passage\",\"Memory\",\"Smiles and Tears\",\"Surrounded by Silence\"]},{\"albumTitle\":\"Zenith Garden\",\"musicTitles\":[\"Cold Sweat\",\"Hometown Sunset\",\"Nostalgia\",\"Reverie\",\"Water Cave\"]}]. Other available albums and tracks, including custom albums, can also be selected by exact name.",
+        "description": "Change the Kichi scene's weather, time, House lighting, ambient light, music playback, ambient sounds, or volume and mute settings. Provide at least one setting. Change ambient sounds, volume, or mute settings only at the user's explicit request. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. Requires the avatar owner's game client to be online. Success means the server forwarded the change. Known built-in album and track names: [{\"albumTitle\":\"Dusty Bookshelves\",\"musicTitles\":[\"A moment of calm\",\"Closed Love\",\"In That Mood\",\"Let It Happen\",\"Memories forever\",\"Outer Space\",\"Spiritual world\"]},{\"albumTitle\":\"Late Night Coder\",\"musicTitles\":[\"Calm Time\",\"Counting the Stars\",\"Deserted landscape\",\"Dog Days\",\"It Was an Unpleasant Incident\",\"The Dark Eternal Night\"]},{\"albumTitle\":\"Midnight Cyber-Transit\",\"musicTitles\":[\"Afterimage Metaphor\",\"I keep looking at the floor\",\"Interstellar matter\",\"Special To Me\",\"Specification\"]},{\"albumTitle\":\"Morning Dew & Drip Coffee\",\"musicTitles\":[\"Daytime activities\",\"Enjoy the rest of your day\",\"Entertainment Committee\",\"Heavy Rain\",\"Lovely Day\",\"Relax in the shade\",\"Spring is a nap\",\"Warm tea time\"]},{\"albumTitle\":\"Nostalgic Frequencies\",\"musicTitles\":[\"Full of Energy\",\"Someday in the Rain\",\"Still in Love\",\"Trace\",\"Water Town\"]},{\"albumTitle\":\"Overgrown Ruins\",\"musicTitles\":[\"Blank and Silence\",\"Darkness of the New Moon\",\"Flowers that Bloom in Sadness\",\"The Price of Mistakes\"]},{\"albumTitle\":\"Raindrops on the Windowpane\",\"musicTitles\":[\"A little love there\",\"Beside You\",\"Blue Star\",\"I want to get to know you\",\"Passing each other\",\"Pieces of a Dream\",\"Puzzle\",\"The meaning of tears\"]},{\"albumTitle\":\"Sunday Laundry\",\"musicTitles\":[\"Abandoned cat in the Rain\",\"Fairy Forest\",\"In the sunlight filtering through the trees\",\"Perfect Weather for a Walk\",\"Rural Prairie\",\"Spring Classroom\"]},{\"albumTitle\":\"Sunset at the Pier\",\"musicTitles\":[\"Deep Sea Passage\",\"Memory\",\"Smiles and Tears\",\"Surrounded by Silence\"]},{\"albumTitle\":\"Zenith Garden\",\"musicTitles\":[\"Cold Sweat\",\"Hometown Sunset\",\"Nostalgia\",\"Reverie\",\"Water Cave\"]}]. Other available albums and tracks, including custom albums, can also be selected by exact name.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -883,6 +883,43 @@
             "ambientSoundOverwrite": {
               "type": "boolean",
               "description": "Requires ambientSoundOperations. Omit or use false to change only the listed sounds. Use true to keep only sounds whose final operation is Play. To stop all ambient sounds, use true with an empty operations array."
+            },
+            "volumeControls": {
+              "type": "array",
+              "minItems": 1,
+              "description": "Change volume or mute by sound type. Each entry requires at least one of mute, volume, or delta. Volume and delta are mutually exclusive. The last entry for each type replaces its earlier entries in full.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "Global",
+                      "Music",
+                      "AmbientSound",
+                      "UISound",
+                      "SceneSound"
+                    ],
+                    "description": "Case-sensitive sound type. Global controls the master volume and mute."
+                  },
+                  "mute": {
+                    "type": "boolean",
+                    "description": "True mutes and false unmutes. Omit to preserve the mute setting."
+                  },
+                  "volume": {
+                    "type": "number",
+                    "description": "Absolute volume on a 0 to 1 scale. The game client clamps the result to this range."
+                  },
+                  "delta": {
+                    "type": "number",
+                    "description": "Signed change to the current volume on the same scale. The game client clamps the result to 0 to 1."
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
             }
           }
         }

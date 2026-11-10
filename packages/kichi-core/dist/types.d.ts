@@ -160,6 +160,7 @@ export declare const ENVIRONMENT_WEATHERS: readonly ["Sunny", "Cloudy", "Rainy",
 export declare const ENVIRONMENT_TIMES: readonly ["Auto", "Morning", "Day", "Evening", "Night"];
 export declare const MUSIC_ACTIONS: readonly ["Next", "Previous"];
 export declare const MUSIC_PLAY_TYPES: readonly ["Loop", "Random"];
+export declare const SOUND_VOLUME_TYPES: readonly ["Global", "Music", "AmbientSound", "UISound", "SceneSound"];
 export declare const AMBIENT_SOUND_ACTIONS: readonly ["Play", "Stop"];
 export declare const AMBIENT_SOUND_TITLES: readonly ["Birds", "Forest", "Frog", "Cicadas", "Insects", "Breeze", "Wind", "Light Rain", "Heavy Rain", "Rain with Thunder", "Waves", "River", "Traffic", "Cosmos", "Campfire", "Wind Chime", "Clock", "White Noise", "Pink Noise", "Airplane", "Waterfall", "Fan", "Train", "Steps on Snow"];
 export type EnvironmentWeather = typeof ENVIRONMENT_WEATHERS[number];
@@ -169,6 +170,14 @@ export type MusicPlayType = typeof MUSIC_PLAY_TYPES[number];
 export type AmbientSoundOperation = {
     title: typeof AMBIENT_SOUND_TITLES[number];
     action: typeof AMBIENT_SOUND_ACTIONS[number];
+};
+export type SoundVolumeControl = {
+    type: typeof SOUND_VOLUME_TYPES[number];
+    mute?: boolean;
+    /** Absolute volume on a 0 to 1 scale. Incompatible with delta. */
+    volume?: number;
+    /** Signed change on the same scale. Incompatible with volume. */
+    delta?: number;
 };
 export type EnvironmentControl = {
     weather?: EnvironmentWeather;
@@ -192,6 +201,8 @@ export type EnvironmentControl = {
     ambientSoundOperations?: AmbientSoundOperation[];
     /** Requires ambientSoundOperations. True keeps only sounds whose final operation is Play. */
     ambientSoundOverwrite?: boolean;
+    /** Non-empty array. The last entry for each sound type replaces all earlier entries of that type. */
+    volumeControls?: SoundVolumeControl[];
 };
 export type EnvironmentControlPayload = {
     type: "kichi_environment";

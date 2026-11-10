@@ -125,6 +125,8 @@ Hook 由任务的 Shell 执行，Windows App 中可能是 PowerShell。启动命
 
 所有操作直接调用远端 `tools/list` 返回的独立 `kichi_*` 工具，参数放在 `request` 内，具体字段和动作目录以服务端 schema 为准。使用 `kichi_leave({ request: { avatarId } })` 显式离开。房间天气、时间、灯光与音乐属于房间操作，和 MCP server URL 的环境选择无关。
 
+远端 `kichi_environment` 支持 `volumeControls` 时，可以设置音量、相对调节音量或切换静音。比如在 `request` 内传入 `volumeControls: [{ type: "Music", volume: 0.4, mute: false }]`，将音乐音量设为 40% 并取消静音。按远端 schema 提供角色字段。功能需要服务端和游戏客户端支持，成功结果表示服务端已转发。
+
 用户待办和日常习惯也通过服务端动态发现的工具操作，无需在 Codex 插件中重复定义 schema 或分发逻辑。`kichi_todo_task_*` 支持待办的查询、创建、更新、排序、完成和删除；`kichi_routine_*` 支持日常习惯的查询、创建、删除和批量更新。这里的 task/routine 管理用户待办、习惯及打卡日期，不负责自动执行调度，与 MCP 的异步任务执行协议和 KichiClaw 专属日程功能分别独立。
 
 待办和日常习惯的写入要求用户游戏客户端在线，且所选角色不是 injected 类型。待办更新需提供完整的 `title` 和 `colorIndex`，省略或传入 null 的 `deadline` 会清空截止时间。routine 日期使用 `yyyy-MM-dd`；指定非空日期数组时必须同时提供 `timeZoneId`，批量更新每项都必须提供 `datesToAdd` 和 `datesToRemove`，没有变化时传空数组。用户要求完成待办时调用 `kichi_todo_task_complete`，要求删除时调用 `kichi_todo_task_delete`，两者均使用任务 `id`。完成操作当前会从待办列表移除任务，不保留已完成状态，也没有取消完成入口。

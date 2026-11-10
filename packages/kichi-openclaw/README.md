@@ -67,7 +67,7 @@ To stop recurring actions, remove the Kichi heartbeat section. To revoke the ext
 - Directly control the Kichi avatar's poses and actions
 - Briefly glance toward the camera when you directly ask from chat
 - Show a supported head emoji with `kichi_emoji`; the server confirms forwarding, while client rendering remains unconfirmed
-- Change scene weather, time, House lighting, independent ambient light, music, and ambient sounds with `kichi_environment`. The server checks session ownership and forwards the change to the avatar owner's online game client. `sent: true` confirms forwarding only.
+- Change scene weather, time, House lighting, independent ambient light, music, ambient sounds, volume, and mute settings with `kichi_environment`. The server checks session ownership and forwards the change to the avatar owner's online game client. `sent: true` confirms forwarding only.
 - Show activity in Kichi with actions, bubbles, logs, and timers
 - Leave notes for you on Kichi note boards
 - List, create, edit, reorder, complete, and delete Kichi todo tasks, and manage routines and their check-in dates
@@ -79,6 +79,8 @@ To stop recurring actions, remove the Kichi heartbeat section. To revoke the ext
 For `kichi_environment`, `lightingValue` controls House lights from `0.1` to `2`; `ambientLightIntensity` accepts a finite number from `0.5` to `3`, and `ambientLightEnabled` is the independent ambient-light boolean switch. Select music with `musicAlbumTitle`, `musicTitle`, or both using exact names. Tool descriptions list known built-in catalog `album`/`name` values; user-curated albums and tracks can also be selected by their actual exact names. Selection strings are trimmed and must be non-empty. Either selection field excludes `musicPaused` (including `false`) and `musicAction`, but may be combined with `musicPlayType` (`Loop`/`Random`).
 
 Use `ambientSoundOperations` when the user explicitly asks to change ambient sounds. Each entry uses an exact title from the tool schema and the case-sensitive action `Play` or `Stop`. If a title appears more than once, its last action wins. By default, only listed sounds change. Set `ambientSoundOverwrite: true` to keep only the sounds whose final action is `Play`. The overwrite field requires the operations array. Pass an empty array with overwrite enabled to stop all ambient sounds.
+
+Use `volumeControls` when the user explicitly asks to adjust volume or mute. Pass a non-empty array of entries with a case-sensitive `type` from `Global`, `Music`, `AmbientSound`, `UISound`, and `SceneSound`. Each entry needs at least one of `mute`, `volume`, or `delta`. Use `volume` to set the level or a signed `delta` to adjust it, with at most one per entry. The game client clamps the result to 0–1. Omitting `mute` preserves its setting. For repeated types, the last entry replaces the entire earlier entry. For example, `kichi_environment({ volumeControls: [{ type: "Music", volume: 0.4, mute: false }] })` sets music volume to 40% and unmutes it. Volume control requires support in both the server and game client.
 
 ## Player Timers
 

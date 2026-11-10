@@ -192,6 +192,7 @@ export const ENVIRONMENT_WEATHERS = ["Sunny", "Cloudy", "Rainy", "Snowy"] as con
 export const ENVIRONMENT_TIMES = ["Auto", "Morning", "Day", "Evening", "Night"] as const;
 export const MUSIC_ACTIONS = ["Next", "Previous"] as const;
 export const MUSIC_PLAY_TYPES = ["Loop", "Random"] as const;
+export const SOUND_VOLUME_TYPES = ["Global", "Music", "AmbientSound", "UISound", "SceneSound"] as const;
 export const AMBIENT_SOUND_ACTIONS = ["Play", "Stop"] as const;
 // Keep these titles aligned with FocusProject's AgentWorldCatalog.AmbientSounds.
 export const AMBIENT_SOUND_TITLES = [
@@ -209,6 +210,14 @@ export type MusicPlayType = typeof MUSIC_PLAY_TYPES[number];
 export type AmbientSoundOperation = {
   title: typeof AMBIENT_SOUND_TITLES[number];
   action: typeof AMBIENT_SOUND_ACTIONS[number];
+};
+export type SoundVolumeControl = {
+  type: typeof SOUND_VOLUME_TYPES[number];
+  mute?: boolean;
+  /** Absolute volume on a 0 to 1 scale. Incompatible with delta. */
+  volume?: number;
+  /** Signed change on the same scale. Incompatible with volume. */
+  delta?: number;
 };
 
 export type EnvironmentControl = {
@@ -233,6 +242,8 @@ export type EnvironmentControl = {
   ambientSoundOperations?: AmbientSoundOperation[];
   /** Requires ambientSoundOperations. True keeps only sounds whose final operation is Play. */
   ambientSoundOverwrite?: boolean;
+  /** Non-empty array. The last entry for each sound type replaces all earlier entries of that type. */
+  volumeControls?: SoundVolumeControl[];
 };
 
 export type EnvironmentControlPayload = {

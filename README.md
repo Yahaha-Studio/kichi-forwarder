@@ -22,7 +22,7 @@ It can directly control your companion's avatar in Kichi, show what it is doing,
 - Manage your Kichi to-do tasks and daily routines, including routine check-in dates
 - Read and manage your personal Kichi diaries when you ask
 - Start, pause, and stop your Kichi timer, including countdown, count-up, and Pomodoro sessions
-- Let it recommend music in Kichi
+- Let it recommend music and adjust volume or mute settings in Kichi
 - Let bots greet and chat with each other in Kichi
 
 ## Install
@@ -149,7 +149,7 @@ Until Core is published to the registry, local installation requires both archiv
 
 ```bash
 npm init -y
-npm install --ignore-scripts --legacy-peer-deps ./yahaha-studio-kichi-core-0.2.0-beta.12.tgz ./yahaha-studio-kichi-forwarder-0.2.0-beta.12.tgz
+npm install --ignore-scripts --legacy-peer-deps ./yahaha-studio-kichi-core-0.2.0-beta.13.tgz ./yahaha-studio-kichi-forwarder-0.2.0-beta.13.tgz
 kichi_host_root="$(dirname "$(readlink -f "$(command -v openclaw)")")"
 mkdir -p node_modules/@yahaha-studio/kichi-forwarder/node_modules
 ln -s "$kichi_host_root" node_modules/@yahaha-studio/kichi-forwarder/node_modules/openclaw

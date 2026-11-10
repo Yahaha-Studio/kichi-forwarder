@@ -7,7 +7,7 @@ import {
   IDLE_PLAN_POMODORO_PHASES, AVATAR_STATUSES, normalizeJoinTags, isClockAction, normalizeAvatarStatus, normalizeIdlePlan, normalizeClockConfig,
   PRESENCE_SCOPES, parseMateDailySchedule, isPresenceScope, resolveMateDailySchedule,
   ENVIRONMENT_WEATHERS, ENVIRONMENT_TIMES, KICHI_EMOJI_NAMES, MUSIC_ACTIONS, MUSIC_PLAY_TYPES,
-  AMBIENT_SOUND_ACTIONS, AMBIENT_SOUND_TITLES, DIARY_MOODS,
+  AMBIENT_SOUND_ACTIONS, AMBIENT_SOUND_TITLES, SOUND_VOLUME_TYPES, DIARY_MOODS,
 } from "@yahaha-studio/kichi-core";
 import type {
   ActionPlayback, ClockConfig, MateDailySchedule, PoseType, PresenceScope, QueryStatusResultPayload, TimerControl,
@@ -1193,7 +1193,7 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
     name: "kichi_environment",
     label: "kichi_environment",
     description:
-      "Change the Kichi scene's weather, time, House lighting, ambient light, music playback, or ambient sounds. Provide at least one setting. Change ambient sounds only at the user's explicit request. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. Requires the avatar owner's game client to be online. Success means the server forwarded the change. " +
+      "Change the Kichi scene's weather, time, House lighting, ambient light, music playback, ambient sounds, or volume and mute settings. Provide at least one setting. Change ambient sounds, volume, or mute settings only at the user's explicit request. musicAlbumTitle and/or musicTitle select music by exact name; selection cannot be combined with musicPaused (including false) or musicAction, but can be combined with musicPlayType. musicAction selects the next or previous track; musicPlayType selects sequential or random playback. Requires the avatar owner's game client to be online. Success means the server forwarded the change. " +
       `Known built-in album and track names: ${JSON.stringify(getMusicSelectionCatalog())}. Other available albums and tracks, including custom albums, can also be selected by exact name.`,
     parameters: {
       type: "object",
@@ -1276,6 +1276,35 @@ export function registerPluginTools(api: OpenClawPluginApi, runtimeManager: Kich
         ambientSoundOverwrite: {
           type: "boolean",
           description: "Requires ambientSoundOperations. Omit or use false to change only the listed sounds. Use true to keep only sounds whose final operation is Play. To stop all ambient sounds, use true with an empty operations array.",
+        },
+        volumeControls: {
+          type: "array",
+          minItems: 1,
+          description: "Change volume or mute by sound type. Each entry requires at least one of mute, volume, or delta. Volume and delta are mutually exclusive. The last entry for each type replaces its earlier entries in full.",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              type: {
+                type: "string",
+                enum: [...SOUND_VOLUME_TYPES],
+                description: "Case-sensitive sound type. Global controls the master volume and mute.",
+              },
+              mute: {
+                type: "boolean",
+                description: "True mutes and false unmutes. Omit to preserve the mute setting.",
+              },
+              volume: {
+                type: "number",
+                description: "Absolute volume on a 0 to 1 scale. The game client clamps the result to this range.",
+              },
+              delta: {
+                type: "number",
+                description: "Signed change to the current volume on the same scale. The game client clamps the result to 0 to 1.",
+              },
+            },
+            required: ["type"],
+          },
         },
       },
     },
