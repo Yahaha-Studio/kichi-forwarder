@@ -2,6 +2,14 @@
 	"actions": {
 		"stand": [
 			{
+				"name": "Idle",
+				"playback": "loop"
+			},
+			{
+				"name": "March in Place",
+				"playback": "loop"
+			},
+			{
 				"name": "High Five",
 				"playback": "once",
 				"resumeAction": "Idle Backup Hands"
@@ -144,11 +152,6 @@
 			{
 				"name": "Crazy",
 				"playback": "loop"
-			},
-			{
-				"name": "Hand Cramp",
-				"playback": "once",
-				"resumeAction": "Sit Nicely"
 			},
 			{
 				"name": "Dozing",
